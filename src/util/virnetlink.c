@@ -33,6 +33,7 @@
 #include "virthread.h"
 #include "virmacaddr.h"
 #include "virerror.h"
+#include "viralloc.h"
 
 #define VIR_FROM_THIS VIR_FROM_NET
 
@@ -63,7 +64,7 @@ typedef struct nl_handle virNetlinkHandle;
 typedef struct nl_sock virNetlinkHandle;
 # endif
 
-VIR_DEFINE_AUTOPTR_FUNC(virNetlinkHandle, virNetlinkFree)
+VIR_DEFINE_AUTOPTR_FUNC(virNetlinkHandle, virNetlinkFree);
 
 typedef struct _virNetlinkEventSrvPrivate virNetlinkEventSrvPrivate;
 typedef virNetlinkEventSrvPrivate *virNetlinkEventSrvPrivatePtr;

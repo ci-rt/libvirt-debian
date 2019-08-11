@@ -120,7 +120,7 @@ virStorageVolObjOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virStorageVolObj)
+VIR_ONCE_GLOBAL_INIT(virStorageVolObj);
 
 
 static virStorageVolObjPtr
@@ -211,7 +211,7 @@ virStoragePoolObjOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virStoragePoolObj)
+VIR_ONCE_GLOBAL_INIT(virStoragePoolObj);
 
 
 virStoragePoolObjPtr
@@ -1579,25 +1579,23 @@ virStoragePoolObjLoad(virStoragePoolObjListPtr pools,
                       const char *path,
                       const char *autostartLink)
 {
-    virStoragePoolDefPtr def;
     virStoragePoolObjPtr obj;
+    VIR_AUTOPTR(virStoragePoolDef) def = NULL;
 
     if (!(def = virStoragePoolDefParseFile(path)))
         return NULL;
 
-    if (!virFileMatchesNameSuffix(file, def->name, ".xml")) {
+    if (!virStringMatchesNameSuffix(file, def->name, ".xml")) {
         virReportError(VIR_ERR_XML_ERROR,
                        _("Storage pool config filename '%s' does "
                          "not match pool name '%s'"),
                        path, def->name);
-        virStoragePoolDefFree(def);
         return NULL;
     }
 
-    if (!(obj = virStoragePoolObjAssignDef(pools, def, false))) {
-        virStoragePoolDefFree(def);
+    if (!(obj = virStoragePoolObjAssignDef(pools, def, false)))
         return NULL;
-    }
+    def = NULL;
 
     VIR_FREE(obj->configFile);  /* for driver reload */
     if (VIR_STRDUP(obj->configFile, path) < 0) {
@@ -1625,39 +1623,40 @@ virStoragePoolObjLoadState(virStoragePoolObjListPtr pools,
                            const char *name)
 {
     char *stateFile = NULL;
-    virStoragePoolDefPtr def = NULL;
     virStoragePoolObjPtr obj = NULL;
     xmlDocPtr xml = NULL;
     xmlXPathContextPtr ctxt = NULL;
     xmlNodePtr node = NULL;
+    VIR_AUTOPTR(virStoragePoolDef) def = NULL;
 
     if (!(stateFile = virFileBuildPath(stateDir, name, ".xml")))
-        goto error;
+        return NULL;
 
     if (!(xml = virXMLParseCtxt(stateFile, NULL, _("(pool state)"), &ctxt)))
-        goto error;
+        goto cleanup;
 
     if (!(node = virXPathNode("//pool", ctxt))) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Could not find any 'pool' element in state file"));
-        goto error;
+        goto cleanup;
     }
 
     ctxt->node = node;
     if (!(def = virStoragePoolDefParseXML(ctxt)))
-        goto error;
+        goto cleanup;
 
     if (STRNEQ(name, def->name)) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Storage pool state file '%s' does not match "
                          "pool name '%s'"),
                        stateFile, def->name);
-        goto error;
+        goto cleanup;
     }
 
     /* create the object */
     if (!(obj = virStoragePoolObjAssignDef(pools, def, true)))
-        goto error;
+        goto cleanup;
+    def = NULL;
 
     /* XXX: future handling of some additional useful status data,
      * for now, if a status file for a pool exists, the pool will be marked
@@ -1671,10 +1670,6 @@ virStoragePoolObjLoadState(virStoragePoolObjListPtr pools,
     xmlFreeDoc(xml);
     xmlXPathFreeContext(ctxt);
     return obj;
-
- error:
-    virStoragePoolDefFree(def);
-    goto cleanup;
 }
 
 
@@ -1693,7 +1688,7 @@ virStoragePoolObjLoadAllState(virStoragePoolObjListPtr pools,
     while ((ret = virDirRead(dir, &entry, stateDir)) > 0) {
         virStoragePoolObjPtr obj;
 
-        if (!virFileStripSuffix(entry->d_name, ".xml"))
+        if (!virStringStripSuffix(entry->d_name, ".xml"))
             continue;
 
         if (!(obj = virStoragePoolObjLoadState(pools, stateDir, entry->d_name)))
@@ -1724,7 +1719,7 @@ virStoragePoolObjLoadAllConfigs(virStoragePoolObjListPtr pools,
         char *autostartLink;
         virStoragePoolObjPtr obj;
 
-        if (!virFileHasSuffix(entry->d_name, ".xml"))
+        if (!virStringHasSuffix(entry->d_name, ".xml"))
             continue;
 
         if (!(path = virFileBuildPath(configDir, entry->d_name, NULL)))

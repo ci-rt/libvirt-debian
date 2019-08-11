@@ -831,6 +831,12 @@ typedef enum {
      */
     VIR_MIGRATE_TLS               = (1 << 16),
 
+    /* Send memory pages to the destination host through several network
+     * connections. See VIR_MIGRATE_PARAM_PARALLEL_* parameters for
+     * configuring the parallel migration.
+     */
+    VIR_MIGRATE_PARALLEL          = (1 << 17),
+
 } virDomainMigrateFlags;
 
 
@@ -902,6 +908,15 @@ typedef enum {
  * feature and will return an error if this field is used and is not 0.
  */
 # define VIR_MIGRATE_PARAM_BANDWIDTH         "bandwidth"
+
+/**
+ * VIR_MIGRATE_PARAM_BANDWIDTH_POSTCOPY:
+ *
+ * virDomainMigrate* params field: the maximum bandwidth (in MiB/s) that will
+ * be used for post-copy phase of a migration as VIR_TYPED_PARAM_ULLONG. If set
+ * to 0 or omitted, post-copy migration speed will not be limited.
+ */
+# define VIR_MIGRATE_PARAM_BANDWIDTH_POSTCOPY "bandwidth.postcopy"
 
 /**
  * VIR_MIGRATE_PARAM_GRAPHICS_URI:
@@ -1016,6 +1031,14 @@ typedef enum {
  */
 # define VIR_MIGRATE_PARAM_AUTO_CONVERGE_INCREMENT  "auto_converge.increment"
 
+/**
+ * VIR_MIGRATE_PARAM_PARALLEL_CONNECTIONS:
+ *
+ * virDomainMigrate* params field: number of connections used during parallel
+ * migration. As VIR_TYPED_PARAM_INT.
+ */
+# define VIR_MIGRATE_PARAM_PARALLEL_CONNECTIONS     "parallel.connections"
+
 /* Domain migration. */
 virDomainPtr virDomainMigrate (virDomainPtr domain, virConnectPtr dconn,
                                unsigned long flags, const char *dname,
@@ -1061,6 +1084,12 @@ int virDomainMigrateGetCompressionCache(virDomainPtr domain,
 int virDomainMigrateSetCompressionCache(virDomainPtr domain,
                                         unsigned long long cacheSize,
                                         unsigned int flags);
+
+/* Domain migration speed flags. */
+typedef enum {
+    /* Set or get maximum speed of post-copy migration. */
+    VIR_DOMAIN_MIGRATE_MAX_SPEED_POSTCOPY = (1 << 0),
+} virDomainMigrateMaxSpeedFlags;
 
 int virDomainMigrateSetMaxSpeed(virDomainPtr domain,
                                 unsigned long bandwidth,
@@ -1204,6 +1233,7 @@ int                     virDomainRestoreFlags   (virConnectPtr conn,
                                                  const char *dxml,
                                                  unsigned int flags);
 
+/* See below for virDomainSaveImageXMLFlags */
 char *          virDomainSaveImageGetXMLDesc    (virConnectPtr conn,
                                                  const char *file,
                                                  unsigned int flags);
@@ -1555,6 +1585,10 @@ typedef enum {
     VIR_DOMAIN_XML_UPDATE_CPU   = (1 << 2), /* update guest CPU requirements according to host CPU */
     VIR_DOMAIN_XML_MIGRATABLE   = (1 << 3), /* dump XML suitable for migration */
 } virDomainXMLFlags;
+
+typedef enum {
+    VIR_DOMAIN_SAVE_IMAGE_XML_SECURE         = VIR_DOMAIN_XML_SECURE, /* dump security sensitive information too */
+} virDomainSaveImageXMLFlags;
 
 char *                  virDomainGetXMLDesc     (virDomainPtr domain,
                                                  unsigned int flags);
@@ -2375,7 +2409,8 @@ int virDomainSetPerfEvents(virDomainPtr dom,
  * Describes various possible block jobs.
  */
 typedef enum {
-    VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN = 0, /* Placeholder */
+    /* Placeholder */
+    VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN = 0,
 
     /* Block Pull (virDomainBlockPull, or virDomainBlockRebase without
      * flags), job ends on completion */

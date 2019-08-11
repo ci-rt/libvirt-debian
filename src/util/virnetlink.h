@@ -22,7 +22,7 @@
 
 # include "internal.h"
 # include "virmacaddr.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 # if defined(__linux__) && defined(HAVE_LIBNL)
 
@@ -37,7 +37,7 @@
 #  endif
 
 typedef struct nl_msg virNetlinkMsg;
-VIR_DEFINE_AUTOPTR_FUNC(virNetlinkMsg, nlmsg_free)
+VIR_DEFINE_AUTOPTR_FUNC(virNetlinkMsg, nlmsg_free);
 
 # else
 

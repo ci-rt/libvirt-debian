@@ -124,7 +124,7 @@ static int virHostdevManagerOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virHostdevManager)
+VIR_ONCE_GLOBAL_INIT(virHostdevManager);
 
 static void
 virHostdevManagerDispose(void *obj)
@@ -314,7 +314,7 @@ virHostdevNetDevice(virDomainHostdevDefPtr hostdev,
         if (virPCIGetNetName(sysfs_path, 0, NULL, linkdev) < 0)
             return -1;
 
-        if (!linkdev) {
+        if (!(*linkdev)) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("The device at %s has no network device name"),
                            sysfs_path);
@@ -333,8 +333,7 @@ virHostdevIsPCINetDevice(virDomainHostdevDefPtr hostdev)
 {
     return hostdev->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
         hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI &&
-        hostdev->parent.type == VIR_DOMAIN_DEVICE_NET &&
-        hostdev->parent.data.net;
+        hostdev->parentnet != NULL;
 }
 
 
@@ -427,7 +426,7 @@ virHostdevSaveNetConfig(virDomainHostdevDefPtr hostdev,
     int vf = -1;
 
     if (!virHostdevIsPCINetDevice(hostdev) ||
-        virDomainNetGetActualVirtPortProfile(hostdev->parent.data.net))
+        virDomainNetGetActualVirtPortProfile(hostdev->parentnet))
        return 0;
 
     if (virHostdevIsVirtualFunction(hostdev) != 1) {
@@ -474,8 +473,8 @@ virHostdevSetNetConfig(virDomainHostdevDefPtr hostdev,
     if (virHostdevNetDevice(hostdev, -1, &linkdev, &vf) < 0)
         return -1;
 
-    vlan = virDomainNetGetActualVlan(hostdev->parent.data.net);
-    virtPort = virDomainNetGetActualVirtPortProfile(hostdev->parent.data.net);
+    vlan = virDomainNetGetActualVlan(hostdev->parentnet);
+    virtPort = virDomainNetGetActualVirtPortProfile(hostdev->parentnet);
     if (virtPort) {
         if (vlan) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -485,11 +484,11 @@ virHostdevSetNetConfig(virDomainHostdevDefPtr hostdev,
             return -1;
         }
         if (virHostdevNetConfigVirtPortProfile(linkdev, vf, virtPort,
-                                               &hostdev->parent.data.net->mac,
+                                               &hostdev->parentnet->mac,
                                                uuid, port_profile_associate) < 0)
             return -1;
     } else {
-        if (virNetDevSetNetConfig(linkdev, vf, &hostdev->parent.data.net->mac,
+        if (virNetDevSetNetConfig(linkdev, vf, &hostdev->parentnet->mac,
                                   vlan, NULL, true) < 0)
             return -1;
     }
@@ -535,10 +534,10 @@ virHostdevRestoreNetConfig(virDomainHostdevDefPtr hostdev,
     if (virHostdevNetDevice(hostdev, 0, &linkdev, &vf) < 0)
         return -1;
 
-    virtPort = virDomainNetGetActualVirtPortProfile(hostdev->parent.data.net);
+    virtPort = virDomainNetGetActualVirtPortProfile(hostdev->parentnet);
     if (virtPort) {
         return virHostdevNetConfigVirtPortProfile(linkdev, vf, virtPort,
-                                                  &hostdev->parent.data.net->mac,
+                                                  &hostdev->parentnet->mac,
                                                   NULL,
                                                   port_profile_associate);
     } else {

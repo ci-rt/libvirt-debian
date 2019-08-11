@@ -51,7 +51,7 @@ virNWFilterBindingObjOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virNWFilterBindingObj)
+VIR_ONCE_GLOBAL_INIT(virNWFilterBindingObj);
 
 virNWFilterBindingObjPtr
 virNWFilterBindingObjNew(void)
@@ -85,6 +85,16 @@ virNWFilterBindingObjSetDef(virNWFilterBindingObjPtr obj,
 {
     virNWFilterBindingDefFree(obj->def);
     obj->def = def;
+}
+
+
+virNWFilterBindingDefPtr
+virNWFilterBindingObjStealDef(virNWFilterBindingObjPtr obj)
+{
+    virNWFilterBindingDefPtr def;
+
+    VIR_STEAL_PTR(def, obj->def);
+    return def;
 }
 
 

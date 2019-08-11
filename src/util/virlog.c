@@ -76,8 +76,10 @@ static char virLogHostname[HOST_NAME_MAX+1];
     VIR_LOG_PID_REGEX ": " VIR_LOG_LEVEL_REGEX " : "
 
 VIR_ENUM_DECL(virLogDestination);
-VIR_ENUM_IMPL(virLogDestination, VIR_LOG_TO_OUTPUT_LAST,
-              "stderr", "syslog", "file", "journald");
+VIR_ENUM_IMPL(virLogDestination,
+              VIR_LOG_TO_OUTPUT_LAST,
+              "stderr", "syslog", "file", "journald",
+);
 
 /*
  * Filters are used to refine the rules on what to keep or drop
@@ -297,7 +299,7 @@ virLogOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virLog)
+VIR_ONCE_GLOBAL_INIT(virLog);
 
 
 /**

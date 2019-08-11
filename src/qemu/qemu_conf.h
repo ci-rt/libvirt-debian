@@ -115,15 +115,17 @@ struct _virQEMUDriverConfig {
     char *swtpmStorageDir;
 
     char *defaultTLSx509certdir;
-    bool checkdefaultTLSx509certdir;
+    bool defaultTLSx509certdirPresent;
     bool defaultTLSx509verify;
     char *defaultTLSx509secretUUID;
 
     bool vncAutoUnixSocket;
     bool vncTLS;
     bool vncTLSx509verify;
+    bool vncTLSx509verifyPresent;
     bool vncSASL;
     char *vncTLSx509certdir;
+    char *vncTLSx509secretUUID;
     char *vncListen;
     char *vncPassword;
     char *vncSASLdir;
@@ -139,10 +141,12 @@ struct _virQEMUDriverConfig {
     bool chardevTLS;
     char *chardevTLSx509certdir;
     bool chardevTLSx509verify;
+    bool chardevTLSx509verifyPresent;
     char *chardevTLSx509secretUUID;
 
     char *migrateTLSx509certdir;
     bool migrateTLSx509verify;
+    bool migrateTLSx509verifyPresent;
     char *migrateTLSx509secretUUID;
 
     unsigned int remotePortMin;
@@ -317,6 +321,9 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
 int
 virQEMUDriverConfigValidate(virQEMUDriverConfigPtr cfg);
 
+int
+virQEMUDriverConfigSetDefaults(virQEMUDriverConfigPtr cfg);
+
 virQEMUDriverConfigPtr virQEMUDriverGetConfig(virQEMUDriverPtr driver);
 bool virQEMUDriverIsPrivileged(virQEMUDriverPtr driver);
 
@@ -367,9 +374,6 @@ int qemuTranslateSnapshotDiskSourcePool(virDomainSnapshotDiskDefPtr def);
 char * qemuGetBaseHugepagePath(virHugeTLBFSPtr hugepage);
 char * qemuGetDomainHugepagePath(const virDomainDef *def,
                                  virHugeTLBFSPtr hugepage);
-char * qemuGetDomainDefaultHugepath(const virDomainDef *def,
-                                    virHugeTLBFSPtr hugetlbfs,
-                                    size_t nhugetlbfs);
 
 int qemuGetDomainHupageMemPath(const virDomainDef *def,
                                virQEMUDriverConfigPtr cfg,

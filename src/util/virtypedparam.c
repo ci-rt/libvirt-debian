@@ -31,7 +31,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-VIR_ENUM_IMPL(virTypedParameter, VIR_TYPED_PARAM_LAST,
+VIR_ENUM_IMPL(virTypedParameter,
+              VIR_TYPED_PARAM_LAST,
               "unknown",
               "int",
               "uint",
@@ -39,7 +40,8 @@ VIR_ENUM_IMPL(virTypedParameter, VIR_TYPED_PARAM_LAST,
               "ullong",
               "double",
               "boolean",
-              "string")
+              "string",
+);
 
 /* When editing this file, ensure that public exported functions
  * (those in libvirt_public.syms) either trigger no errors, or else

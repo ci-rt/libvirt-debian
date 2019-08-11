@@ -1,14 +1,18 @@
 LC_ALL=C \
 PATH=/bin \
-HOME=/home/test \
+HOME=/tmp/lib/domain--1-gentoo \
 USER=test \
 LOGNAME=test \
+XDG_DATA_HOME=/tmp/lib/domain--1-gentoo/.local/share \
+XDG_CACHE_HOME=/tmp/lib/domain--1-gentoo/.cache \
+XDG_CONFIG_HOME=/tmp/lib/domain--1-gentoo/.config \
 QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-x86_64 \
 -name gentoo \
 -S \
 -machine pc-i440fx-1.4,accel=kvm,usb=off,dump-guest-core=off \
 -m 4096 \
+-realtime mlock=off \
 -smp 4,sockets=4,cores=1,threads=1 \
 -uuid a75aca4b-a02f-2bcb-4a91-c93cd848c34b \
 -display none \

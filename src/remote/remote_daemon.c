@@ -89,8 +89,9 @@ enum {
     VIR_DAEMON_ERR_LAST
 };
 
-VIR_ENUM_DECL(virDaemonErr)
-VIR_ENUM_IMPL(virDaemonErr, VIR_DAEMON_ERR_LAST,
+VIR_ENUM_DECL(virDaemonErr);
+VIR_ENUM_IMPL(virDaemonErr,
+              VIR_DAEMON_ERR_LAST,
               "Initialization successful",
               "Unable to obtain pidfile",
               "Unable to create rundir",
@@ -101,7 +102,8 @@ VIR_ENUM_IMPL(virDaemonErr, VIR_DAEMON_ERR_LAST,
               "Unable to load configuration file",
               "Unable to look for hook scripts",
               "Unable to initialize audit system",
-              "Unable to initialize driver")
+              "Unable to initialize driver",
+);
 
 static int daemonForkIntoBackground(const char *argv0)
 {
@@ -311,16 +313,16 @@ static int daemonInitialize(void)
     if (virDriverLoadModule("interface", "interfaceRegister", false) < 0)
         return -1;
 #endif
+#ifdef WITH_SECRETS
+    if (virDriverLoadModule("secret", "secretRegister", false) < 0)
+        return -1;
+#endif
 #ifdef WITH_STORAGE
     if (virDriverLoadModule("storage", "storageRegister", false) < 0)
         return -1;
 #endif
 #ifdef WITH_NODE_DEVICES
     if (virDriverLoadModule("nodedev", "nodedevRegister", false) < 0)
-        return -1;
-#endif
-#ifdef WITH_SECRETS
-    if (virDriverLoadModule("secret", "secretRegister", false) < 0)
         return -1;
 #endif
 #ifdef WITH_NWFILTER

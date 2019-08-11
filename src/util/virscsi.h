@@ -23,7 +23,7 @@
 
 # include "internal.h"
 # include "virobject.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 typedef struct _virSCSIDevice virSCSIDevice;
 typedef virSCSIDevice *virSCSIDevicePtr;
@@ -93,6 +93,6 @@ void virSCSIDeviceListDel(virSCSIDeviceListPtr list,
 virSCSIDevicePtr virSCSIDeviceListFind(virSCSIDeviceListPtr list,
                                        virSCSIDevicePtr dev);
 
-VIR_DEFINE_AUTOPTR_FUNC(virSCSIDevice, virSCSIDeviceFree)
+VIR_DEFINE_AUTOPTR_FUNC(virSCSIDevice, virSCSIDeviceFree);
 
 #endif /* LIBVIRT_VIRSCSI_H */

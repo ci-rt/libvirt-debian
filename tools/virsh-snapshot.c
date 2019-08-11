@@ -1,7 +1,7 @@
 /*
  * virsh-snapshot.c: Commands to manage domain snapshot
  *
- * Copyright (C) 2005, 2007-2016 Red Hat, Inc.
+ * Copyright (C) 2005-2019 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,7 +35,7 @@
 #include "virsh-util.h"
 #include "virstring.h"
 #include "virxml.h"
-#include "conf/snapshot_conf.h"
+#include "conf/virdomainsnapshotobjlist.h"
 #include "vsh-table.h"
 
 /* Helper for snapshot-create and snapshot-create-as */
@@ -945,7 +945,7 @@ cmdSnapshotInfo(vshControl *ctl, const vshCmd *cmd)
     /* Since we already have the XML, there's no need to call
      * virDomainSnapshotGetParent */
     parent = virXPathString("string(/domainsnapshot/parent/name)", ctxt);
-    vshPrint(ctl, "%-15s %s\n", _("Parent:"), parent ? parent : "-");
+    vshPrint(ctl, "%-15s %s\n", _("Parent:"), NULLSTR_MINUS(parent));
 
     /* Children, Descendants.  After this point, the fallback to
      * compute children is too expensive, so we gracefully quit if the
@@ -1208,9 +1208,8 @@ virshSnapshotListCollect(vshControl *ctl, virDomainPtr dom,
     /* Now that we have a count, collect the list.  */
     if (from && !priv->useSnapshotOld) {
         if (tree) {
-            if (count)
-                count = virDomainSnapshotListChildrenNames(from, names + 1,
-                                                           count - 1, flags);
+            count = virDomainSnapshotListChildrenNames(from, names + 1,
+                                                       count - 1, flags);
             if (count >= 0) {
                 count++;
                 names[0] = vshStrdup(ctl, fromname);
@@ -1352,12 +1351,12 @@ virshSnapshotListCollect(vshControl *ctl, virDomainPtr dom,
             }
         }
     }
-    qsort(snaplist->snaps, snaplist->nsnaps, sizeof(*snaplist->snaps),
-          virshSnapSorter);
+    if (!(orig_flags & VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL))
+        qsort(snaplist->snaps, snaplist->nsnaps, sizeof(*snaplist->snaps),
+              virshSnapSorter);
     snaplist->nsnaps -= deleted;
 
-    ret = snaplist;
-    snaplist = NULL;
+    VIR_STEAL_PTR(ret, snaplist);
 
  cleanup:
     virshSnapshotListFree(snaplist);
@@ -1422,7 +1421,7 @@ static const vshCmdOptDef opts_snapshot_list[] = {
     },
     {.name = "active",
      .type = VSH_OT_BOOL,
-     .help = N_("filter by snapshots taken while active (system checkpoints)")
+     .help = N_("filter by snapshots taken while active (full system snapshots)")
     },
     {.name = "disk-only",
      .type = VSH_OT_BOOL,
@@ -1452,6 +1451,10 @@ static const vshCmdOptDef opts_snapshot_list[] = {
     {.name = "name",
      .type = VSH_OT_BOOL,
      .help = N_("list snapshot names only")
+    },
+    {.name = "topological",
+     .type = VSH_OT_BOOL,
+     .help = N_("sort list topologically rather than by name"),
     },
 
     {.name = NULL}
@@ -1513,6 +1516,9 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
     FILTER("internal", INTERNAL);
     FILTER("external", EXTERNAL);
 #undef FILTER
+
+    if (vshCommandOptBool(cmd, "topological"))
+        flags |= VIR_DOMAIN_SNAPSHOT_LIST_TOPOLOGICAL;
 
     if (roots)
         flags |= VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
@@ -1609,7 +1615,8 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
                  &time_info);
 
         if (parent) {
-            if (vshTableRowAppend(table, snap_name, timestr, state, parent_snap,
+            if (vshTableRowAppend(table, snap_name, timestr, state,
+                                  NULLSTR_EMPTY(parent_snap),
                                   NULL) < 0)
                 goto cleanup;
         } else {

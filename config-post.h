@@ -44,7 +44,6 @@
 # undef WITH_SYSTEMD_DAEMON
 # undef WITH_VIRTUALPORT
 # undef WITH_YAJL
-# undef WITH_YAJL2
 #endif
 
 /*
@@ -69,7 +68,6 @@
 # undef WITH_VIRTUALPORT
 # undef WITH_SECDRIVER_SELINUX
 # undef WITH_SECDRIVER_APPARMOR
-# undef WITH_CAPNG
 #endif /* LIBVIRT_NSS */
 
 #ifndef __GNUC__

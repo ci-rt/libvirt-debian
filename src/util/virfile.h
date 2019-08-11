@@ -30,7 +30,7 @@
 # include "internal.h"
 # include "virbitmap.h"
 # include "virstoragefile.h"
-# include "viralloc.h"
+# include "virautoclean.h"
 
 typedef enum {
     VIR_FILE_CLOSE_PRESERVE_ERRNO = 1 << 0,
@@ -162,16 +162,6 @@ int virFileReadBufQuiet(const char *file, char *buf, int len)
 int virFileWriteStr(const char *path, const char *str, mode_t mode)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
-int virFileMatchesNameSuffix(const char *file,
-                             const char *name,
-                             const char *suffix);
-
-int virFileHasSuffix(const char *str,
-                     const char *suffix);
-
-int virFileStripSuffix(char *str,
-                       const char *suffix) ATTRIBUTE_RETURN_CHECK;
-
 int virFileLinkPointsTo(const char *checkLink,
                         const char *checkDest)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
@@ -220,6 +210,8 @@ enum {
     VIR_FILE_SHFS_AFS = (1 << 3),
     VIR_FILE_SHFS_SMB = (1 << 4),
     VIR_FILE_SHFS_CIFS = (1 << 5),
+    VIR_FILE_SHFS_CEPH = (1 << 6),
+    VIR_FILE_SHFS_GPFS = (1 << 7),
 };
 
 int virFileIsSharedFSType(const char *path, int fstypes) ATTRIBUTE_NONNULL(1);
@@ -342,6 +334,9 @@ int virFileGetHugepageSize(const char *path,
 int virFileFindHugeTLBFS(virHugeTLBFSPtr *ret_fs,
                          size_t *ret_nfs);
 
+virHugeTLBFSPtr virFileGetDefaultHugepage(virHugeTLBFSPtr fs,
+                                          size_t nfs);
+
 int virFileSetupDev(const char *path,
                     const char *mount_options);
 
@@ -382,7 +377,7 @@ int virFileInData(int fd,
                   int *inData,
                   long long *length);
 
-VIR_DEFINE_AUTOPTR_FUNC(virFileWrapperFd, virFileWrapperFdFree)
+VIR_DEFINE_AUTOPTR_FUNC(virFileWrapperFd, virFileWrapperFdFree);
 
 int virFileGetXAttr(const char *path,
                     const char *name,

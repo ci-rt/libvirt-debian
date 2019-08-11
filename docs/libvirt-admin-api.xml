@@ -129,10 +129,10 @@
     <macro name='VIR_THREADPOOL_WORKERS_PRIORITY' file='libvirt-admin' string='prioWorkers'>
       <info><![CDATA[Macro for the threadpool nPrioWorkers attribute: represents the current number of active priority workers in threadpool, as VIR_TYPED_PARAM_UINT.]]></info>
     </macro>
-    <enum name='VIR_CLIENT_TRANS_LAST' file='libvirt-admin' value='3' type='virClientTransport'/>
-    <enum name='VIR_CLIENT_TRANS_TCP' file='libvirt-admin' value='1' type='virClientTransport' info='connection via unencrypted TCP socket'/>
-    <enum name='VIR_CLIENT_TRANS_TLS' file='libvirt-admin' value='2' type='virClientTransport' info='connection via encrypted TCP socket'/>
-    <enum name='VIR_CLIENT_TRANS_UNIX' file='libvirt-admin' value='0' type='virClientTransport' info='connection via UNIX socket'/>
+    <enum name='VIR_CLIENT_TRANS_LAST' file='libvirt-admin' value='3' value_hex='0x3' type='virClientTransport'/>
+    <enum name='VIR_CLIENT_TRANS_TCP' file='libvirt-admin' value='1' value_hex='0x1' type='virClientTransport' info='connection via unencrypted TCP socket'/>
+    <enum name='VIR_CLIENT_TRANS_TLS' file='libvirt-admin' value='2' value_hex='0x2' type='virClientTransport' info='connection via encrypted TCP socket'/>
+    <enum name='VIR_CLIENT_TRANS_UNIX' file='libvirt-admin' value='0' value_hex='0x0' type='virClientTransport' info='connection via UNIX socket'/>
     <struct name='virAdmClient' file='libvirt-admin' type='struct _virAdmClient'/>
     <typedef name='virAdmClientPtr' file='libvirt-admin' type='virAdmClient *'>
       <info><![CDATA[a virAdmClientPtr is a pointer to a virAdmClient structure, this is the type used to reference client-side representation of a client object throughout all the APIs.]]></info>

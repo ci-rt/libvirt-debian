@@ -26,6 +26,7 @@
 # include "virnetdevbandwidth.h"
 # include "virnetdevvportprofile.h"
 # include "virnetdevvlan.h"
+# include "virenum.h"
 
 /* the mode type for macvtap devices */
 typedef enum {
@@ -36,7 +37,7 @@ typedef enum {
 
     VIR_NETDEV_MACVLAN_MODE_LAST,
 } virNetDevMacVLanMode;
-VIR_ENUM_DECL(virNetDevMacVLanMode)
+VIR_ENUM_DECL(virNetDevMacVLanMode);
 
 typedef enum {
    VIR_NETDEV_MACVLAN_CREATE_NONE     = 0,

@@ -107,12 +107,14 @@ static inline int setns(int fd ATTRIBUTE_UNUSED, int nstype ATTRIBUTE_UNUSED)
 }
 #endif
 
-VIR_ENUM_IMPL(virProcessSchedPolicy, VIR_PROC_POLICY_LAST,
+VIR_ENUM_IMPL(virProcessSchedPolicy,
+              VIR_PROC_POLICY_LAST,
               "none",
               "batch",
               "idle",
               "fifo",
-              "rr");
+              "rr",
+);
 
 /**
  * virProcessTranslateStatus:
@@ -986,7 +988,7 @@ int virProcessGetStartTime(pid_t pid,
     int len;
     VIR_AUTOFREE(char *) filename = NULL;
     VIR_AUTOFREE(char *) buf = NULL;
-    VIR_AUTOPTR(virString) tokens = NULL;
+    VIR_AUTOSTRINGLIST tokens = NULL;
 
     if (virAsprintf(&filename, "/proc/%llu/stat", (long long) pid) < 0)
         return -1;

@@ -210,6 +210,8 @@ mymain(void)
     DO_TEST("vnc-autoport");
     DO_TEST("cputopology");
     DO_TEST_FAILURE("cputopology-nvcpu-mismatch");
+    DO_TEST("commandline");
+    DO_TEST("msrs");
 
     /* Address allocation tests */
     DO_TEST("addr-single-sata-disk");

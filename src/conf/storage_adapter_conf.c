@@ -34,7 +34,8 @@ VIR_LOG_INIT("conf.storage_adapter_conf");
 
 VIR_ENUM_IMPL(virStorageAdapter,
               VIR_STORAGE_ADAPTER_TYPE_LAST,
-              "default", "scsi_host", "fc_host")
+              "default", "scsi_host", "fc_host",
+);
 
 static void
 virStorageAdapterClearFCHost(virStorageAdapterFCHostPtr fchost)
@@ -325,8 +326,8 @@ virStorageAdapterFormatSCSIHost(virBufferPtr buf,
         virBufferAsprintf(buf, "<parentaddr unique_id='%d'>\n",
                           scsi_host->unique_id);
         virBufferAdjustIndent(buf, 2);
-        ignore_value(virPCIDeviceAddressFormat(buf, scsi_host->parentaddr,
-                                               false));
+        virPCIDeviceAddressFormat(buf, scsi_host->parentaddr,
+                                  false);
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</parentaddr>\n");
         virBufferAdjustIndent(buf, -2);

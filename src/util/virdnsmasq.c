@@ -643,7 +643,7 @@ static int dnsmasqCapsOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(dnsmasqCaps)
+VIR_ONCE_GLOBAL_INIT(dnsmasqCaps);
 
 static void
 dnsmasqCapsSet(dnsmasqCapsPtr caps,
@@ -751,22 +751,16 @@ dnsmasqCapsRefreshInternal(dnsmasqCapsPtr caps, bool force)
     virCommandSetOutputBuffer(cmd, &version);
     virCommandAddEnvPassCommon(cmd);
     virCommandClearCaps(cmd);
-    if (virCommandRun(cmd, NULL) < 0) {
-        virReportSystemError(errno, _("failed to run '%s --version': %s"),
-                             caps->binaryPath, version);
+    if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
-    }
     virCommandFree(cmd);
 
     cmd = virCommandNewArgList(caps->binaryPath, "--help", NULL);
     virCommandSetOutputBuffer(cmd, &help);
     virCommandAddEnvPassCommon(cmd);
     virCommandClearCaps(cmd);
-    if (virCommandRun(cmd, NULL) < 0) {
-        virReportSystemError(errno, _("failed to run '%s --help': %s"),
-                             caps->binaryPath, help);
+    if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
-    }
 
     if (virAsprintf(&complete, "%s\n%s", version, help) < 0)
         goto cleanup;

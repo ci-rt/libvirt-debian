@@ -48,6 +48,7 @@
 #include "xen_common.h"
 #include "xen_xl.h"
 #include "virnetdevvportprofile.h"
+#include "virenum.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -66,7 +67,7 @@ static int libxlConfigOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(libxlConfig)
+VIR_ONCE_GLOBAL_INIT(libxlConfig);
 
 static void
 libxlDriverConfigDispose(void *obj)
@@ -78,6 +79,7 @@ libxlDriverConfigDispose(void *obj)
     if (cfg->logger)
         libxlLoggerFree(cfg->logger);
 
+    VIR_FREE(cfg->configBaseDir);
     VIR_FREE(cfg->configDir);
     VIR_FREE(cfg->autostartDir);
     VIR_FREE(cfg->logDir);
@@ -393,6 +395,15 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
     def->mem.cur_balloon = VIR_ROUND_UP(def->mem.cur_balloon, 1024);
     b_info->max_memkb = virDomainDefGetMemoryInitial(def);
     b_info->target_memkb = def->mem.cur_balloon;
+
+#ifdef LIBXL_HAVE_BUILDINFO_GRANT_LIMITS
+    for (i = 0; i < def->ncontrollers; i++) {
+        if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_XENBUS &&
+            def->controllers[i]->opts.xenbusopts.maxGrantFrames > 0)
+            b_info->max_grant_frames = def->controllers[i]->opts.xenbusopts.maxGrantFrames;
+    }
+#endif
+
     if (hvm || pvh) {
         if (caps &&
             def->cpu && def->cpu->mode == (VIR_CPU_MODE_HOST_PASSTHROUGH)) {
@@ -718,6 +729,8 @@ libxlMakeDomBuildInfo(virDomainDefPtr def,
         case VIR_DOMAIN_MEMBALLOON_MODEL_XEN:
             break;
         case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO:
+        case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO_TRANSITIONAL:
+        case VIR_DOMAIN_MEMBALLOON_MODEL_VIRTIO_NON_TRANSITIONAL:
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("unsupported balloon device model '%s'"),
                            virDomainMemballoonModelTypeToString(model));
@@ -969,7 +982,7 @@ libxlMakeNetworkDiskSrc(virStorageSourcePtr src, char **srcstr)
 {
     virConnectPtr conn = NULL;
     uint8_t *secret = NULL;
-    char *base64secret = NULL;
+    VIR_AUTODISPOSE_STR base64secret = NULL;
     size_t secretlen = 0;
     char *username = NULL;
     int ret = -1;
@@ -997,7 +1010,6 @@ libxlMakeNetworkDiskSrc(virStorageSourcePtr src, char **srcstr)
 
  cleanup:
     VIR_DISPOSE_N(secret, secretlen);
-    VIR_DISPOSE_STRING(base64secret);
     virObjectUnref(conn);
     return ret;
 }
@@ -1264,18 +1276,18 @@ libxlMakeNic(virDomainDefPtr def,
      * xen commit 32e9d0f ("libxl: nic type defaults to vif in hotplug for
      * hvm guest").
      */
-    if (l_nic->model) {
+    if (virDomainNetGetModelString(l_nic)) {
         if ((def->os.type == VIR_DOMAIN_OSTYPE_XEN ||
             def->os.type == VIR_DOMAIN_OSTYPE_XENPVH) &&
-            STRNEQ(l_nic->model, "netfront")) {
+            l_nic->model != VIR_DOMAIN_NET_MODEL_NETFRONT) {
             virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                            _("only model 'netfront' is supported for "
                              "Xen PV(H) domains"));
             return -1;
         }
-        if (VIR_STRDUP(x_nic->model, l_nic->model) < 0)
+        if (VIR_STRDUP(x_nic->model, virDomainNetGetModelString(l_nic)) < 0)
             goto cleanup;
-        if (STREQ(l_nic->model, "netfront"))
+        if (l_nic->model == VIR_DOMAIN_NET_MODEL_NETFRONT)
             x_nic->nictype = LIBXL_NIC_TYPE_VIF;
         else
             x_nic->nictype = LIBXL_NIC_TYPE_VIF_IOEMU;

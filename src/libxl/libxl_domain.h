@@ -26,6 +26,7 @@
 # include "domain_conf.h"
 # include "libxl_conf.h"
 # include "virchrdev.h"
+# include "virenum.h"
 
 # define JOB_MASK(job)                  (job == 0 ? 0 : 1 << (job - 1))
 # define DEFAULT_JOB_MASK \
@@ -43,7 +44,7 @@ enum libxlDomainJob {
 
     LIBXL_JOB_LAST
 };
-VIR_ENUM_DECL(libxlDomainJob)
+VIR_ENUM_DECL(libxlDomainJob);
 
 
 struct libxlDomainJobObj {

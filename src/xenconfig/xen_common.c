@@ -473,15 +473,15 @@ xenHandleConfGetValueStringListErrors(int ret)
 static int
 xenParsePCIList(virConfPtr conf, virDomainDefPtr def)
 {
-    VIR_AUTOPTR(virString) pcis = NULL;
-    virString *entries = NULL;
+    VIR_AUTOSTRINGLIST pcis = NULL;
+    char **entries = NULL;
     int rc;
 
     if ((rc = virConfGetValueStringList(conf, "pci", false, &pcis)) <= 0)
         return xenHandleConfGetValueStringListErrors(rc);
 
     for (entries = pcis; *entries; entries++) {
-        virString entry = *entries;
+        char *entry = *entries;
         virDomainHostdevDefPtr hostdev;
 
         if (!(hostdev = xenParsePCI(entry)))
@@ -666,7 +666,7 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def)
     }
 
     if (!hvm && def->graphics == NULL) { /* New PV guests use this format */
-        VIR_AUTOPTR(virString) vfbs = NULL;
+        VIR_AUTOSTRINGLIST vfbs = NULL;
         int rc;
 
         if ((rc = virConfGetValueStringList(conf, "vfb", false, &vfbs)) == 1) {
@@ -764,7 +764,7 @@ xenParseVfb(virConfPtr conf, virDomainDefPtr def)
 static int
 xenParseCharDev(virConfPtr conf, virDomainDefPtr def, const char *nativeFormat)
 {
-    VIR_AUTOPTR(virString) serials = NULL;
+    VIR_AUTOSTRINGLIST serials = NULL;
     virDomainChrDefPtr chr = NULL;
 
     if (def->os.type == VIR_DOMAIN_OSTYPE_HVM) {
@@ -789,7 +789,7 @@ xenParseCharDev(virConfPtr conf, virDomainDefPtr def, const char *nativeFormat)
 
         /* Try to get the list of values to support multiple serial ports */
         if ((rc = virConfGetValueStringList(conf, "serial", false, &serials)) == 1) {
-            virString *entries;
+            char **entries;
             int portnum = -1;
 
             if (STREQ(nativeFormat, XEN_CONFIG_FORMAT_XM)) {
@@ -799,7 +799,7 @@ xenParseCharDev(virConfPtr conf, virDomainDefPtr def, const char *nativeFormat)
             }
 
             for (entries = serials; *entries; entries++) {
-                virString port = *entries;
+                char *port = *entries;
 
                 portnum++;
                 if (STREQ(port, "none"))
@@ -1068,13 +1068,13 @@ xenParseVif(char *entry, const char *vif_typename)
         VIR_STRDUP(net->script, script) < 0)
         goto cleanup;
 
-    if (model[0] &&
-        VIR_STRDUP(net->model, model) < 0)
-        goto cleanup;
-
-    if (!model[0] && type[0] && STREQ(type, vif_typename) &&
-        VIR_STRDUP(net->model, "netfront") < 0)
-        goto cleanup;
+    if (model[0]) {
+        if (virDomainNetSetModelString(net, model) < 0)
+            goto cleanup;
+    } else {
+        if (type[0] && STREQ(type, vif_typename))
+            net->model = VIR_DOMAIN_NET_MODEL_NETFRONT;
+    }
 
     if (vifname[0] &&
         VIR_STRDUP(net->ifname, vifname) < 0)
@@ -1422,15 +1422,16 @@ xenFormatNet(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (!hvm) {
-        if (net->model != NULL)
-            virBufferAsprintf(&buf, ",model=%s", net->model);
-    } else {
-        if (net->model != NULL && STREQ(net->model, "netfront")) {
-            virBufferAsprintf(&buf, ",type=%s", vif_typename);
+    if (virDomainNetGetModelString(net)) {
+        if (!hvm) {
+            virBufferAsprintf(&buf, ",model=%s",
+                              virDomainNetGetModelString(net));
         } else {
-            if (net->model != NULL)
-                virBufferAsprintf(&buf, ",model=%s", net->model);
+            if (net->model == VIR_DOMAIN_NET_MODEL_NETFRONT)
+                virBufferAsprintf(&buf, ",type=%s", vif_typename);
+            else
+                virBufferAsprintf(&buf, ",model=%s",
+                                  virDomainNetGetModelString(net));
         }
     }
 

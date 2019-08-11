@@ -84,7 +84,7 @@ virNetworkObjOnceInit(void)
 }
 
 
-VIR_ONCE_GLOBAL_INIT(virNetworkObj)
+VIR_ONCE_GLOBAL_INIT(virNetworkObj);
 
 virNetworkObjPtr
 virNetworkObjNew(void)
@@ -602,8 +602,7 @@ virNetworkObjAssignDefLocked(virNetworkObjListPtr nets,
         obj->persistent = !(flags & VIR_NETWORK_OBJ_LIST_ADD_LIVE);
     }
 
-    ret = obj;
-    obj = NULL;
+    VIR_STEAL_PTR(ret, obj);
 
  cleanup:
     virNetworkObjEndAPI(&obj);
@@ -1069,7 +1068,7 @@ virNetworkObjLoadAllState(virNetworkObjListPtr nets,
     while ((ret = virDirRead(dir, &entry, stateDir)) > 0) {
         virNetworkObjPtr obj;
 
-        if (!virFileStripSuffix(entry->d_name, ".xml"))
+        if (!virStringStripSuffix(entry->d_name, ".xml"))
             continue;
 
         obj = virNetworkLoadState(nets, stateDir, entry->d_name);
@@ -1097,7 +1096,7 @@ virNetworkObjLoadAllConfigs(virNetworkObjListPtr nets,
     while ((ret = virDirRead(dir, &entry, configDir)) > 0) {
         virNetworkObjPtr obj;
 
-        if (!virFileStripSuffix(entry->d_name, ".xml"))
+        if (!virStringStripSuffix(entry->d_name, ".xml"))
             continue;
 
         /* NB: ignoring errors, so one malformed config doesn't

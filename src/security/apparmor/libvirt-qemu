@@ -16,14 +16,15 @@
   network inet stream,
   network inet6 stream,
 
+  ptrace (readby, tracedby) peer=libvirtd,
   ptrace (readby, tracedby) peer=/usr/sbin/libvirtd,
 
+  signal (receive) peer=libvirtd,
   signal (receive) peer=/usr/sbin/libvirtd,
 
   /dev/net/tun rw,
   /dev/kvm rw,
   /dev/ptmx rw,
-  /dev/kqemu rw,
   @{PROC}/*/status r,
   # When qemu is signaled to terminate, it will read cmdline of signaling
   # process for reporting purposes. Allowing read access to a process
@@ -102,6 +103,7 @@
   /usr/bin/qemu-system-alpha rmix,
   /usr/bin/qemu-system-arm rmix,
   /usr/bin/qemu-system-cris rmix,
+  /usr/bin/qemu-system-hppa rmix,
   /usr/bin/qemu-system-i386 rmix,
   /usr/bin/qemu-system-lm32 rmix,
   /usr/bin/qemu-system-m68k rmix,
@@ -112,10 +114,14 @@
   /usr/bin/qemu-system-mips64el rmix,
   /usr/bin/qemu-system-mipsel rmix,
   /usr/bin/qemu-system-moxie rmix,
+  /usr/bin/qemu-system-nios2 rmix,
+  /usr/bin/qemu-system-or1k rmix,
   /usr/bin/qemu-system-or32 rmix,
   /usr/bin/qemu-system-ppc rmix,
   /usr/bin/qemu-system-ppc64 rmix,
   /usr/bin/qemu-system-ppcemb rmix,
+  /usr/bin/qemu-system-riscv32 rmix,
+  /usr/bin/qemu-system-riscv64 rmix,
   /usr/bin/qemu-system-s390x rmix,
   /usr/bin/qemu-system-sh4 rmix,
   /usr/bin/qemu-system-sh4eb rmix,

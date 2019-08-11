@@ -20,16 +20,13 @@
 
 #include "testutils.h"
 #include "domain_capabilities.h"
+#include "virfilewrapper.h"
+#include "configmake.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-typedef int (*virDomainCapsFill)(virDomainCapsPtr domCaps,
-                                 void *opaque);
-
-#define SET_ALL_BITS(x) \
-    memset(&(x.values), 0xff, sizeof(x.values))
-
+#if WITH_QEMU || WITH_BHYVE
 static int ATTRIBUTE_SENTINEL
 fillStringValues(virDomainCapsStringValuesPtr values, ...)
 {
@@ -50,66 +47,7 @@ fillStringValues(virDomainCapsStringValuesPtr values, ...)
 
     return ret;
 }
-
-static int
-fillAllCaps(virDomainCapsPtr domCaps)
-{
-    virDomainCapsOSPtr os = &domCaps->os;
-    virDomainCapsLoaderPtr loader = &os->loader;
-    virDomainCapsCPUPtr cpu = &domCaps->cpu;
-    virDomainCapsDeviceDiskPtr disk = &domCaps->disk;
-    virDomainCapsDeviceGraphicsPtr graphics = &domCaps->graphics;
-    virDomainCapsDeviceVideoPtr video = &domCaps->video;
-    virDomainCapsDeviceHostdevPtr hostdev = &domCaps->hostdev;
-    virCPUDef host = {
-        .type = VIR_CPU_TYPE_HOST,
-        .arch = VIR_ARCH_X86_64,
-        .model = (char *) "host",
-        .vendor = (char *) "CPU Vendorrr",
-    };
-
-    domCaps->maxvcpus = 255;
-    os->supported = true;
-
-    loader->supported = true;
-    SET_ALL_BITS(loader->type);
-    SET_ALL_BITS(loader->readonly);
-    if (fillStringValues(&loader->values,
-                         "/foo/bar",
-                         "/tmp/my_path",
-                         NULL) < 0)
-        return -1;
-
-    cpu->hostPassthrough = true;
-    cpu->hostModel = virCPUDefCopy(&host);
-    if (!(cpu->custom = virDomainCapsCPUModelsNew(3)) ||
-        virDomainCapsCPUModelsAdd(cpu->custom, "Model1", -1,
-                                  VIR_DOMCAPS_CPU_USABLE_UNKNOWN, NULL) < 0 ||
-        virDomainCapsCPUModelsAdd(cpu->custom, "Model2", -1,
-                                  VIR_DOMCAPS_CPU_USABLE_NO, NULL) < 0 ||
-        virDomainCapsCPUModelsAdd(cpu->custom, "Model3", -1,
-                                  VIR_DOMCAPS_CPU_USABLE_YES, NULL) < 0)
-        return -1;
-
-    disk->supported = true;
-    SET_ALL_BITS(disk->diskDevice);
-    SET_ALL_BITS(disk->bus);
-
-    graphics->supported = true;
-    SET_ALL_BITS(graphics->type);
-
-    video->supported = true;
-    SET_ALL_BITS(video->modelType);
-
-    hostdev->supported = true;
-    SET_ALL_BITS(hostdev->mode);
-    SET_ALL_BITS(hostdev->startupPolicy);
-    SET_ALL_BITS(hostdev->subsysType);
-    SET_ALL_BITS(hostdev->capsType);
-    SET_ALL_BITS(hostdev->pciBackend);
-    return 0;
-}
-
+#endif /* WITH_QEMU || WITH_BHYVE */
 
 #if WITH_QEMU
 # include "testutilsqemu.h"
@@ -150,8 +88,8 @@ fillQemuCaps(virDomainCapsPtr domCaps,
         fakeHostCPU(caps, domCaps->arch) < 0)
         goto cleanup;
 
-    if (virAsprintf(&path, "%s/qemucapabilitiesdata/%s.%s.xml",
-                    abs_srcdir, name, arch) < 0 ||
+    if (virAsprintf(&path, "%s/%s.%s.xml",
+                    TEST_QEMU_CAPS_PATH, name, arch) < 0 ||
         !(qemuCaps = qemuTestParseCapabilities(caps, path)))
         goto cleanup;
 
@@ -168,6 +106,7 @@ fillQemuCaps(virDomainCapsPtr domCaps,
         goto cleanup;
 
     if (virQEMUCapsFillDomainCaps(caps, domCaps, qemuCaps,
+                                  false,
                                   cfg->firmwares,
                                   cfg->nfirmwares) < 0)
         goto cleanup;
@@ -260,7 +199,6 @@ fillBhyveCaps(virDomainCapsPtr domCaps, unsigned int *bhyve_caps)
 
 enum testCapsType {
     CAPS_NONE,
-    CAPS_ALL,
     CAPS_QEMU,
     CAPS_LIBXL,
     CAPS_BHYVE,
@@ -297,11 +235,6 @@ test_virDomainCapsFormat(const void *opaque)
 
     switch (data->capsType) {
     case CAPS_NONE:
-        break;
-
-    case CAPS_ALL:
-        if (fillAllCaps(domCaps) < 0)
-            goto cleanup;
         break;
 
     case CAPS_QEMU:
@@ -409,9 +342,6 @@ mymain(void)
             ret = -1; \
     } while (0)
 
-    DO_TEST("full", "/bin/emulatorbin", "my-machine-type",
-            "x86_64", VIR_DOMAIN_VIRT_KVM, CAPS_ALL);
-
 #define DO_TEST_BHYVE(Name, Emulator, BhyveCaps, Type) \
     do { \
         char *name = NULL; \
@@ -432,7 +362,17 @@ mymain(void)
         VIR_FREE(name); \
     } while (0)
 
+    DO_TEST("empty", "/bin/emulatorbin", "my-machine-type",
+            "x86_64", VIR_DOMAIN_VIRT_KVM, CAPS_NONE);
+
 #if WITH_QEMU
+
+    virFileWrapperAddPrefix(SYSCONFDIR "/qemu/firmware",
+                            abs_srcdir "/qemufirmwaredata/etc/qemu/firmware");
+    virFileWrapperAddPrefix(PREFIX "/share/qemu/firmware",
+                            abs_srcdir "/qemufirmwaredata/usr/share/qemu/firmware");
+    virFileWrapperAddPrefix("/home/user/.config/qemu/firmware",
+                            abs_srcdir "/qemufirmwaredata/home/user/.config/qemu/firmware");
 
     DO_TEST_QEMU("1.7.0", "caps_1.7.0",
                  "/usr/bin/qemu-system-x86_64", NULL,
@@ -502,23 +442,24 @@ mymain(void)
                  "/usr/bin/qemu-system-s390x", NULL,
                  "s390x", VIR_DOMAIN_VIRT_KVM);
 
+    DO_TEST_QEMU("3.1.0", "caps_3.1.0",
+                 "/usr/bin/qemu-system-x86_64", NULL,
+                 "x86_64", VIR_DOMAIN_VIRT_KVM);
+
+    DO_TEST_QEMU("4.0.0", "caps_4.0.0",
+                 "/usr/bin/qemu-system-x86_64", NULL,
+                 "x86_64", VIR_DOMAIN_VIRT_KVM);
     virObjectUnref(cfg);
+
+    virFileWrapperClearPrefixes();
 
 #endif /* WITH_QEMU */
 
 #if WITH_LIBXL
 
-# ifdef LIBXL_HAVE_PVUSB
-#  define LIBXL_XENPV_CAPS "libxl-xenpv-usb"
-#  define LIBXL_XENFV_CAPS "libxl-xenfv-usb"
-# else
-#  define LIBXL_XENPV_CAPS "libxl-xenpv"
-#  define LIBXL_XENFV_CAPS "libxl-xenfv"
-# endif
-
-    DO_TEST_LIBXL(LIBXL_XENPV_CAPS, "/usr/bin/qemu-system-x86_64",
+    DO_TEST_LIBXL("libxl-xenpv", "/usr/bin/qemu-system-x86_64",
                   "xenpv", "x86_64", VIR_DOMAIN_VIRT_XEN);
-    DO_TEST_LIBXL(LIBXL_XENFV_CAPS, "/usr/bin/qemu-system-x86_64",
+    DO_TEST_LIBXL("libxl-xenfv", "/usr/bin/qemu-system-x86_64",
                   "xenfv", "x86_64", VIR_DOMAIN_VIRT_XEN);
 
 #endif /* WITH_LIBXL */

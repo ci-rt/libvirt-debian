@@ -5,6 +5,11 @@ DEB_BUILDDATE=$(shell dpkg-parsechangelog -SDate)
 DEB_BUILDUSER=$(shell dpkg-parsechangelog -SMaintainer)
 NULL=
 
+# If the build environment sets -Bsymbolic-functions, which is often used as
+# hardening option, that would break libvirt build time self-testing.
+# Therefore let dpkg-buildflag strip that option if present.
+export DEB_LDFLAGS_MAINT_STRIP = -Wl,-Bsymbolic-functions
+
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
     WITH_VBOX         = --with-vbox
@@ -85,6 +90,7 @@ else
 endif
 
 DEB_CONFIGURE_EXTRA_ARGS :=      \
+	--libexecdir=/usr/lib/libvirt \
 	--with-packager="$(DEB_BUILDUSER) $(DEB_BUILDDATE)" \
 	--with-packager-version="$(DEB_RELEASE)" \
 	--with-default-editor="sensible-editor" \
@@ -149,14 +155,13 @@ LOGROTATE = $(basename $(basename $(notdir $(wildcard src/remote/libvirtd*.logro
 EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 %:
-	dh $@ --builddirectory=$(DEB_BUILDDIR) --parallel --with autoreconf --with systemd
+	dh $@ --builddirectory=$(DEB_BUILDDIR)
 
 override_dh_auto_configure:
 	IPTABLES_PATH=/usr/sbin/iptables \
 	IP6TABLES_PATH=/usr/sbin/ip6tables \
 	EBTABLES_PATH=/usr/sbin/ebtables \
 	dh_auto_configure -- $(DEB_CONFIGURE_EXTRA_ARGS) $(shell dpkg-buildflags --export=configure)
-	mkdir -p debian/build/docs/internals
 
 override_dh_auto_test:
 	export LD_PRELOAD="";     \
@@ -169,15 +174,6 @@ override_dh_auto_test:
 	fi
 
 override_dh_install-arch:
-	# Multiarch:
-	# don't configure with --libdir, but move the files manually, because
-	# we don't want to change other places in /usr/lib/
-	mkdir -p debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)
-	mv debian/tmp/usr/lib/lib*a \
-	   debian/tmp/usr/lib/lib*.so* \
-	   debian/tmp/usr/lib/pkgconfig \
-	   debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)
-
 	dh_install
 
 	# Copy upstream files to debian/ so dh_* can find them
@@ -208,23 +204,24 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
 	dh_install -p libvirt-daemon-system etc/libvirt/nwfilter/
 	dh_install -p libvirt-clients etc/libvirt/virt-login-shell.conf
 	dh_install -p libnss-libvirt \
-                      usr/lib/$(DEB_HOST_MULTIARCH)/libnss_libvirt.so.2 \
+                      usr/lib/$(DEB_HOST_MULTIARCH)/libnss_libvirt*.so.2 \
                       lib/$(DEB_HOST_MULTIARCH)/
 endif
 ifeq ($(XEN_ENABLED), 1)
 	dh_install -p libvirt-daemon-system etc/libvirt/libxl.conf
 	dh_install -p libvirt-daemon-system etc/libvirt/libxl-lockd.conf
+	dh_install -p libvirt-daemon-system etc/libvirt/libxl-sanlock.conf
 endif
 
 	set -e; for l in $(LOGROTATE); do \
-		cp $(CURDIR)/debian/tmp/etc/logrotate.d/$$l \
+		mv $(CURDIR)/debian/tmp/etc/logrotate.d/$$l \
 	        debian/libvirt-daemon-system.$$l.logrotate; \
 		dh_installlogrotate --name=$$l;     \
 	done
 
 	# Don't ship any la files
-	rm debian/libvirt-daemon/usr/lib/libvirt/connection-driver/*.la
-	rm debian/libvirt-wireshark/usr/lib/*/wireshark/plugins/*/*.la
+	rm debian/libvirt-daemon/usr/lib/*/libvirt/connection-driver/*.la
+	rm debian/libvirt-wireshark/usr/lib/*/wireshark/plugins/*/*/*.la
 	# Don't ship any files that are managed by the user only
 	rm debian/libvirt-daemon-system/etc/apparmor.d/local/*
 	# executable-not-elf-or-script
@@ -232,16 +229,17 @@ endif
 
 
 override_dh_installinit:
-	dh_installinit -p libvirt-daemon-system --name=virtlogd --no-restart-on-upgrade
+	dh_installinit -p libvirt-daemon-system --name=virtlogd --no-stop-on-upgrade
 	dh_installinit -p libvirt-daemon-system --name=libvirtd --restart-after-upgrade -- defaults 28 72
-	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
+	dh_installinit -p libvirt-daemon-system --name=libvirt-guests --no-stop-on-upgrade -- defaults 29 71
 
-override_dh_systemd_start:
-	dh_systemd_start -p libvirt-daemon-system --restart-after-upgrade libvirtd.service 
-	dh_systemd_start -p libvirt-daemon-system --no-restart-on-upgrade $(LIBVIRT_SYSTEM_SERVICES)
+override_dh_installsystemd:
+	dh_installsystemd -p libvirt-daemon-system --restart-after-upgrade libvirtd.service
+	dh_installsystemd -p libvirt-daemon-system --no-stop-on-upgrade $(LIBVIRT_SYSTEM_SERVICES)
 
 override_dh_installdocs:
-	dh_installdocs
+	dh_installdocs -plibvirt-doc --doc-main-package libvirt-doc
+	dh_installdocs -Nlibvirt-doc
 	# Remove binaries and object files examples
 	[ ! -d $(EXAMPLES_DIR) ] || find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
 	rm -f $(EXAMPLES_DIR)domain-events/events-c/event-test \
@@ -265,6 +263,3 @@ override_dh_auto_clean:
 override_dh_installchangelogs:
 	dh_installchangelogs -plibvirt0
 	dh_installchangelogs -Nlibvirt0 -XChangeLog
-
-override_dh_missing:
-	dh_missing --list-missing

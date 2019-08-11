@@ -165,7 +165,7 @@ static int qemuMonitorOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(qemuMonitor)
+VIR_ONCE_GLOBAL_INIT(qemuMonitor);
 
 
 VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
@@ -174,13 +174,15 @@ VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
               "active", "pre-switchover",
               "device", "postcopy-active",
               "completed", "failed",
-              "cancelling", "cancelled")
+              "cancelling", "cancelled",
+);
 
 VIR_ENUM_IMPL(qemuMonitorVMStatus,
               QEMU_MONITOR_VM_STATUS_LAST,
               "debug", "inmigrate", "internal-error", "io-error", "paused",
               "postmigrate", "prelaunch", "finish-migrate", "restore-vm",
-              "running", "save-vm", "shutdown", "watchdog", "guest-panicked")
+              "running", "save-vm", "shutdown", "watchdog", "guest-panicked",
+);
 
 typedef enum {
     QEMU_MONITOR_BLOCK_IO_STATUS_OK,
@@ -190,15 +192,17 @@ typedef enum {
     QEMU_MONITOR_BLOCK_IO_STATUS_LAST
 } qemuMonitorBlockIOStatus;
 
-VIR_ENUM_DECL(qemuMonitorBlockIOStatus)
+VIR_ENUM_DECL(qemuMonitorBlockIOStatus);
 
 VIR_ENUM_IMPL(qemuMonitorBlockIOStatus,
               QEMU_MONITOR_BLOCK_IO_STATUS_LAST,
-              "ok", "failed", "nospace")
+              "ok", "failed", "nospace",
+);
 
 VIR_ENUM_IMPL(qemuMonitorDumpStatus,
               QEMU_MONITOR_DUMP_STATUS_LAST,
-              "none", "active", "completed", "failed")
+              "none", "active", "completed", "failed",
+);
 
 char *
 qemuMonitorEscapeArg(const char *in)
@@ -2359,21 +2363,6 @@ qemuMonitorBlockResize(qemuMonitorPtr mon,
 }
 
 
-int
-qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
-                          const char *password)
-{
-    VIR_DEBUG("password=%p", password);
-
-    QEMU_CHECK_MONITOR(mon);
-
-    if (!password)
-        password = "";
-
-    return qemuMonitorJSONSetVNCPassword(mon, password);
-}
-
-
 static const char *
 qemuMonitorTypeToProtocol(int type)
 {
@@ -2391,7 +2380,6 @@ qemuMonitorTypeToProtocol(int type)
 }
 
 
-/* Returns -2 if not supported with this monitor connection */
 int
 qemuMonitorSetPassword(qemuMonitorPtr mon,
                        int type,
@@ -3004,6 +2992,16 @@ qemuMonitorDriveDel(qemuMonitorPtr mon,
 }
 
 
+/**
+ * @mon: monitor object
+ * @devalias: alias of the device to detach
+ *
+ * Sends device detach request to qemu.
+ *
+ * Returns: 0 on success,
+ *         -2 if DeviceNotFound error encountered (error NOT reported)
+ *         -1 otherwise (error reported)
+ */
 int
 qemuMonitorDelDevice(qemuMonitorPtr mon,
                      const char *devalias)
@@ -4473,4 +4471,14 @@ qemuMonitorGetPRManagerInfo(qemuMonitorPtr mon,
  cleanup:
     virHashFree(info);
     return ret;
+}
+
+
+int
+qemuMonitorGetCurrentMachineInfo(qemuMonitorPtr mon,
+                                 qemuMonitorCurrentMachineInfoPtr info)
+{
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONGetCurrentMachineInfo(mon, info);
 }

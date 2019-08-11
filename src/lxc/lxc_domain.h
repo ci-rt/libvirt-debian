@@ -25,6 +25,7 @@
 # include "vircgroup.h"
 # include "lxc_conf.h"
 # include "lxc_monitor.h"
+# include "virenum.h"
 
 
 typedef enum {
@@ -43,8 +44,8 @@ typedef enum {
     VIR_LXC_DOMAIN_NAMESPACE_SOURCE_LAST,
 } virLXCDomainNamespaceSource;
 
-VIR_ENUM_DECL(virLXCDomainNamespace)
-VIR_ENUM_DECL(virLXCDomainNamespaceSource)
+VIR_ENUM_DECL(virLXCDomainNamespace);
+VIR_ENUM_DECL(virLXCDomainNamespaceSource);
 
 typedef struct _lxcDomainDef lxcDomainDef;
 typedef lxcDomainDef *lxcDomainDefPtr;
@@ -65,7 +66,7 @@ enum virLXCDomainJob {
     LXC_JOB_MODIFY,        /* May change state */
     LXC_JOB_LAST
 };
-VIR_ENUM_DECL(virLXCDomainJob)
+VIR_ENUM_DECL(virLXCDomainJob);
 
 
 struct virLXCDomainJobObj {
@@ -108,5 +109,9 @@ virLXCDomainObjEndJob(virLXCDriverPtr driver,
 
 char *
 virLXCDomainGetMachineName(virDomainDefPtr def, pid_t pid);
+
+int
+virLXCDomainSetRunlevel(virDomainObjPtr vm,
+                        int runlevel);
 
 #endif /* LIBVIRT_LXC_DOMAIN_H */

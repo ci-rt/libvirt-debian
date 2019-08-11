@@ -31,6 +31,7 @@
 # include "virbuffer.h"
 # include "virpci.h"
 # include "virnetdev.h"
+# include "virenum.h"
 
 typedef enum {
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE,
@@ -202,9 +203,9 @@ bool virDeviceInfoPCIAddressExtensionIsPresent(const virDomainDeviceInfo *info);
 int virPCIDeviceAddressParseXML(xmlNodePtr node,
                                 virPCIDeviceAddressPtr addr);
 
-int virPCIDeviceAddressFormat(virBufferPtr buf,
-                              virPCIDeviceAddress addr,
-                              bool includeTypeInAddr);
+void virPCIDeviceAddressFormat(virBufferPtr buf,
+                               virPCIDeviceAddress addr,
+                               bool includeTypeInAddr);
 
 bool virDomainDeviceCCWAddressIsValid(virDomainDeviceCCWAddressPtr addr);
 int virDomainDeviceCCWAddressParseXML(xmlNodePtr node,

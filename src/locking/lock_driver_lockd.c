@@ -221,7 +221,7 @@ static virNetClientPtr virLockManagerLockDaemonConnectionNew(bool privileged,
     if (!privileged &&
         !(daemonPath = virFileFindResourceFull("virtlockd",
                                                NULL, NULL,
-                                               abs_topbuilddir "/src",
+                                               abs_top_builddir "/src",
                                                SBINDIR,
                                                "VIRTLOCKD_PATH")))
         goto error;
@@ -531,7 +531,7 @@ static int virLockManagerLockDaemonAddResource(virLockManagerPtr lock,
         if (STRPREFIX(name, "/dev") &&
             driver->scsiLockSpaceDir) {
             VIR_DEBUG("Trying to find an SCSI ID for %s", name);
-            if (virStorageFileGetSCSIKey(name, &newName) < 0)
+            if (virStorageFileGetSCSIKey(name, &newName, false) < 0)
                 goto cleanup;
 
             if (newName) {

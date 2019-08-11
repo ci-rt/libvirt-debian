@@ -28,6 +28,8 @@
 # include "virxml.h"
 # include "qemu_monitor.h"
 # include "qemu_conf.h"
+# include "virautoclean.h"
+# include "virenum.h"
 
 typedef enum {
     QEMU_MIGRATION_CAP_XBZRLE,
@@ -38,10 +40,11 @@ typedef enum {
     QEMU_MIGRATION_CAP_COMPRESS,
     QEMU_MIGRATION_CAP_PAUSE_BEFORE_SWITCHOVER,
     QEMU_MIGRATION_CAP_LATE_BLOCK_ACTIVATE,
+    QEMU_MIGRATION_CAP_MULTIFD,
 
     QEMU_MIGRATION_CAP_LAST
 } qemuMigrationCapability;
-VIR_ENUM_DECL(qemuMigrationCapability)
+VIR_ENUM_DECL(qemuMigrationCapability);
 
 typedef enum {
     QEMU_MIGRATION_PARAM_COMPRESS_LEVEL,
@@ -55,6 +58,8 @@ typedef enum {
     QEMU_MIGRATION_PARAM_DOWNTIME_LIMIT,
     QEMU_MIGRATION_PARAM_BLOCK_INCREMENTAL,
     QEMU_MIGRATION_PARAM_XBZRLE_CACHE_SIZE,
+    QEMU_MIGRATION_PARAM_MAX_POSTCOPY_BANDWIDTH,
+    QEMU_MIGRATION_PARAM_MULTIFD_CHANNELS,
 
     QEMU_MIGRATION_PARAM_LAST
 } qemuMigrationParam;
@@ -84,8 +89,12 @@ qemuMigrationParamsDump(qemuMigrationParamsPtr migParams,
                         int *maxparams,
                         unsigned long *flags);
 
+qemuMigrationParamsPtr
+qemuMigrationParamsNew(void);
+
 void
 qemuMigrationParamsFree(qemuMigrationParamsPtr migParams);
+VIR_DEFINE_AUTOPTR_FUNC(qemuMigrationParams, qemuMigrationParamsFree);
 
 int
 qemuMigrationParamsApply(virQEMUDriverPtr driver,
@@ -111,6 +120,11 @@ qemuMigrationParamsFetch(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
                          int asyncJob,
                          qemuMigrationParamsPtr *migParams);
+
+int
+qemuMigrationParamsSetULL(qemuMigrationParamsPtr migParams,
+                          qemuMigrationParam param,
+                          unsigned long long value);
 
 int
 qemuMigrationParamsGetULL(qemuMigrationParamsPtr migParams,

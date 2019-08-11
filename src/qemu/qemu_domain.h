@@ -1,7 +1,7 @@
 /*
  * qemu_domain.h: QEMU domain private state
  *
- * Copyright (C) 2006-2016 Red Hat, Inc.
+ * Copyright (C) 2006-2019 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -30,6 +30,7 @@
 # include "snapshot_conf.h"
 # include "qemu_monitor.h"
 # include "qemu_agent.h"
+# include "qemu_blockjob.h"
 # include "qemu_conf.h"
 # include "qemu_capabilities.h"
 # include "qemu_migration_params.h"
@@ -37,6 +38,8 @@
 # include "virchrdev.h"
 # include "virobject.h"
 # include "logging/log_manager.h"
+# include "virdomainmomentobjlist.h"
+# include "virenum.h"
 
 # define QEMU_DOMAIN_FORMAT_LIVE_FLAGS \
     (VIR_DOMAIN_XML_SECURE)
@@ -78,7 +81,7 @@ typedef enum {
 
     QEMU_JOB_LAST
 } qemuDomainJob;
-VIR_ENUM_DECL(qemuDomainJob)
+VIR_ENUM_DECL(qemuDomainJob);
 
 typedef enum {
     QEMU_AGENT_JOB_NONE = 0,    /* No agent job. */
@@ -87,7 +90,7 @@ typedef enum {
 
     QEMU_AGENT_JOB_LAST
 } qemuDomainAgentJob;
-VIR_ENUM_DECL(qemuDomainAgentJob)
+VIR_ENUM_DECL(qemuDomainAgentJob);
 
 /* Async job consists of a series of jobs that may change state. Independent
  * jobs that do not change state (and possibly others if explicitly allowed by
@@ -104,7 +107,7 @@ typedef enum {
 
     QEMU_ASYNC_JOB_LAST
 } qemuDomainAsyncJob;
-VIR_ENUM_DECL(qemuDomainAsyncJob)
+VIR_ENUM_DECL(qemuDomainAsyncJob);
 
 typedef enum {
     QEMU_DOMAIN_JOB_STATUS_NONE = 0,
@@ -217,6 +220,7 @@ typedef qemuDomainUnpluggingDevice *qemuDomainUnpluggingDevicePtr;
 struct _qemuDomainUnpluggingDevice {
     const char *alias;
     qemuDomainUnpluggingDeviceStatus status;
+    bool eventSeen; /* True if DEVICE_DELETED event arrived. */
 };
 
 
@@ -224,7 +228,7 @@ typedef enum {
     QEMU_DOMAIN_NS_MOUNT = 0,
     QEMU_DOMAIN_NS_LAST
 } qemuDomainNamespace;
-VIR_ENUM_DECL(qemuDomainNamespace)
+VIR_ENUM_DECL(qemuDomainNamespace);
 
 bool qemuDomainNamespaceEnabled(virDomainObjPtr vm,
                                 qemuDomainNamespace ns);
@@ -368,6 +372,10 @@ struct _qemuDomainObjPrivate {
      * RESUME event handler to use it */
     virDomainRunningReason runningReason;
 
+    /* qemuProcessStopCPUs stores the reason for pausing vCPUs here for the
+     * STOP event handler to use it */
+    virDomainPausedReason pausedReason;
+
     /* true if libvirt remembers the original owner for files */
     bool rememberOwner;
 
@@ -389,13 +397,7 @@ struct _qemuDomainDiskPrivate {
     /* ideally we want a smarter way to interlock block jobs on single qemu disk
      * in the future, but for now we just disallow any concurrent job on a
      * single disk */
-    bool blockjob;
-
-    /* for some synchronous block jobs, we need to notify the owner */
-    int blockJobType;   /* type of the block job from the event */
-    int blockJobStatus; /* status of the finished block job */
-    char *blockJobError; /* block job completed event error */
-    bool blockJobSync; /* the block job needs synchronized termination */
+    qemuBlockJobDataPtr blockjob;
 
     bool migrating; /* the disk is being migrated */
     virStorageSourcePtr migrSource; /* disk source object used for NBD migration */
@@ -478,6 +480,19 @@ struct _qemuDomainVsockPrivate {
     virObject parent;
 
     int vhostfd;
+};
+
+
+# define QEMU_DOMAIN_GRAPHICS_PRIVATE(dev) \
+    ((qemuDomainGraphicsPrivatePtr) (dev)->privateData)
+
+typedef struct _qemuDomainGraphicsPrivate qemuDomainGraphicsPrivate;
+typedef qemuDomainGraphicsPrivate *qemuDomainGraphicsPrivatePtr;
+struct _qemuDomainGraphicsPrivate {
+    virObject parent;
+
+    char *tlsAlias;
+    qemuDomainSecretInfoPtr secinfo;
 };
 
 
@@ -672,36 +687,39 @@ int qemuDomainLogAppendMessage(virQEMUDriverPtr driver,
 const char *qemuFindQemuImgBinary(virQEMUDriverPtr driver);
 
 int qemuDomainSnapshotWriteMetadata(virDomainObjPtr vm,
-                                    virDomainSnapshotObjPtr snapshot,
+                                    virDomainMomentObjPtr snapshot,
                                     virCapsPtr caps,
                                     virDomainXMLOptionPtr xmlopt,
-                                    char *snapshotDir);
+                                    const char *snapshotDir);
 
 int qemuDomainSnapshotForEachQcow2(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
-                                   virDomainSnapshotObjPtr snap,
+                                   virDomainMomentObjPtr snap,
                                    const char *op,
                                    bool try_all);
 
 int qemuDomainSnapshotDiscard(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
-                              virDomainSnapshotObjPtr snap,
+                              virDomainMomentObjPtr snap,
                               bool update_current,
                               bool metadata_only);
 
-typedef struct _virQEMUSnapRemove virQEMUSnapRemove;
-typedef virQEMUSnapRemove *virQEMUSnapRemovePtr;
-struct _virQEMUSnapRemove {
+typedef struct _virQEMUMomentRemove virQEMUMomentRemove;
+typedef virQEMUMomentRemove *virQEMUMomentRemovePtr;
+struct _virQEMUMomentRemove {
     virQEMUDriverPtr driver;
     virDomainObjPtr vm;
     int err;
     bool metadata_only;
-    bool current;
+    virDomainMomentObjPtr current;
+    bool found;
+    int (*momentDiscard)(virQEMUDriverPtr, virDomainObjPtr,
+                         virDomainMomentObjPtr, bool, bool);
 };
 
-int qemuDomainSnapshotDiscardAll(void *payload,
-                                 const void *name,
-                                 void *data);
+int qemuDomainMomentDiscardAll(void *payload,
+                               const void *name,
+                               void *data);
 
 int qemuDomainSnapshotDiscardAllMetadata(virQEMUDriverPtr driver,
                                          virDomainObjPtr vm);
@@ -734,6 +752,7 @@ int qemuDomainCheckDiskPresence(virQEMUDriverPtr driver,
 int qemuDomainDetermineDiskChain(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
                                  virDomainDiskDefPtr disk,
+                                 virStorageSourcePtr disksrc,
                                  bool report_broken);
 
 bool qemuDomainDiskChangeSupported(virDomainDiskDefPtr disk,
@@ -807,8 +826,6 @@ int qemuDomainJobInfoToParams(qemuDomainJobInfoPtr jobInfo,
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
 
-int qemuDomainSupportsBlockJobs(virDomainObjPtr vm)
-    ATTRIBUTE_NONNULL(1);
 bool qemuDomainDiskBlockJobIsActive(virDomainDiskDefPtr disk);
 bool qemuDomainHasBlockjob(virDomainObjPtr vm, bool copy_only)
     ATTRIBUTE_NONNULL(1);
@@ -819,31 +836,29 @@ void qemuDomainMemoryDeviceAlignSize(virDomainDefPtr def,
 
 virDomainChrDefPtr qemuFindAgentConfig(virDomainDefPtr def);
 
+/* You should normally avoid these functions and use the variant that
+ * doesn't have "Machine" in the name instead. */
+bool qemuDomainMachineIsARMVirt(const char *machine,
+                                const virArch arch);
+bool qemuDomainMachineIsPSeries(const char *machine,
+                                const virArch arch);
+bool qemuDomainMachineHasBuiltinIDE(const char *machine,
+                                    const virArch arch);
+
 bool qemuDomainIsQ35(const virDomainDef *def);
 bool qemuDomainIsI440FX(const virDomainDef *def);
-bool qemuDomainHasPCIRoot(const virDomainDef *def);
-bool qemuDomainHasPCIeRoot(const virDomainDef *def);
-bool qemuDomainNeedsFDC(const virDomainDef *def);
 bool qemuDomainIsS390CCW(const virDomainDef *def);
 bool qemuDomainIsARMVirt(const virDomainDef *def);
 bool qemuDomainIsRISCVVirt(const virDomainDef *def);
 bool qemuDomainIsPSeries(const virDomainDef *def);
+bool qemuDomainHasPCIRoot(const virDomainDef *def);
+bool qemuDomainHasPCIeRoot(const virDomainDef *def);
 bool qemuDomainHasBuiltinIDE(const virDomainDef *def);
+bool qemuDomainNeedsFDC(const virDomainDef *def);
+bool qemuDomainSupportsPCI(virDomainDefPtr def,
+                           virQEMUCapsPtr qemuCaps);
 
-bool qemuDomainMachineIsQ35(const char *machine);
-bool qemuDomainMachineIsI440FX(const char *machine);
-bool qemuDomainMachineNeedsFDC(const char *machine);
-bool qemuDomainMachineIsS390CCW(const char *machine);
-bool qemuDomainMachineIsARMVirt(const char *machine,
-                                const virArch arch);
-bool qemuDomainMachineIsRISCVVirt(const char *machine,
-                                  const virArch arch);
-bool qemuDomainMachineIsPSeries(const char *machine,
-                                const virArch arch);
-bool qemuDomainMachineHasBuiltinIDE(const char *machine);
-
-int qemuDomainUpdateCurrentMemorySize(virQEMUDriverPtr driver,
-                                      virDomainObjPtr vm);
+void qemuDomainUpdateCurrentMemorySize(virDomainObjPtr vm);
 
 unsigned long long qemuDomainGetMemLockLimitBytes(virDomainDefPtr def);
 int qemuDomainAdjustMaxMemLock(virDomainObjPtr vm);
@@ -1056,10 +1071,11 @@ int
 qemuDomainObjPrivateXMLParseAllowReboot(xmlXPathContextPtr ctxt,
                                         virTristateBool *allowReboot);
 
-bool qemuDomainCheckCCWS390AddressSupport(const virDomainDef *def,
-                                    virDomainDeviceInfo info,
-                                    virQEMUCapsPtr qemuCaps,
-                                    const char *devicename);
+bool
+qemuDomainCheckCCWS390AddressSupport(const virDomainDef *def,
+                                     const virDomainDeviceInfo *info,
+                                     virQEMUCapsPtr qemuCaps,
+                                     const char *devicename);
 
 int
 qemuDomainPrepareDiskSourceData(virDomainDiskDefPtr disk,
@@ -1098,5 +1114,12 @@ qemuDomainIsUsingNoShutdown(qemuDomainObjPrivatePtr priv);
 
 bool
 qemuDomainDiskIsMissingLocalOptional(virDomainDiskDefPtr disk);
+
+int
+qemuDomainNVRAMPathGenerate(virQEMUDriverConfigPtr cfg,
+                            virDomainDefPtr def);
+
+virDomainEventSuspendedDetailType
+qemuDomainPausedReasonToSuspendedEvent(virDomainPausedReason reason);
 
 #endif /* LIBVIRT_QEMU_DOMAIN_H */

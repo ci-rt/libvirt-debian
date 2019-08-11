@@ -109,15 +109,12 @@ void virNetClientRemoveStream(virNetClientPtr client,
 int virNetClientSendWithReply(virNetClientPtr client,
                               virNetMessagePtr msg);
 
-int virNetClientSendNoReply(virNetClientPtr client,
-                            virNetMessagePtr msg);
-
 int virNetClientSendNonBlock(virNetClientPtr client,
                              virNetMessagePtr msg);
 
-int virNetClientSendWithReplyStream(virNetClientPtr client,
-                                    virNetMessagePtr msg,
-                                    virNetClientStreamPtr st);
+int virNetClientSendStream(virNetClientPtr client,
+                           virNetMessagePtr msg,
+                           virNetClientStreamPtr st);
 
 # ifdef WITH_SASL
 void virNetClientSetSASLSession(virNetClientPtr client,

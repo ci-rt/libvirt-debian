@@ -27,19 +27,30 @@
 typedef struct _virNetClientStream virNetClientStream;
 typedef virNetClientStream *virNetClientStreamPtr;
 
+typedef enum {
+    VIR_NET_CLIENT_STREAM_CLOSED_NOT = 0,
+    VIR_NET_CLIENT_STREAM_CLOSED_FINISHED,
+    VIR_NET_CLIENT_STREAM_CLOSED_ABORTED,
+} virNetClientStreamClosed;
+
 typedef void (*virNetClientStreamEventCallback)(virNetClientStreamPtr stream,
                                                 int events, void *opaque);
 
-virNetClientStreamPtr virNetClientStreamNew(virStreamPtr stream,
-                                            virNetClientProgramPtr prog,
+virNetClientStreamPtr virNetClientStreamNew(virNetClientProgramPtr prog,
                                             int proc,
                                             unsigned serial,
                                             bool allowSkip);
 
-bool virNetClientStreamRaiseError(virNetClientStreamPtr st);
+int virNetClientStreamCheckState(virNetClientStreamPtr st);
+
+int virNetClientStreamCheckSendStatus(virNetClientStreamPtr st,
+                                      virNetMessagePtr msg);
 
 int virNetClientStreamSetError(virNetClientStreamPtr st,
                                virNetMessagePtr msg);
+
+void virNetClientStreamSetClosed(virNetClientStreamPtr st,
+                                 virNetClientStreamClosed closed);
 
 bool virNetClientStreamMatches(virNetClientStreamPtr st,
                                virNetMessagePtr msg);

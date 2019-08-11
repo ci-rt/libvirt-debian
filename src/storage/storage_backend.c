@@ -87,22 +87,17 @@ virStorageDriverLoadBackendModule(const char *name,
                                   const char *regfunc,
                                   bool forceload)
 {
-    char *modfile = NULL;
-    int ret;
+    VIR_AUTOFREE(char *) modfile = NULL;
 
     if (!(modfile = virFileFindResourceFull(name,
                                             "libvirt_storage_backend_",
                                             ".so",
-                                            abs_topbuilddir "/src/.libs",
+                                            abs_top_builddir "/src/.libs",
                                             STORAGE_BACKEND_MODULE_DIR,
                                             "LIBVIRT_STORAGE_BACKEND_DIR")))
         return -1;
 
-    ret = virModuleLoad(modfile, regfunc, forceload);
-
-    VIR_FREE(modfile);
-
-    return ret;
+    return virModuleLoad(modfile, regfunc, forceload);
 }
 
 
@@ -186,4 +181,20 @@ virStorageBackendForType(int type)
                    _("missing backend for pool type %d (%s)"),
                    type, NULLSTR(virStoragePoolTypeToString(type)));
     return NULL;
+}
+
+
+virCapsPtr
+virStorageBackendGetCapabilities(void)
+{
+    virCapsPtr caps;
+    size_t i;
+
+    if (!(caps = virCapabilitiesNew(VIR_ARCH_NONE, false, false)))
+        return NULL;
+
+    for (i = 0; i < virStorageBackendsCount; i++)
+        virCapabilitiesAddStoragePool(caps, virStorageBackends[i]->type);
+
+    return caps;
 }

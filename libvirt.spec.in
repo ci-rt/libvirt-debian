@@ -82,6 +82,7 @@
 %define with_sanlock       0%{!?_without_sanlock:0}
 %define with_numad         0%{!?_without_numad:0}
 %define with_firewalld     0%{!?_without_firewalld:0}
+%define with_firewalld_zone 0%{!?_without_firewalld_zone:0}
 %define with_libssh2       0%{!?_without_libssh2:0}
 %define with_wireshark     0%{!?_without_wireshark:0}
 %define with_libssh        0%{!?_without_libssh:0}
@@ -109,6 +110,12 @@
     %define with_storage_zfs 0
 %endif
 
+# Ceph dropping support for 32-bit hosts
+%if 0%{?fedora} >= 30
+    %ifarch %{arm} %{ix86}
+        %define with_storage_rbd 0
+    %endif
+%endif
 
 # RHEL doesn't ship OpenVZ, VBox, PowerHypervisor,
 # VMware, libxenserver (xenapi), libxenlight (Xen 4.1 and newer),
@@ -129,6 +136,11 @@
 %endif
 
 %define with_firewalld 1
+
+%if 0%{?fedora} >= 31 || 0%{?rhel} > 7
+    %define with_firewalld_zone 0%{!?_without_firewalld_zone:1}
+%endif
+
 
 # fuse is used to provide virtualized /proc for LXC
 %if %{with_lxc}
@@ -154,11 +166,7 @@
 # Enable wireshark plugins for all distros shipping libvirt 1.2.2 or newer
 %if 0%{?fedora}
     %define with_wireshark 0%{!?_without_wireshark:1}
-%endif
-%if 0%{?fedora} || 0%{?rhel} > 7
-    %define wireshark_plugindir %(pkg-config --variable plugindir wireshark)
-%else
-    %define wireshark_plugindir %{_libdir}/wireshark/plugins
+    %define wireshark_plugindir %(pkg-config --variable plugindir wireshark)/epan
 %endif
 
 # Enable libssh transport for new enough distros
@@ -208,7 +216,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 1%{?dist}
 License: LGPLv2+
 URL: https://libvirt.org/
 
@@ -318,6 +326,8 @@ BuildRequires: libiscsi-devel
 BuildRequires: parted-devel
 # For Multipath support
 BuildRequires: device-mapper-devel
+# For XFS reflink clone support
+BuildRequires: xfsprogs-devel
 %if %{with_storage_rbd}
 BuildRequires: librados2-devel
 BuildRequires: librbd1-devel
@@ -377,7 +387,7 @@ BuildRequires: numad
 %endif
 
 %if %{with_wireshark}
-BuildRequires: wireshark-devel >= 2.1.0
+BuildRequires: wireshark-devel >= 2.4.0
 %endif
 
 %if %{with_libssh}
@@ -387,6 +397,10 @@ BuildRequires: libssh-devel >= 0.7.0
 %if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires: rpcgen
 BuildRequires: libtirpc-devel
+%endif
+
+%if %{with_firewalld_zone}
+BuildRequires: firewalld-filesystem
 %endif
 
 Provides: bundled(gnulib)
@@ -535,6 +549,9 @@ Requires: util-linux
 %if %{with_qemu}
 # From QEMU RPMs
 Requires: /usr/bin/qemu-img
+%endif
+%if !%{with_storage_rbd}
+Obsoletes: libvirt-daemon-driver-storage-rbd < %{version}-%{release}
 %endif
 
 %description daemon-driver-storage-core
@@ -919,7 +936,7 @@ Bash completion script stub.
 %if %{with_wireshark}
 %package wireshark
 Summary: Wireshark dissector plugin for libvirt RPC transactions
-Requires: wireshark >= 1.12.6-4
+Requires: wireshark >= 2.4.0
 Requires: %{name}-libs = %{version}-%{release}
 
 %description wireshark
@@ -1087,6 +1104,12 @@ exit 1
     %define arg_firewalld --without-firewalld
 %endif
 
+%if %{with_firewalld_zone}
+    %define arg_firewalld_zone --with-firewalld-zone
+%else
+    %define arg_firewalld_zone --without-firewalld-zone
+%endif
+
 %if %{with_wireshark}
     %define arg_wireshark --with-wireshark-dissector
 %else
@@ -1185,6 +1208,7 @@ rm -f po/stamp-po
            --with-dtrace \
            --with-driver-modules \
            %{?arg_firewalld} \
+           %{?arg_firewalld_zone} \
            %{?arg_wireshark} \
            --without-pm-utils \
            --with-nss-plugin \
@@ -1304,6 +1328,16 @@ then
   exit 1
 fi
 
+%post libs
+%if 0%{?rhel} == 7
+/sbin/ldconfig
+%endif
+
+%postun libs
+%if 0%{?rhel} == 7
+/sbin/ldconfig
+%endif
+
 %pre daemon
 # 'libvirt' group is just to allow password-less polkit access to
 # libvirtd. The uid number is irrelevant, so we use dynamic allocation
@@ -1351,6 +1385,16 @@ if [ -f %{_localstatedir}/lib/rpm-state/libvirt/restart ]; then
     /bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 || :
 fi
 rm -rf %{_localstatedir}/lib/rpm-state/libvirt || :
+
+%post daemon-driver-network
+%if %{with_firewalld_zone}
+    %firewalld_reload
+%endif
+
+%postun daemon-driver-network
+%if %{with_firewalld_zone}
+    %firewalld_reload
+%endif
 
 %post daemon-config-network
 if test $1 -eq 1 && test ! -f %{_sysconfdir}/libvirt/qemu/networks/default.xml ; then
@@ -1413,16 +1457,6 @@ fi
 rm -rf %{_localstatedir}/lib/rpm-state/libvirt || :
 
 
-%triggerun -- libvirt < 0.9.4
-%{_bindir}/systemd-sysv-convert --save libvirtd >/dev/null 2>&1 ||:
-
-# If the package is allowed to autostart:
-/bin/systemctl --no-reload enable libvirtd.service >/dev/null 2>&1 ||:
-
-# Run these because the SysV package being removed won't do them
-/sbin/chkconfig --del libvirtd >/dev/null 2>&1 || :
-/bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 || :
-
 %if %{with_qemu}
 %pre daemon-driver-qemu
 # We want soft static allocation of well-known ids, as disk images
@@ -1445,23 +1479,10 @@ exit 0
 %systemd_preun libvirt-guests.service
 
 %post client
-
-/sbin/ldconfig
 %systemd_post libvirt-guests.service
 
 %postun client
-
-/sbin/ldconfig
 %systemd_postun libvirt-guests.service
-
-%triggerun client -- libvirt < 0.9.4
-%{_bindir}/systemd-sysv-convert --save libvirt-guests >/dev/null 2>&1 ||:
-
-# If the package is allowed to autostart:
-/bin/systemctl --no-reload enable libvirt-guests.service >/dev/null 2>&1 ||:
-
-# Run this because the SysV package being removed won't do them
-/sbin/chkconfig --del libvirt-guests >/dev/null 2>&1 || :
 
 %if %{with_sanlock}
 %post lock-sanlock
@@ -1589,6 +1610,10 @@ exit 0
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
 %attr(0755, root, root) %{_libexecdir}/libvirt_leaseshelper
 %{_libdir}/%{name}/connection-driver/libvirt_driver_network.so
+
+%if %{with_firewalld_zone}
+%{_prefix}/lib/firewalld/zones/libvirt.xml
+%endif
 
 %files daemon-driver-nodedev
 %{_libdir}/%{name}/connection-driver/libvirt_driver_nodedev.so
@@ -1789,6 +1814,7 @@ exit 0
 %{_datadir}/libvirt/schemas/secret.rng
 %{_datadir}/libvirt/schemas/storagecommon.rng
 %{_datadir}/libvirt/schemas/storagepool.rng
+%{_datadir}/libvirt/schemas/storagepoolcaps.rng
 %{_datadir}/libvirt/schemas/storagevol.rng
 
 %{_datadir}/libvirt/cpu_map/*.xml

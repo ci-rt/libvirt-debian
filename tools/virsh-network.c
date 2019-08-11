@@ -29,6 +29,7 @@
 #include "virtime.h"
 #include "conf/network_conf.h"
 #include "vsh-table.h"
+#include "virenum.h"
 
 #define VIRSH_COMMON_OPT_NETWORK(_helpstr, cflags) \
     {.name = "network", \
@@ -904,12 +905,14 @@ static const vshCmdOptDef opts_network_update[] = {
     {.name = NULL}
 };
 
-VIR_ENUM_DECL(virNetworkUpdateCommand)
-VIR_ENUM_IMPL(virNetworkUpdateCommand, VIR_NETWORK_UPDATE_COMMAND_LAST,
+VIR_ENUM_DECL(virNetworkUpdateCommand);
+VIR_ENUM_IMPL(virNetworkUpdateCommand,
+              VIR_NETWORK_UPDATE_COMMAND_LAST,
               "none", "modify", "delete", "add-last", "add-first");
 
-VIR_ENUM_DECL(virNetworkSection)
-VIR_ENUM_IMPL(virNetworkSection, VIR_NETWORK_SECTION_LAST,
+VIR_ENUM_DECL(virNetworkSection);
+VIR_ENUM_IMPL(virNetworkSection,
+              VIR_NETWORK_SECTION_LAST,
               "none", "bridge", "domain", "ip", "ip-dhcp-host",
               "ip-dhcp-range", "forward", "forward-interface",
               "forward-pf", "portgroup", "dns-host", "dns-txt",
@@ -1136,13 +1139,13 @@ cmdNetworkEdit(vshControl *ctl, const vshCmd *cmd)
 /*
  * "net-event" command
  */
-VIR_ENUM_DECL(virshNetworkEvent)
+VIR_ENUM_DECL(virshNetworkEvent);
 VIR_ENUM_IMPL(virshNetworkEvent,
               VIR_NETWORK_EVENT_LAST,
               N_("Defined"),
               N_("Undefined"),
               N_("Started"),
-              N_("Stopped"))
+              N_("Stopped"));
 
 static const char *
 virshNetworkEventToString(int event)
@@ -1156,13 +1159,14 @@ struct virshNetEventData {
     bool loop;
     bool timestamp;
     int count;
+    virshNetworkEventCallback *cb;
 };
 typedef struct virshNetEventData virshNetEventData;
 
-VIR_ENUM_DECL(virshNetworkEventId)
+VIR_ENUM_DECL(virshNetworkEventId);
 VIR_ENUM_IMPL(virshNetworkEventId,
               VIR_NETWORK_EVENT_ID_LAST,
-              "lifecycle")
+              "lifecycle");
 
 static void
 vshEventLifecyclePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -1195,6 +1199,12 @@ vshEventLifecyclePrint(virConnectPtr conn ATTRIBUTE_UNUSED,
         vshEventDone(data->ctl);
 }
 
+virshNetworkEventCallback virshNetworkEventCallbacks[] = {
+    { "lifecycle",
+      VIR_NETWORK_EVENT_CALLBACK(vshEventLifecyclePrint), },
+};
+verify(VIR_NETWORK_EVENT_ID_LAST == ARRAY_CARDINALITY(virshNetworkEventCallbacks));
+
 static const vshCmdInfo info_network_event[] = {
     {.name = "help",
      .data = N_("Network Events")
@@ -1209,6 +1219,7 @@ static const vshCmdOptDef opts_network_event[] = {
     VIRSH_COMMON_OPT_NETWORK_OT_STRING(N_("filter by network name or uuid"), 0),
     {.name = "event",
      .type = VSH_OT_STRING,
+     .completer = virshNetworkEventNameCompleter,
      .help = N_("which event type to wait for")
     },
     {.name = "loop",
@@ -1246,7 +1257,7 @@ cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
         size_t i;
 
         for (i = 0; i < VIR_NETWORK_EVENT_ID_LAST; i++)
-            vshPrint(ctl, "%s\n", virshNetworkEventIdTypeToString(i));
+            vshPrint(ctl, "%s\n", virshNetworkEventCallbacks[i].name);
         return true;
     }
 
@@ -1256,7 +1267,10 @@ cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, "%s", _("either --list or --event <type> is required"));
         return false;
     }
-    if ((event = virshNetworkEventIdTypeFromString(eventName)) < 0) {
+    for (event = 0; event < VIR_NETWORK_EVENT_ID_LAST; event++)
+        if (STREQ(eventName, virshNetworkEventCallbacks[event].name))
+            break;
+    if (event == VIR_NETWORK_EVENT_ID_LAST) {
         vshError(ctl, _("unknown event type %s"), eventName);
         return false;
     }
@@ -1265,6 +1279,7 @@ cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
     data.loop = vshCommandOptBool(cmd, "loop");
     data.timestamp = vshCommandOptBool(cmd, "timestamp");
     data.count = 0;
+    data.cb = &virshNetworkEventCallbacks[event];
     if (vshCommandOptTimeoutToMs(ctl, cmd, &timeout) < 0)
         return false;
 
@@ -1274,7 +1289,7 @@ cmdNetworkEvent(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
 
     if ((eventId = virConnectNetworkEventRegisterAny(priv->conn, net, event,
-                                                     VIR_NETWORK_EVENT_CALLBACK(vshEventLifecyclePrint),
+                                                     data.cb->cb,
                                                      &data, NULL)) < 0)
         goto cleanup;
     switch (vshEventWait(ctl)) {
@@ -1398,11 +1413,11 @@ cmdNetworkDHCPLeases(vshControl *ctl, const vshCmd *cmd)
 
         if (vshTableRowAppend(table,
                               expirytime,
-                              EMPTYSTR(lease->mac),
-                              EMPTYSTR(typestr),
-                              EMPTYSTR(cidr_format),
-                              EMPTYSTR(lease->hostname),
-                              EMPTYSTR(lease->clientid),
+                              NULLSTR_MINUS(lease->mac),
+                              NULLSTR_MINUS(typestr),
+                              NULLSTR_MINUS(cidr_format),
+                              NULLSTR_MINUS(lease->hostname),
+                              NULLSTR_MINUS(lease->clientid),
                               NULL) < 0)
             goto cleanup;
     }

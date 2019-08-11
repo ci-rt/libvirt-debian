@@ -1,8 +1,11 @@
 LC_ALL=C \
 PATH=/bin \
-HOME=/home/test \
+HOME=/tmp/lib/domain--1-test-bios \
 USER=test \
 LOGNAME=test \
+XDG_DATA_HOME=/tmp/lib/domain--1-test-bios/.local/share \
+XDG_CACHE_HOME=/tmp/lib/domain--1-test-bios/.cache \
+XDG_CONFIG_HOME=/tmp/lib/domain--1-test-bios/.config \
 QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-x86_64 \
 -name test-bios \
@@ -13,6 +16,7 @@ QEMU_AUDIO_DRV=none \
 readonly=on \
 -drive file=/usr/share/OVMF/OVMF_VARS.fd,if=pflash,format=raw,unit=1 \
 -m 1024 \
+-realtime mlock=off \
 -smp 1,sockets=1,cores=1,threads=1 \
 -uuid 362d1fc1-df7d-193e-5c18-49a71bd1da66 \
 -display none \
@@ -29,6 +33,6 @@ server,nowait \
 -device ioh3420,port=0x10,chassis=3,id=pci.3,bus=pcie.0,addr=0x2 \
 -device virtio-scsi-pci,id=scsi0,bus=pci.2,addr=0x1 \
 -drive file=/dev/HostVG/QEMUGuest1,format=raw,if=none,id=drive-scsi0-0-0-0 \
--device scsi-disk,bus=scsi0.0,channel=0,scsi-id=0,lun=0,\
-drive=drive-scsi0-0-0-0,id=scsi0-0-0-0,bootindex=1 \
+-device scsi-hd,bus=scsi0.0,channel=0,scsi-id=0,lun=0,drive=drive-scsi0-0-0-0,\
+id=scsi0-0-0-0,bootindex=1 \
 -device virtio-balloon-pci,id=balloon0,bus=pci.2,addr=0x2

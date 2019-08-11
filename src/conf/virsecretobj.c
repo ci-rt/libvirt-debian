@@ -78,7 +78,7 @@ virSecretObjOnceInit(void)
 }
 
 
-VIR_ONCE_GLOBAL_INIT(virSecretObj)
+VIR_ONCE_GLOBAL_INIT(virSecretObj);
 
 static virSecretObjPtr
 virSecretObjNew(void)
@@ -394,8 +394,7 @@ virSecretObjListAdd(virSecretObjListPtr secrets,
         virObjectRef(obj);
     }
 
-    ret = obj;
-    obj = NULL;
+    VIR_STEAL_PTR(ret, obj);
 
  cleanup:
     virSecretObjEndAPI(&obj);
@@ -820,7 +819,7 @@ virSecretLoadValidateUUID(virSecretDefPtr def,
 
     virUUIDFormat(def->uuid, uuidstr);
 
-    if (!virFileMatchesNameSuffix(file, uuidstr, ".xml")) {
+    if (!virStringMatchesNameSuffix(file, uuidstr, ".xml")) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("<uuid> does not match secret file name '%s'"),
                        file);
@@ -950,7 +949,7 @@ virSecretLoadAllConfigs(virSecretObjListPtr secrets,
         char *path;
         virSecretObjPtr obj;
 
-        if (!virFileHasSuffix(de->d_name, ".xml"))
+        if (!virStringHasSuffix(de->d_name, ".xml"))
             continue;
 
         if (!(path = virFileBuildPath(configDir, de->d_name, NULL)))

@@ -1,3 +1,123 @@
+libvirt (5.3.0-1~1.gbp5c84f4) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @5c84f4f32ef2a75a837cba4984ef05694460110e **
+
+  [ Guido Günther ]
+  * [fb43676] d/control: Drop dh-autoreconf build-dep
+  * [81d21d5] d/not-installed: Use multi-arch dirs
+  * [641e532] New upstream version 5.3.0
+
+  [ Christian Ehrhardt ]
+  * [c28c3b3] d/libvirt0.install: install translations
+  * [c3c4cd4] d/libvirt-daemon-system.install: drop in helper for firewalld
+  * [3e8b43c] d/not-installed: ignore default files /etc/sysconfig
+  * [c223d7f] d/libvirt-daemon-system.examples: ship sysctl config as example
+  * [f19acf6] d/libvirt-daemon-system.install: ship libxl-sanlock.conf
+    (Closes: #919484)
+  * [483e44a] d/libvirt-doc.docs: fix whitespace issue
+  * [4f4751f] d/libvirt-doc.docs: install new doc elements
+  * [781e22e] d/not-installed: ignore documentation already being installed
+  * [eda89b2] d/no-installed, d/libvirt-doc.docs: do not install fonts
+  * [ab67a28] d/copyright: add license for docs/fonts/
+  * [2e222a2] d/rules: strip symbolic-functions linker option
+  * [39b658c] Revert "d/libvirt-daemon-system.install: ship libxl-sanlock.conf"
+  * [ce46360] d/rules: install libxl-sanlock.conf dependent on xen being enabled
+
+  [ Andrea Bolognani ]
+  * [6a2eae3] Simplify and improve watch file
+  * [baef715] Rediff patches
+  * [82a1edc] Bump symbol versions
+  * [73fccd9] Specify --doc-main-package for dh_installdocs
+
+ -- Andrea Bolognani <eof@kiyuko.org>  Sat, 10 Aug 2019 17:59:37 +0200
+
+libvirt (5.2.0-2) experimental; urgency=medium
+
+  [ Guido Günther ]
+  * [1ec90c0] d/compat: Switch to debhelper level 12
+      * [fb6dd18] d/rules: s/no-restart-on-upgrade/no-stop-on-upgrade/
+      * [3764b71] d/rules: --prallel not needed anymore
+      * [1d92095] d/control: Add ${misc:Pre-Depends} for
+        libvirt-daemon-system. This makes sure we pull in recent enough
+        init-system-helpers
+  * [02a155b] d/rules: Switch to dh_installsystemd
+    dh_systemd_start is no longer used.
+  * [bcad111] d/control: Fix typo
+  * [8609192] d/control: Drop Debian revision on iptables build-dep.  Any
+    version greater than 1.8.1 will do.
+  * [447dd58] libnss-libvirt: Install libnss_libvirt-guest as well
+    (Closes: #910288)
+  * [4fb7d11] d/control: Build-depend on libglusterfs-dev.
+    Since this is a recent addition we can drop the versioned dependency.
+    (Closes: #919663)
+  * [7b4ffeb] d/rules: Newer debhelper puts the libs into multi arch dirs.
+    There's no need to move them manually anymore.
+
+  [ Andrea Bolognani ]
+  * [dd9cdaa] Use HTTPS for all URLs.
+    This gets rid of the debian-watch-uses-insecure-uri informational Lintian
+    tag, and then some.
+  * [faaec12] Minimize upstream's signing key.
+    This gets rid of the public-upstream-key-not-minimal informational Lintian
+    tag.
+  * [8a0e6f1] Remove Priority field from binary packages.
+    This gets rid of the binary-control-field-duplicates-source informational
+    Lintian tag.
+
+  [ Christian Ehrhardt ]
+  * [08f3a23] d/libvirt-clients.manpages: add virkeycode and virkeyname man
+    pages.
+  * [0f359de] d/rules: mv logrotate files to silence dh_missing
+  * [f36ca33] dh_missing: ignore warning on libtool .la file
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 22 Apr 2019 12:20:36 +0200
+
+libvirt (5.2.0-1) experimental; urgency=medium
+
+  * Team upload.
+
+  [ Christian Ehrhardt ]
+  * [3997186] d/libvirt-daemon-system.maintscript: remove obsolete conffile
+    /etc/logrotate.d/libvirtd.uml became obsolete since UML was dropped in
+    libvirt 5.0 (Closes: #920574)
+  * [c64d020] d/libvirt-daemon-system.libvirtd.default: clarify libvirtd_opts
+    example (Closes: #921713)
+
+  [ Guido Günther ]
+  * [dd9d74f] New upstream version 5.2.0
+  * [790365e] CVE-2019-3886: Don't allow unprivileged users to use the guest
+    agent. Apply upstream patches
+    remote-enforce-ACL-write-permission-for-getting-guest-tim.patch
+    api-disallow-virDomainGetHostname-for-read-only-connectio.patch
+    (Closes: #926418)
+
+  [ Andrea Bolognani ]
+  * [453f85d] Rediff patches. The patches
+    security-aa-helper-allow-virt-aa-helper-to-read-dev-dri.patch
+    security-aa-helper-generate-more-rules-for-gl-devices.patch
+    security-aa-helper-gl-devices-in-sysfs-at-arbitrary-depth.patch
+    security-aa-helper-nvidia-rules-for-gl-devices.patch
+    virt-aa-helper-generate-rules-for-gl-enabled-graphics-dev.patch
+    are included in libvirt 5.2.0 and have thus been dropped.
+  * [a4294ef] Bump symbol versions.
+  * [68394f6] Add tests-Avoid-writing-into-HOME-during-virsh-snapshot.patch
+
+ -- Andrea Bolognani <eof@kiyuko.org>  Sun, 07 Apr 2019 18:39:49 +0200
+
+libvirt (5.1.0-1) experimental; urgency=medium
+
+  [ Laurent Bigonville ]
+  * [76e2cb7] Don't recommend ebtables.
+    It's part of the iptables package now. (Closes: #918472)
+
+  [ Guido Günther ]
+  * [5814c89] New upstream version 5.1.0
+  * [55d063d] Rediff patches
+  * [1102dae] d/gbp.conf: Switch to experimental
+  * [cdf3787] d/rules: Adjust to now versioned wireshark module path
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 28 Mar 2019 13:03:29 +0100
+
 libvirt (5.0.0-4) unstable; urgency=medium
 
   * [0fdc2af] Fix multiple CVEs related to privilege escalations on R/O

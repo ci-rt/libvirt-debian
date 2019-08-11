@@ -22,6 +22,7 @@
 # define LIBVIRT_VIRCONF_H
 
 # include "virutil.h"
+# include "virenum.h"
 
 /**
  * virConfType:
@@ -38,7 +39,7 @@ typedef enum {
     VIR_CONF_LAST,          /* sentinel */
 } virConfType;
 
-VIR_ENUM_DECL(virConf)
+VIR_ENUM_DECL(virConf);
 
 typedef enum {
     VIR_CONF_FLAG_VMX_FORMAT = 1,  /* allow ':', '.' and '-' in names for compatibility

@@ -51,7 +51,7 @@ static int virLXCConfigOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virLXCConfig)
+VIR_ONCE_GLOBAL_INIT(virLXCConfig);
 
 
 /* Functions */
@@ -94,7 +94,7 @@ virCapsPtr virLXCDriverCapsInit(virLXCDriverPtr driver)
     }
 
     if (!(lxc_path = virFileFindResource("libvirt_lxc",
-                                         abs_topbuilddir "/src",
+                                         abs_top_builddir "/src",
                                          LIBEXECDIR)))
         goto error;
 

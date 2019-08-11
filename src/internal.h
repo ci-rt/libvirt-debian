@@ -241,9 +241,19 @@
 # define NULLSTR(s) ((s) ? (s) : "<null>")
 
 /*
- * Similar to NULLSTR, but print '-' to make it more user friendly.
+ * Turn a NULL string into an empty string
  */
-# define EMPTYSTR(s) ((s) ? (s) : "-")
+# define NULLSTR_EMPTY(s) ((s) ? (s) : "")
+
+/*
+ * Turn a NULL string into a star
+ */
+# define NULLSTR_STAR(s) ((s) ? (s) : "*")
+
+/*
+ * Turn a NULL string into a minus sign
+ */
+# define NULLSTR_MINUS(s) ((s) ? (s) : "-")
 
 /**
  * SWAP:
@@ -267,6 +277,21 @@
     do { \
         (a) = (b); \
         (b) = NULL; \
+    } while (0)
+
+/**
+ * VIR_RETURN_PTR:
+ * @ret: pointer to return
+ *
+ * Returns value of @ret while clearing @ret. This ensures that pointers
+ * freed by using VIR_AUTOPTR can be easily passed back to the caller without
+ * any temporary variable. @ptr is evaluated more than once.
+ */
+# define VIR_RETURN_PTR(ptr) \
+    do { \
+        typeof(ptr) virTemporaryReturnPointer = (ptr); \
+        (ptr) = NULL; \
+        return virTemporaryReturnPointer; \
     } while (0)
 
 /**

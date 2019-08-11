@@ -16,15 +16,21 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [5.0.0], [libvir-list@redhat.com], [], [https://libvirt.org])
+AC_INIT([libvirt], [5.3.0], [libvir-list@redhat.com], [], [https://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
 AH_BOTTOM([#include <config-post.h>])
 AC_CONFIG_MACRO_DIR([m4])
-dnl Make automake keep quiet about wildcards & other GNUmake-isms; also keep
-dnl quiet about the fact that we intentionally cater to automake 1.9
-AM_INIT_AUTOMAKE([-Wno-portability -Wno-obsolete tar-pax no-dist-gzip dist-xz subdir-objects])
+dnl Make automake keep quiet about wildcards & other GNUmake-isms
+AM_INIT_AUTOMAKE([
+    foreign
+    -Wno-portability
+    tar-pax
+    no-dist-gzip
+    dist-xz
+    subdir-objects
+    ])
 dnl older automake's default of ARFLAGS=cru is noisy on newer binutils;
 dnl we don't really need the 'u' even in older toolchains.  Then there is
 dnl older libtool, which spelled it AR_FLAGS
@@ -174,13 +180,13 @@ want_ifconfig=no
 dnl Make some notes about which OS we're compiling for, as the lxc and qemu
 dnl drivers require linux headers, and storage_mpath, dtrace, and nwfilter
 dnl are also linux specific.  The "network" and storage_fs drivers are known
-dnl to not work on MacOS X presently, so we also make a note if compiling
+dnl to not work on macOS presently, so we also make a note if compiling
 dnl for that
 
-with_linux=no with_osx=no with_freebsd=no with_win=no with_cygwin=no
+with_linux=no with_macos=no with_freebsd=no with_win=no with_cygwin=no
 case $host in
   *-*-linux*) with_linux=yes ;;
-  *-*-darwin*) with_osx=yes ;;
+  *-*-darwin*) with_macos=yes ;;
   *-*-freebsd*) with_freebsd=yes ;;
   *-*-mingw* | *-*-msvc* ) with_win=yes ;;
   *-*-cygwin*) with_cygwin=yes ;;
@@ -246,6 +252,7 @@ LIBVIRT_ARG_CAPNG
 LIBVIRT_ARG_CURL
 LIBVIRT_ARG_DBUS
 LIBVIRT_ARG_FIREWALLD
+LIBVIRT_ARG_FIREWALLD_ZONE
 LIBVIRT_ARG_FUSE
 LIBVIRT_ARG_GLUSTER
 LIBVIRT_ARG_HAL
@@ -286,6 +293,7 @@ LIBVIRT_CHECK_DBUS
 LIBVIRT_CHECK_DEVMAPPER
 LIBVIRT_CHECK_DLOPEN
 LIBVIRT_CHECK_FIREWALLD
+LIBVIRT_CHECK_FIREWALLD_ZONE
 LIBVIRT_CHECK_FUSE
 LIBVIRT_CHECK_GLUSTER
 LIBVIRT_CHECK_GNUTLS
@@ -619,9 +627,9 @@ if test "$with_libvirtd" = "no"; then
   with_storage_vstorage=no
 fi
 
-dnl storage-fs does not work on MacOS X
+dnl storage-fs does not work on macOS
 
-if test "$with_osx" = "yes"; then
+if test "$with_macos" = "yes"; then
   with_storage_fs=no
 fi
 
@@ -735,23 +743,6 @@ if test "$enable_expensive_tests" = check; then
 fi
 AC_SUBST([VIR_TEST_EXPENSIVE_DEFAULT])
 AM_CONDITIONAL([WITH_EXPENSIVE_TESTS], [test $VIR_TEST_EXPENSIVE_DEFAULT = 1])
-
-LIBVIRT_ARG_ENABLE([TEST_COVERAGE], [turn on code coverage instrumentation], [no])
-case "$enable_test_coverage" in
-  yes|no) ;;
-  *) AC_MSG_ERROR([bad value ${enable_test_coverga} for test-coverage option]) ;;
-esac
-
-if test "$enable_test_coverage" = yes; then
-  save_WARN_CFLAGS=$WARN_CFLAGS
-  WARN_CFLAGS=
-  gl_WARN_ADD([-fprofile-arcs])
-  gl_WARN_ADD([-ftest-coverage])
-  COVERAGE_FLAGS=$WARN_CFLAGS
-  AC_SUBST([COVERAGE_CFLAGS], [$COVERAGE_FLAGS])
-  AC_SUBST([COVERAGE_LDFLAGS], [$COVERAGE_FLAGS])
-  WARN_CFLAGS=$save_WARN_CFLAGS
-fi
 
 LIBVIRT_ARG_ENABLE([TEST_OOM], [memory allocation failure checking], [no])
 case "$enable_test_oom" in
@@ -1000,6 +991,7 @@ LIBVIRT_RESULT_CURL
 LIBVIRT_RESULT_DBUS
 LIBVIRT_RESULT_DLOPEN
 LIBVIRT_RESULT_FIREWALLD
+LIBVIRT_RESULT_FIREWALLD_ZONE
 LIBVIRT_RESULT_FUSE
 LIBVIRT_RESULT_GLUSTER
 LIBVIRT_RESULT_GNUTLS
@@ -1038,7 +1030,6 @@ LIBVIRT_WIN_RESULT_WINDRES
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Test suite])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([         Coverage: $enable_test_coverage])
 AC_MSG_NOTICE([        Alloc OOM: $enable_test_oom])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Miscellaneous])

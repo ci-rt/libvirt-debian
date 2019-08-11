@@ -49,35 +49,46 @@
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
 
-VIR_ENUM_IMPL(virNWFilterRuleAction, VIR_NWFILTER_RULE_ACTION_LAST,
+VIR_ENUM_IMPL(virNWFilterRuleAction,
+              VIR_NWFILTER_RULE_ACTION_LAST,
               "drop",
               "accept",
               "reject",
               "return",
-              "continue");
+              "continue",
+);
 
-VIR_ENUM_IMPL(virNWFilterJumpTarget, VIR_NWFILTER_RULE_ACTION_LAST,
+VIR_ENUM_IMPL(virNWFilterJumpTarget,
+              VIR_NWFILTER_RULE_ACTION_LAST,
               "DROP",
               "ACCEPT",
               "REJECT",
               "RETURN",
-              "CONTINUE");
+              "CONTINUE",
+);
 
-VIR_ENUM_IMPL(virNWFilterRuleDirection, VIR_NWFILTER_RULE_DIRECTION_LAST,
+VIR_ENUM_IMPL(virNWFilterRuleDirection,
+              VIR_NWFILTER_RULE_DIRECTION_LAST,
               "in",
               "out",
-              "inout");
+              "inout",
+);
 
-VIR_ENUM_IMPL(virNWFilterChainPolicy, VIR_NWFILTER_CHAIN_POLICY_LAST,
+VIR_ENUM_IMPL(virNWFilterChainPolicy,
+              VIR_NWFILTER_CHAIN_POLICY_LAST,
               "ACCEPT",
-              "DROP");
+              "DROP",
+);
 
-VIR_ENUM_IMPL(virNWFilterEbtablesTable, VIR_NWFILTER_EBTABLES_TABLE_LAST,
+VIR_ENUM_IMPL(virNWFilterEbtablesTable,
+              VIR_NWFILTER_EBTABLES_TABLE_LAST,
               "filter",
               "nat",
-              "broute");
+              "broute",
+);
 
-VIR_ENUM_IMPL(virNWFilterChainSuffix, VIR_NWFILTER_CHAINSUFFIX_LAST,
+VIR_ENUM_IMPL(virNWFilterChainSuffix,
+              VIR_NWFILTER_CHAINSUFFIX_LAST,
               "root",
               "mac",
               "vlan",
@@ -85,9 +96,11 @@ VIR_ENUM_IMPL(virNWFilterChainSuffix, VIR_NWFILTER_CHAINSUFFIX_LAST,
               "arp",
               "rarp",
               "ipv4",
-              "ipv6");
+              "ipv6",
+);
 
-VIR_ENUM_IMPL(virNWFilterRuleProtocol, VIR_NWFILTER_RULE_PROTOCOL_LAST,
+VIR_ENUM_IMPL(virNWFilterRuleProtocol,
+              VIR_NWFILTER_RULE_PROTOCOL_LAST,
               "none",
               "mac",
               "vlan",
@@ -112,7 +125,8 @@ VIR_ENUM_IMPL(virNWFilterRuleProtocol, VIR_NWFILTER_RULE_PROTOCOL_LAST,
               "esp-ipv6",
               "ah-ipv6",
               "sctp-ipv6",
-              "all-ipv6");
+              "all-ipv6",
+);
 
 
 /*
@@ -2652,10 +2666,8 @@ virNWFilterDefParseXML(xmlXPathContextPtr ctxt)
             ret->chainPriority = chain_priority;
         } else {
             /* assign default priority if none can be found via lookup */
-            if (!name_prefix ||
-                 intMapGetByString(chain_priorities, name_prefix, 0,
-                                   &ret->chainPriority) < 0) {
-                /* assign default chain priority */
+            if (intMapGetByString(chain_priorities, name_prefix,
+                                  0, &ret->chainPriority) < 0) {
                 ret->chainPriority = (NWFILTER_MAX_FILTER_PRIORITY +
                                       NWFILTER_MIN_FILTER_PRIORITY) / 2;
             }

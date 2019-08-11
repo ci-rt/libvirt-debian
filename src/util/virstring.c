@@ -318,6 +318,16 @@ void virStringListFree(char **strings)
 }
 
 
+void virStringListAutoFree(char ***strings)
+{
+    if (!*strings)
+        return;
+
+    virStringListFree(*strings);
+    *strings = NULL;
+}
+
+
 /**
  * virStringListFreeCount:
  * @strings: array of strings to free
@@ -1225,6 +1235,66 @@ virStringReplace(const char *haystack,
     return virBufferContentAndReset(&buf);
 }
 
+bool
+virStringHasSuffix(const char *str,
+                   const char *suffix)
+{
+    int len = strlen(str);
+    int suffixlen = strlen(suffix);
+
+    if (len < suffixlen)
+        return false;
+
+    return STREQ(str + len - suffixlen, suffix);
+}
+
+bool
+virStringHasCaseSuffix(const char *str,
+                       const char *suffix)
+{
+    int len = strlen(str);
+    int suffixlen = strlen(suffix);
+
+    if (len < suffixlen)
+        return false;
+
+    return STRCASEEQ(str + len - suffixlen, suffix);
+}
+
+bool
+virStringStripSuffix(char *str,
+                     const char *suffix)
+{
+    int len = strlen(str);
+    int suffixlen = strlen(suffix);
+
+    if (len < suffixlen)
+        return false;
+
+    if (STRNEQ(str + len - suffixlen, suffix))
+        return false;
+
+    str[len - suffixlen] = '\0';
+
+    return true;
+}
+
+bool
+virStringMatchesNameSuffix(const char *file,
+                           const char *name,
+                           const char *suffix)
+{
+    int filelen = strlen(file);
+    int namelen = strlen(name);
+    int suffixlen = strlen(suffix);
+
+    if (filelen == (namelen + suffixlen) &&
+        STREQLEN(file, name, namelen) &&
+        STREQ(file + namelen, suffix))
+        return true;
+    else
+        return false;
+}
 
 /**
  * virStringStripIPv6Brackets:
@@ -1475,6 +1545,28 @@ virStringParsePort(const char *str,
     }
 
     *port = p;
+
+    return 0;
+}
+
+
+/**
+ * virStringParseYesNo:
+ * @str: "yes|no" to parse, must not be NULL.
+ * @result: pointer to the boolean result of @str conversion
+ *
+ * Parses a "yes|no" string and converts it into a boolean.
+ *
+ * Returns 0 on success and -1 on error.
+ */
+int virStringParseYesNo(const char *str, bool *result)
+{
+    if (STREQ(str, "yes"))
+        *result = true;
+    else if (STREQ(str, "no"))
+        *result = false;
+    else
+        return -1;
 
     return 0;
 }

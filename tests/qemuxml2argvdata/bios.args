@@ -1,8 +1,11 @@
 LC_ALL=C \
 PATH=/bin \
-HOME=/home/test \
+HOME=/tmp/lib/domain--1-test-bios \
 USER=test \
 LOGNAME=test \
+XDG_DATA_HOME=/tmp/lib/domain--1-test-bios/.local/share \
+XDG_CACHE_HOME=/tmp/lib/domain--1-test-bios/.cache \
+XDG_CONFIG_HOME=/tmp/lib/domain--1-test-bios/.config \
 QEMU_AUDIO_DRV=none \
 /usr/bin/qemu-system-i686 \
 -name test-bios \
@@ -10,6 +13,7 @@ QEMU_AUDIO_DRV=none \
 -machine pc,accel=tcg,usb=off,dump-guest-core=off \
 -bios /usr/share/seabios/bios.bin \
 -m 1024 \
+-realtime mlock=off \
 -smp 1,sockets=1,cores=1,threads=1 \
 -uuid 362d1fc1-df7d-193e-5c18-49a71bd1da66 \
 -display none \
@@ -25,8 +29,7 @@ server,nowait \
 -boot menu=on \
 -usb \
 -drive file=/dev/HostVG/QEMUGuest1,format=raw,if=none,id=drive-ide0-0-0 \
--device ide-drive,bus=ide.0,unit=0,drive=drive-ide0-0-0,id=ide0-0-0,\
-bootindex=1 \
+-device ide-hd,bus=ide.0,unit=0,drive=drive-ide0-0-0,id=ide0-0-0,bootindex=1 \
 -chardev pty,id=charserial0 \
 -device isa-serial,chardev=charserial0,id=serial0 \
 -device usb-tablet,id=input0,bus=usb.0,port=1 \

@@ -165,6 +165,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
     virLXCDomainObjPrivatePtr priv = vm->privateData;
     virNetDevVPortProfilePtr vport = NULL;
     virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
+    virConnectPtr conn = NULL;
 
     VIR_DEBUG("Cleanup VM name=%s pid=%d reason=%d",
               vm->def->name, (int)vm->pid, (int)reason);
@@ -178,6 +179,17 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
                     VIR_HOOK_LXC_OP_STOPPED, VIR_HOOK_SUBOP_END,
                     NULL, xml, NULL);
         VIR_FREE(xml);
+    }
+
+    virSecurityManagerRestoreAllLabel(driver->securityManager,
+                                      vm->def, false, false);
+    virSecurityManagerReleaseLabel(driver->securityManager, vm->def);
+    /* Clear out dynamically assigned labels */
+    if (vm->def->nseclabels &&
+        vm->def->seclabels[0]->type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
+        VIR_FREE(vm->def->seclabels[0]->model);
+        VIR_FREE(vm->def->seclabels[0]->label);
+        VIR_FREE(vm->def->seclabels[0]->imagelabel);
     }
 
     /* Stop autodestroy in case guest is restarted */
@@ -213,7 +225,12 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
                                 iface->ifname));
             ignore_value(virNetDevVethDelete(iface->ifname));
         }
-        virDomainNetReleaseActualDevice(vm->def, iface);
+        if (iface->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            if (conn || (conn = virGetConnectNetwork()))
+                virDomainNetReleaseActualDevice(conn, vm->def, iface);
+            else
+                VIR_WARN("Unable to release network device '%s'", NULLSTR(iface->ifname));
+        }
     }
 
     virDomainConfVMNWFilterTeardown(vm);
@@ -243,6 +260,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
 
     virDomainObjRemoveTransientDef(vm);
     virObjectUnref(cfg);
+    virObjectUnref(conn);
 }
 
 
@@ -531,6 +549,8 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
     size_t niface = 0;
     virDomainNetDefPtr net;
     virDomainNetType type;
+    virConnectPtr netconn = NULL;
+    virErrorPtr save_err = NULL;
 
     if (VIR_ALLOC_N(*veths, def->nnets + 1) < 0)
         return -1;
@@ -547,8 +567,12 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
         if (virLXCProcessValidateInterface(net) < 0)
             goto cleanup;
 
-        if (virDomainNetAllocateActualDevice(def, net) < 0)
-            goto cleanup;
+        if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            if (!netconn && !(netconn = virGetConnectNetwork()))
+                goto cleanup;
+            if (virDomainNetAllocateActualDevice(netconn, def, net) < 0)
+                goto cleanup;
+        }
 
         type = virDomainNetGetActualType(net);
         switch (type) {
@@ -619,6 +643,7 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
 
  cleanup:
     if (ret < 0) {
+        virErrorPreserveLast(&save_err);
         for (i = 0; i < def->nnets; i++) {
             virDomainNetDefPtr iface = def->nets[i];
             virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(iface);
@@ -626,9 +651,12 @@ static int virLXCProcessSetupInterfaces(virConnectPtr conn,
                 ignore_value(virNetDevOpenvswitchRemovePort(
                                 virDomainNetGetActualBridgeName(iface),
                                 iface->ifname));
-            virDomainNetReleaseActualDevice(def, iface);
+            if (iface->type == VIR_DOMAIN_NET_TYPE_NETWORK && netconn)
+                virDomainNetReleaseActualDevice(netconn, def, iface);
         }
+        virErrorRestore(&save_err);
     }
+    virObjectUnref(netconn);
     return ret;
 }
 
@@ -835,17 +863,6 @@ int virLXCProcessStop(virLXCDriverPtr driver,
     }
 
     priv = vm->privateData;
-
-    virSecurityManagerRestoreAllLabel(driver->securityManager,
-                                      vm->def, false, false);
-    virSecurityManagerReleaseLabel(driver->securityManager, vm->def);
-    /* Clear out dynamically assigned labels */
-    if (vm->def->nseclabels &&
-        vm->def->seclabels[0]->type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
-        VIR_FREE(vm->def->seclabels[0]->model);
-        VIR_FREE(vm->def->seclabels[0]->label);
-        VIR_FREE(vm->def->seclabels[0]->imagelabel);
-    }
 
     /* If the LXC domain is suspended we send all processes a SIGKILL
      * and thaw them. Upon wakeup the process sees the pending signal
@@ -1181,7 +1198,7 @@ int virLXCProcessStart(virConnectPtr conn,
     size_t i;
     char *logfile = NULL;
     int logfd = -1;
-    VIR_AUTOPTR(virString) veths = NULL;
+    VIR_AUTOSTRINGLIST veths = NULL;
     int handshakefds[2] = { -1, -1 };
     off_t pos = -1;
     char ebuf[1024];

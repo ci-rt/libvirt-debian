@@ -81,6 +81,9 @@
         <optional>
           <ref name='launchSecurity'/>
         </optional>
+        <optional>
+          <ref name='bhyvecmdline'/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -253,6 +256,14 @@
     </optional>
     <element name="os">
       <interleave>
+        <optional>
+          <attribute name="firmware">
+            <choice>
+              <value>bios</value>
+              <value>efi</value>
+            </choice>
+          </attribute>
+        </optional>
         <ref name="ostypehvm"/>
         <optional>
           <element name="loader">
@@ -280,7 +291,9 @@
                 </choice>
               </attribute>
             </optional>
-            <ref name="absFilePath"/>
+            <optional>
+              <ref name="absFilePath"/>
+            </optional>
           </element>
         </optional>
         <optional>
@@ -954,6 +967,11 @@
             <ref name="schedparam"/>
           </element>
         </zeroOrMore>
+        <optional>
+          <element name="emulatorsched">
+            <ref name="schedparam"/>
+          </element>
+        </optional>
         <zeroOrMore>
           <element name="cachetune">
             <attribute name="vcpus">
@@ -1506,6 +1524,15 @@
           </interleave>
         </group>
       </choice>
+      <optional>
+        <attribute name="model">
+          <choice>
+            <value>virtio</value>
+            <value>virtio-transitional</value>
+            <value>virtio-non-transitional</value>
+          </choice>
+        </attribute>
+      </optional>
       <optional>
         <ref name="snapshot"/>
       </optional>
@@ -2144,6 +2171,8 @@
                   <value>ibmvscsi</value>
                   <value>virtio-scsi</value>
                   <value>lsisas1078</value>
+                  <value>virtio-transitional</value>
+                  <value>virtio-non-transitional</value>
                 </choice>
               </attribute>
             </optional>
@@ -2302,12 +2331,32 @@
               <value>virtio-serial</value>
             </attribute>
             <optional>
+              <attribute name="model">
+                <choice>
+                  <value>virtio</value>
+                  <value>virtio-transitional</value>
+                  <value>virtio-non-transitional</value>
+                </choice>
+              </attribute>
+            </optional>
+            <optional>
               <attribute name="ports">
                 <ref name="unsignedInt"/>
               </attribute>
             </optional>
             <optional>
               <attribute name="vectors">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </group>
+          <!-- xenbus has an optional attribute "maxGrantFrames" -->
+          <group>
+            <attribute name="type">
+              <value>xenbus</value>
+            </attribute>
+            <optional>
+              <attribute name="maxGrantFrames">
                 <ref name="unsignedInt"/>
               </attribute>
             </optional>
@@ -2490,6 +2539,15 @@
           </element>
         </optional>
       </interleave>
+      <optional>
+        <attribute name="model">
+          <choice>
+            <value>virtio</value>
+            <value>virtio-transitional</value>
+            <value>virtio-non-transitional</value>
+          </choice>
+        </attribute>
+      </optional>
     </element>
   </define>
   <define name="fsDriver">
@@ -2765,7 +2823,7 @@
                         <ref name="usbAddr"/>
                       </attribute>
                       <attribute name="device">
-                        <ref name="usbPort"/>
+                        <ref name="usbAddr"/>
                       </attribute>
                     </group>
                   </choice>
@@ -4072,6 +4130,8 @@
       <attribute name="model">
         <choice>
           <value>virtio</value>
+          <value>virtio-transitional</value>
+          <value>virtio-non-transitional</value>
           <value>xen</value>
           <value>none</value>
         </choice>
@@ -4281,7 +4341,11 @@
     <element name="vsock">
       <optional>
         <attribute name="model">
-          <value>virtio</value>
+          <choice>
+            <value>virtio</value>
+            <value>virtio-transitional</value>
+            <value>virtio-non-transitional</value>
+          </choice>
         </attribute>
       </optional>
       <interleave>
@@ -4382,6 +4446,15 @@
             </element>
           </group>
         </choice>
+        <optional>
+          <attribute name="model">
+            <choice>
+              <value>virtio</value>
+              <value>virtio-transitional</value>
+              <value>virtio-non-transitional</value>
+            </choice>
+          </attribute>
+        </optional>
         <optional>
           <ref name="alias"/>
         </optional>
@@ -4618,6 +4691,15 @@
     <attribute name="type">
       <value>scsi_host</value>
     </attribute>
+    <optional>
+      <attribute name="model">
+        <choice>
+          <value>virtio</value>
+          <value>virtio-transitional</value>
+          <value>virtio-non-transitional</value>
+        </choice>
+      </attribute>
+    </optional>
     <element name="source">
       <choice>
         <group>
@@ -4709,7 +4791,7 @@
         <ref name="usbAddr"/>
       </attribute>
       <attribute name="device">
-        <ref name="usbPort"/>
+        <ref name="usbAddr"/>
       </attribute>
     </element>
   </define>
@@ -4994,6 +5076,9 @@
               <ref name="featurestate"/>
             </element>
           </optional>
+          <optional>
+            <ref name="msrs"/>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -5242,6 +5327,17 @@
     </element>
   </define>
 
+  <define name="msrs">
+    <element name="msrs">
+      <attribute name="unknown">
+        <choice>
+          <value>ignore</value>
+          <value>fault</value>
+        </choice>
+      </attribute>
+    </element>
+  </define>
+
   <define name="address">
     <element name="address">
       <choice>
@@ -5434,7 +5530,11 @@
   <define name="rng">
     <element name="rng">
       <attribute name="model">
-        <value>virtio</value>
+        <choice>
+          <value>virtio</value>
+          <value>virtio-transitional</value>
+          <value>virtio-non-transitional</value>
+        </choice>
       </attribute>
       <interleave>
         <ref name="rng-backend"/>
@@ -5581,6 +5681,7 @@
           </choice>
         </attribute>
       </optional>
+      <ref name="diskBackingChain"/>
     </element>
   </define>
   <define name="diskAuth">
@@ -6121,6 +6222,20 @@
               <value>pid</value>
             </choice>
           </attribute>
+          <attribute name='value'/>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
+
+  <!--
+       Optional hypervisor extensions in their own namespace:
+         Bhyve
+    -->
+  <define name="bhyvecmdline">
+    <element name="commandline" ns="http://libvirt.org/schemas/domain/bhyve/1.0">
+      <zeroOrMore>
+        <element name="arg">
           <attribute name='value'/>
         </element>
       </zeroOrMore>

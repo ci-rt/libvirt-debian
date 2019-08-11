@@ -883,8 +883,8 @@ virDomainSave(virDomainPtr domain, const char *to)
  * virDomainSaveImageGetXMLDesc() and virDomainSaveImageDefineXML().
  *
  * Some hypervisors may prevent this operation if there is a current
- * block copy operation; in that case, use virDomainBlockJobAbort()
- * to stop the block copy first.
+ * block job running; in that case, use virDomainBlockJobAbort()
+ * to stop the block job first.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -1066,16 +1066,15 @@ virDomainRestoreFlags(virConnectPtr conn, const char *from, const char *dxml,
  * virDomainSaveImageGetXMLDesc:
  * @conn: pointer to the hypervisor connection
  * @file: path to saved state file
- * @flags: bitwise-OR of subset of virDomainXMLFlags
+ * @flags: bitwise-OR of supported virDomainSaveImageXMLFlags
  *
  * This method will extract the XML describing the domain at the time
  * a saved state file was created.  @file must be a file created
  * previously by virDomainSave() or virDomainSaveFlags().
  *
  * No security-sensitive data will be included unless @flags contains
- * VIR_DOMAIN_XML_SECURE; this flag is rejected on read-only
- * connections.  For this API, @flags should not contain either
- * VIR_DOMAIN_XML_INACTIVE or VIR_DOMAIN_XML_UPDATE_CPU.
+ * VIR_DOMAIN_SAVE_IMAGE_XML_SECURE; this flag is rejected on read-only
+ * connections.
  *
  * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of
  * error.  The caller must free() the returned value.
@@ -1092,7 +1091,8 @@ virDomainSaveImageGetXMLDesc(virConnectPtr conn, const char *file,
     virCheckConnectReturn(conn, NULL);
     virCheckNonNullArgGoto(file, error);
 
-    if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
+    if ((conn->flags & VIR_CONNECT_RO) &&
+        (flags & VIR_DOMAIN_SAVE_IMAGE_XML_SECURE)) {
         virReportError(VIR_ERR_OPERATION_DENIED, "%s",
                        _("virDomainSaveImageGetXMLDesc with secure flag"));
         goto error;
@@ -2561,8 +2561,17 @@ virDomainGetControlInfo(virDomainPtr domain,
  * describing CPU capabilities is modified to match actual
  * capabilities of the host.
  *
- * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
- *         the caller must free() the returned value.
+ * If @flags contains VIR_DOMAIN_XML_MIGRATABLE, the XML is altered to
+ * assist in migrations, since the source and destination may be
+ * running different libvirt versions.  This may include trimming
+ * redundant or default information that might confuse an older
+ * recipient, or exposing internal details that aid a newer recipient;
+ * this flag is rejected on read-only connections, and the resulting
+ * XML might not validate against the schema, so it is mainly for
+ * internal use.
+ *
+ * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case
+ * of error. The caller must free() the returned value.
  */
 char *
 virDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
@@ -2610,8 +2619,8 @@ virDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
  * generates libvirt domain XML. The format of the native
  * data is hypervisor dependent.
  *
- * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
- *         the caller must free() the returned value.
+ * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case
+ * of error. The caller must free() the returned value.
  */
 char *
 virConnectDomainXMLFromNative(virConnectPtr conn,
@@ -2660,8 +2669,8 @@ virConnectDomainXMLFromNative(virConnectPtr conn,
  * a native configuration file describing the domain.
  * The format of the native data is hypervisor dependent.
  *
- * Returns a 0 terminated UTF-8 encoded native config datafile, or NULL in case of error.
- *         the caller must free() the returned value.
+ * Returns a 0 terminated UTF-8 encoded native config datafile, or
+ * NULL in case of error. The caller must free() the returned value.
  */
 char *
 virConnectDomainXMLToNative(virConnectPtr conn,
@@ -2885,7 +2894,7 @@ virDomainMigrateVersion2(virDomainPtr domain,
                        _("domainMigratePrepare2 did not set uri"));
         cancelled = 1;
         /* Make sure Finish doesn't overwrite the error */
-        orig_err = virSaveLastError();
+        virErrorPreserveLast(&orig_err);
         goto finish;
     }
     if (uri_out)
@@ -2900,7 +2909,7 @@ virDomainMigrateVersion2(virDomainPtr domain,
 
     /* Perform failed. Make sure Finish doesn't overwrite the error */
     if (ret < 0)
-        orig_err = virSaveLastError();
+        virErrorPreserveLast(&orig_err);
 
     /* If Perform returns < 0, then we need to cancel the VM
      * startup on the destination
@@ -2920,10 +2929,7 @@ virDomainMigrateVersion2(virDomainPtr domain,
         VIR_ERROR(_("finish step ignored that migration was cancelled"));
 
  done:
-    if (orig_err) {
-        virSetError(orig_err);
-        virFreeError(orig_err);
-    }
+    virErrorRestore(&orig_err);
     VIR_FREE(uri_out);
     VIR_FREE(cookie);
     return ddomain;
@@ -3046,9 +3052,8 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
                           VIR_MIGRATE_AUTO_CONVERGE);
 
     VIR_DEBUG("Prepare3 %p flags=0x%x", dconn, destflags);
-    cookiein = cookieout;
+    VIR_STEAL_PTR(cookiein, cookieout);
     cookieinlen = cookieoutlen;
-    cookieout = NULL;
     cookieoutlen = 0;
     if (useParams) {
         if (virTypedParamsReplaceString(&params, &nparams,
@@ -3068,7 +3073,7 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
             /* Begin already started a migration job so we need to cancel it by
              * calling Confirm while making sure it doesn't overwrite the error
              */
-            orig_err = virSaveLastError();
+            virErrorPreserveLast(&orig_err);
             goto confirm;
         } else {
             goto done;
@@ -3083,7 +3088,7 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
                                         VIR_MIGRATE_PARAM_URI,
                                         uri_out) < 0) {
             cancelled = 1;
-            orig_err = virSaveLastError();
+            virErrorPreserveLast(&orig_err);
             goto finish;
         }
     } else if (!uri &&
@@ -3092,7 +3097,7 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("domainMigratePrepare3 did not set uri"));
         cancelled = 1;
-        orig_err = virSaveLastError();
+        virErrorPreserveLast(&orig_err);
         goto finish;
     }
 
@@ -3111,9 +3116,8 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
      */
     VIR_DEBUG("Perform3 %p uri=%s", domain->conn, uri);
     VIR_FREE(cookiein);
-    cookiein = cookieout;
+    VIR_STEAL_PTR(cookiein, cookieout);
     cookieinlen = cookieoutlen;
-    cookieout = NULL;
     cookieoutlen = 0;
     /* dconnuri not relevant in non-P2P modes, so left NULL here */
     if (useParams) {
@@ -3129,7 +3133,7 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
 
     /* Perform failed. Make sure Finish doesn't overwrite the error */
     if (ret < 0) {
-        orig_err = virSaveLastError();
+        virErrorPreserveLast(&orig_err);
         /* Perform failed so we don't need to call confirm to let source know
          * about the failure.
          */
@@ -3150,9 +3154,8 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
      */
     VIR_DEBUG("Finish3 %p ret=%d", dconn, ret);
     VIR_FREE(cookiein);
-    cookiein = cookieout;
+    VIR_STEAL_PTR(cookiein, cookieout);
     cookieinlen = cookieoutlen;
-    cookieout = NULL;
     cookieoutlen = 0;
     if (useParams) {
         if (virTypedParamsGetString(params, nparams,
@@ -3216,7 +3219,7 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
      * one we need to preserve it in case confirm3 overwrites
      */
     if (!orig_err)
-        orig_err = virSaveLastError();
+        virErrorPreserveLast(&orig_err);
 
  confirm:
     /*
@@ -3227,9 +3230,8 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
     if (notify_source) {
         VIR_DEBUG("Confirm3 %p ret=%d domain=%p", domain->conn, ret, domain);
         VIR_FREE(cookiein);
-        cookiein = cookieout;
+        VIR_STEAL_PTR(cookiein, cookieout);
         cookieinlen = cookieoutlen;
-        cookieout = NULL;
         cookieoutlen = 0;
         if (useParams) {
             ret = domain->conn->driver->domainMigrateConfirm3Params
@@ -3251,10 +3253,7 @@ virDomainMigrateVersion3Full(virDomainPtr domain,
     }
 
  done:
-    if (orig_err) {
-        virSetError(orig_err);
-        virFreeError(orig_err);
-    }
+    virErrorRestore(&orig_err);
     VIR_FREE(dom_xml);
     VIR_FREE(uri_out);
     VIR_FREE(cookiein);
@@ -6137,11 +6136,6 @@ virDomainGetBlockInfo(virDomainPtr domain, const char *disk,
  * virDomainUndefine(). A previous definition for this domain would be
  * overridden if it already exists.
  *
- * Some hypervisors may prevent this operation if there is a current
- * block copy operation on a transient domain with the same id as the
- * domain being defined; in that case, use virDomainBlockJobAbort() to
- * stop the block copy first.
- *
  * virDomainFree should be used to free the resources after the
  * domain object is no longer needed.
  *
@@ -6184,11 +6178,6 @@ virDomainDefineXML(virConnectPtr conn, const char *xml)
  * This definition is persistent, until explicitly undefined with
  * virDomainUndefine(). A previous definition for this domain would be
  * overridden if it already exists.
- *
- * Some hypervisors may prevent this operation if there is a current
- * block copy operation on a transient domain with the same id as the
- * domain being defined; in that case, use virDomainBlockJobAbort() to
- * stop the block copy first.
  *
  * virDomainFree should be used to free the resources after the
  * domain object is no longer needed.
@@ -8307,8 +8296,8 @@ virDomainDetachDevice(virDomainPtr domain, const char *xml)
  * persisted device allocation.
  *
  * Some hypervisors may prevent this operation if there is a current
- * block copy operation on the device being detached; in that case,
- * use virDomainBlockJobAbort() to stop the block copy first.
+ * block job running operation on the device being detached; in that case,
+ * use virDomainBlockJobAbort() to stop the block job first.
  *
  * Beware that depending on the hypervisor and device type, detaching a device
  * from a running domain may be asynchronous. That is, calling
@@ -9050,11 +9039,13 @@ virDomainMigrateSetCompressionCache(virDomainPtr domain,
  * virDomainMigrateSetMaxSpeed:
  * @domain: a domain object
  * @bandwidth: migration bandwidth limit in MiB/s
- * @flags: extra flags; not used yet, so callers should always pass 0
+ * @flags: bitwise-OR of virDomainMigrateMaxSpeedFlags
  *
  * The maximum bandwidth (in MiB/s) that will be used to do migration
  * can be specified with the bandwidth parameter. Not all hypervisors
- * will support a bandwidth cap
+ * will support a bandwidth cap. When VIR_DOMAIN_MIGRATE_MAX_SPEED_POSTCOPY
+ * is set in @flags, this API sets the maximum bandwidth for the post-copy
+ * phase of the migration.
  *
  * Returns 0 in case of success, -1 otherwise.
  */
@@ -9091,10 +9082,13 @@ virDomainMigrateSetMaxSpeed(virDomainPtr domain,
  * virDomainMigrateGetMaxSpeed:
  * @domain: a domain object
  * @bandwidth: return value of current migration bandwidth limit in MiB/s
- * @flags: extra flags; not used yet, so callers should always pass 0
+ * @flags: bitwise-OR of virDomainMigrateMaxSpeedFlags
  *
  * Get the current maximum bandwidth (in MiB/s) that will be used if the
  * domain is migrated.  Not all hypervisors will support a bandwidth limit.
+ * When VIR_DOMAIN_MIGRATE_MAX_SPEED_POSTCOPY is set in @flags, this API
+ * gets the current maximum bandwidth for the post-copy phase of the
+ * migration.
  *
  * Returns 0 in case of success, -1 otherwise.
  */
@@ -9486,15 +9480,14 @@ virDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
 /**
  * virDomainManagedSaveGetXMLDesc:
  * @domain: a domain object
- * @flags: bitwise-OR of subset of virDomainXMLFlags
+ * @flags: bitwise-OR of supported virDomainSaveImageXMLFlags
  *
  * This method will extract the XML description of the managed save
  * state file of a domain.
  *
  * No security-sensitive data will be included unless @flags contains
- * VIR_DOMAIN_XML_SECURE; this flag is rejected on read-only
- * connections.  For this API, @flags should not contain either
- * VIR_DOMAIN_XML_INACTIVE or VIR_DOMAIN_XML_UPDATE_CPU.
+ * VIR_DOMAIN_SAVE_IMAGE_XML_SECURE; this flag is rejected on read-only
+ * connections.
  *
  * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of
  * error.  The caller must free() the returned value.
@@ -9511,7 +9504,8 @@ virDomainManagedSaveGetXMLDesc(virDomainPtr domain, unsigned int flags)
     virCheckDomainReturn(domain, NULL);
     conn = domain->conn;
 
-    if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
+    if ((conn->flags & VIR_CONNECT_RO) &&
+        (flags & VIR_DOMAIN_SAVE_IMAGE_XML_SECURE)) {
         virReportError(VIR_ERR_OPERATION_DENIED, "%s",
                        _("virDomainManagedSaveGetXMLDesc with secure flag"));
         goto error;
@@ -10301,8 +10295,10 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
  * source file; progress in this phase can be tracked via the
  * virDomainBlockJobInfo() command, with a job type of
  * VIR_DOMAIN_BLOCK_JOB_TYPE_COPY.  The job transitions to the second
- * phase when the job info states cur == end, and remains alive to mirror
- * all further changes to both source and destination.  The user must
+ * phase when the block job event with state VIR_DOMAIN_BLOCK_JOB_READY is
+ * emitted for the given device. This information is also visible in the
+ * live XML as 'ready="yes"' attribute of the corresponding <mirror> element.
+ * All further changes are saved to both source and destination.  The user must
  * call virDomainBlockJobAbort() to end the mirroring while choosing
  * whether to revert to source or pivot to the destination.  An event is
  * issued when the job ends, and depending on the hypervisor, an event may
@@ -10316,7 +10312,8 @@ virDomainBlockRebase(virDomainPtr dom, const char *disk,
  *
  * If @flags contains VIR_DOMAIN_BLOCK_COPY_TRANSIENT_JOB the job will not be
  * recoverable if the VM is turned off while job is active. This flag will
- * remove the restriction of copy jobs to transient domains.
+ * remove the restriction of copy jobs to transient domains. Note that this flag
+ * is automatically implied if the VM is transient at the time it's started.
  *
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
@@ -10415,9 +10412,9 @@ virDomainBlockCopy(virDomainPtr dom, const char *disk,
  * of VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT, and operates in two phases.
  * In the first phase, the contents are being committed into @base, and the
  * job can only be canceled.  The job transitions to the second phase when
- * the job info states cur == end, and remains alive to keep all further
- * changes to @top synchronized into @base; an event with status
- * VIR_DOMAIN_BLOCK_JOB_READY is also issued to mark the job transition.
+ * the block job event with state VIR_DOMAIN_BLOCK_JOB_READY is
+ * emitted for the given device. This information is also visible in the
+ * live XML as 'ready="yes"' attribute of the corresponding <mirror> element.
  * Once in the second phase, the user must choose whether to cancel the job
  * (keeping @top as the active image, but now containing only the changes
  * since the time the job ended) or to pivot the job (adjusting to @base as
@@ -11027,6 +11024,8 @@ virDomainGetHostname(virDomainPtr domain, unsigned int flags)
 
     virCheckDomainReturn(domain, NULL);
     conn = domain->conn;
+
+    virCheckReadOnlyGoto(domain->conn->flags, error);
 
     if (conn->driver->domainGetHostname) {
         char *ret;

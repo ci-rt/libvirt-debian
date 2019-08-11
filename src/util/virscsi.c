@@ -34,6 +34,7 @@
 #include "virutil.h"
 #include "virstring.h"
 #include "virerror.h"
+#include "viralloc.h"
 
 #define SYSFS_SCSI_DEVICES "/sys/bus/scsi/devices"
 
@@ -84,7 +85,7 @@ virSCSIOnceInit(void)
     return 0;
 }
 
-VIR_ONCE_GLOBAL_INIT(virSCSI)
+VIR_ONCE_GLOBAL_INIT(virSCSI);
 
 static int
 virSCSIDeviceGetAdapterId(const char *adapter,
@@ -248,7 +249,7 @@ virSCSIDeviceUsedByInfoFree(virUsedByInfoPtr used_by)
     VIR_FREE(used_by->domname);
     VIR_FREE(used_by);
 }
-VIR_DEFINE_AUTOPTR_FUNC(virUsedByInfo, virSCSIDeviceUsedByInfoFree)
+VIR_DEFINE_AUTOPTR_FUNC(virUsedByInfo, virSCSIDeviceUsedByInfoFree);
 
 void
 virSCSIDeviceFree(virSCSIDevicePtr dev)

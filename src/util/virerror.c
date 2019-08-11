@@ -1,7 +1,7 @@
 /*
  * virerror.c: error handling and reporting code for libvirt
  *
- * Copyright (C) 2006, 2008-2016 Red Hat, Inc.
+ * Copyright (C) 2006-2019 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,6 +24,7 @@
 
 #include "virerror.h"
 #include "datatypes.h"
+#include "viralloc.h"
 #include "virlog.h"
 #include "virthread.h"
 #include "virutil.h"
@@ -55,8 +56,9 @@ static virLogPriority virErrorLevelPriority(virErrorLevel level)
 }
 
 
-VIR_ENUM_DECL(virErrorDomain)
-VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
+VIR_ENUM_DECL(virErrorDomain);
+VIR_ENUM_IMPL(virErrorDomain,
+              VIR_ERR_DOMAIN_LAST,
               "", /* 0 */
               "Xen Driver",
               "Xen Daemon",
@@ -138,7 +140,9 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
               "Perf", /* 65 */
               "Libssh transport layer",
               "Resource control",
-              )
+              "FirewallD",
+              "Domain Checkpoint",
+);
 
 
 /*
@@ -1121,8 +1125,8 @@ const virErrorMsgTuple virErrorMsgStrings[VIR_ERR_NUMBER_LAST] = {
         N_("Hook script execution failed"),
         N_("Hook script execution failed: %s") },
     [VIR_ERR_INVALID_DOMAIN_SNAPSHOT] = {
-        N_("Invalid snapshot"),
-        N_("Invalid snapshot: %s") },
+        N_("Invalid domain snapshot"),
+        N_("Invalid domain snapshot: %s") },
     [VIR_ERR_NO_DOMAIN_SNAPSHOT] = {
         N_("Domain snapshot not found"),
         N_("Domain snapshot not found: %s") },
@@ -1213,6 +1217,15 @@ const virErrorMsgTuple virErrorMsgStrings[VIR_ERR_NUMBER_LAST] = {
     [VIR_ERR_NO_NWFILTER_BINDING] = {
         N_("Network filter binding not found"),
         N_("Network filter binding not found: %s") },
+    [VIR_ERR_INVALID_DOMAIN_CHECKPOINT] = {
+        N_("Invalid domain checkpoint"),
+        N_("Invalid domain checkpoint: %s") },
+    [VIR_ERR_NO_DOMAIN_CHECKPOINT] = {
+        N_("Domain checkpoint not found"),
+        N_("Domain checkpoint not found: %s") },
+    [VIR_ERR_NO_DOMAIN_BACKUP] = {
+        N_("Domain backup job id not found"),
+        N_("Domain backup job id not found: %s") },
 };
 
 

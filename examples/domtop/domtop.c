@@ -29,6 +29,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 static bool debug;
 static bool run_top;
@@ -185,8 +186,7 @@ fetch_domains(virConnectPtr conn)
 }
 
 static void
-print_cpu_usage(const char *dom_name,
-                size_t cpu,
+print_cpu_usage(size_t cpu,
                 size_t ncpus,
                 unsigned long long then,
                 virTypedParameterPtr then_params,
@@ -206,7 +206,7 @@ print_cpu_usage(const char *dom_name,
     }
 
     for (i = 0; i < ncpus; i++) {
-        size_t pos;
+        size_t pos = 0;
         double usage;
 
         /* check if the vCPU is in the maps */
@@ -226,8 +226,11 @@ print_cpu_usage(const char *dom_name,
             return;
         }
 
-        DEBUG("now_params=%llu then_params=%llu now=%llu then=%llu",
-              now_params[pos].value.ul, then_params[pos].value.ul, now, then);
+        DEBUG("now_params=%" PRIu64 " then_params=%" PRIu64
+              " now=%" PRIu64 " then=%" PRIu64,
+              (uint64_t)now_params[pos].value.ul,
+              (uint64_t)then_params[pos].value.ul,
+              (uint64_t)now, (uint64_t)then);
 
         /* @now_params and @then_params are in nanoseconds, @now and @then are
          * in microseconds. In ideal world, we would translate them both into
@@ -329,7 +332,7 @@ do_top(virConnectPtr conn,
             goto cleanup;
         }
 
-        print_cpu_usage(dom_name, 0, max_id,
+        print_cpu_usage(0, max_id,
                         then.tv_sec * 1000000 + then.tv_usec,
                         then_params, then_nparams,
                         now.tv_sec * 1000000 + now.tv_usec,

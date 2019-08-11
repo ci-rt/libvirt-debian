@@ -98,8 +98,6 @@ int qemuMonitorJSONBlockResize(qemuMonitorPtr mon,
                                const char *nodename,
                                unsigned long long size);
 
-int qemuMonitorJSONSetVNCPassword(qemuMonitorPtr mon,
-                                  const char *password);
 int qemuMonitorJSONSetPassword(qemuMonitorPtr mon,
                                const char *protocol,
                                const char *password,
@@ -576,6 +574,11 @@ int qemuMonitorJSONBlockdevMediumInsert(qemuMonitorPtr mon,
 
 int qemuMonitorJSONGetPRManagerInfo(qemuMonitorPtr mon,
                                     virHashTablePtr info)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int
+qemuMonitorJSONGetCurrentMachineInfo(qemuMonitorPtr mon,
+                                     qemuMonitorCurrentMachineInfoPtr info)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 #endif /* LIBVIRT_QEMU_MONITOR_JSON_H */
