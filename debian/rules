@@ -100,7 +100,6 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
 	--with-qemu-user=libvirt-qemu  \
 	--with-qemu-group=libvirt-qemu \
 	$(WITH_OPENVZ)		 \
-	--with-avahi             \
 	--with-sasl              \
 	--with-yajl              \
 	--with-ssh2		 \

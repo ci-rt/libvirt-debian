@@ -13,7 +13,6 @@ Build-Depends:
  zlib1g-dev,
  libgcrypt20-dev,
  libgnutls28-dev,
- libavahi-client-dev,
  libsasl2-dev,
  libxen-dev (>= 4.3) [i386 amd64 armhf arm64],
  lvm2 [linux-any],
@@ -202,7 +201,7 @@ Suggests:
  systemd,
  systemtap,
  zfsutils,
-Breaks: avahi-daemon (<< 0.6.31-3~),
+Breaks:
  systemd-sysv (<< 224-1~)
 Description: Libvirt daemon configuration files
  Libvirt is a C toolkit to interact with the virtualization capabilities
