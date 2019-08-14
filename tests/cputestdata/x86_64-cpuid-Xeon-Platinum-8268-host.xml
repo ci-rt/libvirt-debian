@@ -24,10 +24,15 @@
   <feature name='intel-pt'/>
   <feature name='pku'/>
   <feature name='ospke'/>
+  <feature name='md-clear'/>
   <feature name='stibp'/>
   <feature name='arch-capabilities'/>
   <feature name='xsaves'/>
   <feature name='mbm_total'/>
   <feature name='mbm_local'/>
   <feature name='invtsc'/>
+  <feature name='rdctl-no'/>
+  <feature name='ibrs-all'/>
+  <feature name='skip-l1dfl-vmentry'/>
+  <feature name='mds-no'/>
 </cpu>

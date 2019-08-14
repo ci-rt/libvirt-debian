@@ -19,14 +19,13 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_DRIVER_H
-# define LIBVIRT_DRIVER_H
+#pragma once
 
-# include <unistd.h>
+#include <unistd.h>
 
-# include "internal.h"
-# include "libvirt_internal.h"
-# include "viruri.h"
+#include "internal.h"
+#include "libvirt_internal.h"
+#include "viruri.h"
 
 
 /* Status codes returned from driver open call. */
@@ -56,32 +55,32 @@ typedef enum {
  *   != 0  Feature is supported.
  *   0     Feature is not supported.
  */
-# define VIR_DRV_SUPPORTS_FEATURE(drv, conn, feature) \
+#define VIR_DRV_SUPPORTS_FEATURE(drv, conn, feature) \
     ((drv)->connectSupportsFeature ? \
         (drv)->connectSupportsFeature((conn), (feature)) > 0 : 0)
 
 
-# define __VIR_DRIVER_H_INCLUDES___
+#define __VIR_DRIVER_H_INCLUDES___
 
-# include "driver-hypervisor.h"
-# include "driver-interface.h"
-# include "driver-network.h"
-# include "driver-nodedev.h"
-# include "driver-nwfilter.h"
-# include "driver-secret.h"
-# include "driver-state.h"
-# include "driver-stream.h"
-# include "driver-storage.h"
+#include "driver-hypervisor.h"
+#include "driver-interface.h"
+#include "driver-network.h"
+#include "driver-nodedev.h"
+#include "driver-nwfilter.h"
+#include "driver-secret.h"
+#include "driver-state.h"
+#include "driver-stream.h"
+#include "driver-storage.h"
 
-# undef __VIR_DRIVER_H_INCLUDES___
+#undef __VIR_DRIVER_H_INCLUDES___
 
 typedef struct _virConnectDriver virConnectDriver;
 typedef virConnectDriver *virConnectDriverPtr;
 
 struct _virConnectDriver {
-    /* Wether driver permits a server in the URI */
+    /* Whether driver permits a server in the URI */
     bool localOnly;
-    /* Wether driver needs a server in the URI */
+    /* Whether driver needs a server in the URI */
     bool remoteOnly;
     /*
      * NULL terminated list of supported URI schemes.
@@ -126,5 +125,3 @@ int virSetConnectNWFilter(virConnectPtr conn);
 int virSetConnectNodeDev(virConnectPtr conn);
 int virSetConnectSecret(virConnectPtr conn);
 int virSetConnectStorage(virConnectPtr conn);
-
-#endif /* LIBVIRT_DRIVER_H */

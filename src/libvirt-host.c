@@ -98,9 +98,6 @@ virConnectSupportsFeature(virConnectPtr conn, int feature)
  * hypervisor, use virConnectGetCapabilities().
  *
  * Returns NULL in case of error, a static zero terminated string otherwise.
- *
- * See also:
- * http://www.redhat.com/archives/libvir-list/2007-February/msg00096.html
  */
 const char *
 virConnectGetType(virConnectPtr conn)
@@ -1041,6 +1038,7 @@ virConnectCompareHypervisorCPU(virConnectPtr conn,
 
     virCheckConnectReturn(conn, VIR_CPU_COMPARE_ERROR);
     virCheckNonNullArgGoto(xmlCPU, error);
+    virCheckReadOnlyGoto(conn->flags, error);
 
     if (conn->driver->connectCompareHypervisorCPU) {
         int ret;
@@ -1234,6 +1232,7 @@ virConnectBaselineHypervisorCPU(virConnectPtr conn,
 
     virCheckConnectReturn(conn, NULL);
     virCheckNonNullArgGoto(xmlCPUs, error);
+    virCheckReadOnlyGoto(conn->flags, error);
 
     if (conn->driver->connectBaselineHypervisorCPU) {
         char *cpu;

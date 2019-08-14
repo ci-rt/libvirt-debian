@@ -148,6 +148,15 @@
       <allow_active>no</allow_active>
     </defaults>
   </action>
+  <action id="org.libvirt.api.domain.checkpoint">
+    <description>Checkpoint domain</description>
+    <message>Checkpointing domain requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
   <action id="org.libvirt.api.domain.core-dump">
     <description>Dump domain</description>
     <message>Dumping domain corefile requires authorization</message>
@@ -499,6 +508,15 @@
       <allow_active>no</allow_active>
     </defaults>
   </action>
+  <action id="org.libvirt.api.network.search-ports">
+    <description>List network ports</description>
+    <message>Listing network ports requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
   <action id="org.libvirt.api.network.start">
     <description>Start network</description>
     <message>Starting network requires authorization</message>
@@ -520,6 +538,51 @@
   <action id="org.libvirt.api.network.write">
     <description>Write network</description>
     <message>Writing network configuration requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.network-port.create">
+    <description>Create network port</description>
+    <message>Creating network port configuration requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.network-port.delete">
+    <description>Delete network port</description>
+    <message>Deleting network port configuration requires authorization</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.network-port.getattr">
+    <description>Access network port</description>
+    <message>Accessing network port requires authorization</message>
+    <defaults>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.network-port.read">
+    <description>Read network port</description>
+    <message>Reading network port configuration requires authorization</message>
+    <defaults>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+  <action id="org.libvirt.api.network-port.write">
+    <description>Read network port</description>
+    <message>Writing network port configuration requires authorization</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>

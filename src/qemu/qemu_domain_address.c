@@ -670,8 +670,7 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_CONTROLLER_TYPE_CCID:
         case VIR_DOMAIN_CONTROLLER_TYPE_XENBUS:
         case VIR_DOMAIN_CONTROLLER_TYPE_LAST:
-            /* should be 0 */
-            return pciFlags;
+            return 0;
         }
     }
         break;
@@ -930,6 +929,9 @@ qemuDomainDeviceCalculatePCIConnectFlags(virDomainDeviceDefPtr dev,
         case VIR_DOMAIN_VIDEO_TYPE_QXL:
         case VIR_DOMAIN_VIDEO_TYPE_PARALLELS:
             return pciFlags;
+
+        case VIR_DOMAIN_VIDEO_TYPE_BOCHS:
+            return pcieFlags;
 
         case VIR_DOMAIN_VIDEO_TYPE_DEFAULT:
         case VIR_DOMAIN_VIDEO_TYPE_GOP:

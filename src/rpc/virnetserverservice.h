@@ -19,11 +19,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRNETSERVERSERVICE_H
-# define LIBVIRT_VIRNETSERVERSERVICE_H
+#pragma once
 
-# include "virnetserverprogram.h"
-# include "virobject.h"
+#include "virnetserverprogram.h"
+#include "virobject.h"
 
 typedef enum {
     VIR_NET_SERVER_SERVICE_AUTH_NONE = 0,
@@ -35,16 +34,6 @@ typedef int (*virNetServerServiceDispatchFunc)(virNetServerServicePtr svc,
                                                virNetSocketPtr sock,
                                                void *opaque);
 
-virNetServerServicePtr virNetServerServiceNewFDOrUNIX(const char *path,
-                                                      mode_t mask,
-                                                      gid_t grp,
-                                                      int auth,
-                                                      virNetTLSContextPtr tls,
-                                                      bool readonly,
-                                                      size_t max_queued_clients,
-                                                      size_t nrequests_client_max,
-                                                      unsigned int nfds,
-                                                      unsigned int *cur_fd);
 virNetServerServicePtr virNetServerServiceNewTCP(const char *nodename,
                                                  const char *service,
                                                  int family,
@@ -61,12 +50,14 @@ virNetServerServicePtr virNetServerServiceNewUNIX(const char *path,
                                                   bool readonly,
                                                   size_t max_queued_clients,
                                                   size_t nrequests_client_max);
-virNetServerServicePtr virNetServerServiceNewFD(int fd,
-                                                int auth,
-                                                virNetTLSContextPtr tls,
-                                                bool readonly,
-                                                size_t max_queued_clients,
-                                                size_t nrequests_client_max);
+virNetServerServicePtr virNetServerServiceNewFDs(int *fd,
+                                                 size_t nfds,
+                                                 bool unlinkUNIX,
+                                                 int auth,
+                                                 virNetTLSContextPtr tls,
+                                                 bool readonly,
+                                                 size_t max_queued_clients,
+                                                 size_t nrequests_client_max);
 
 virNetServerServicePtr virNetServerServiceNewPostExecRestart(virJSONValuePtr object);
 
@@ -87,5 +78,3 @@ void virNetServerServiceToggle(virNetServerServicePtr svc,
                                bool enabled);
 
 void virNetServerServiceClose(virNetServerServicePtr svc);
-
-#endif /* LIBVIRT_VIRNETSERVERSERVICE_H */

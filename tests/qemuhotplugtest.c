@@ -27,6 +27,7 @@
 #include "qemumonitortestutils.h"
 #include "testutils.h"
 #include "testutilsqemu.h"
+#include "testutilsqemuschema.h"
 #include "virerror.h"
 #include "virstring.h"
 #include "virthread.h"
@@ -279,7 +280,7 @@ testQemuHotplug(const void *data)
 
     /* Now is the best time to feed the spoofed monitor with predefined
      * replies. */
-    if (!(test_mon = qemuMonitorTestNew(true, driver.xmlopt, vm, &driver,
+    if (!(test_mon = qemuMonitorTestNew(driver.xmlopt, vm, &driver,
                                         NULL, NULL)))
         goto cleanup;
 
@@ -297,7 +298,6 @@ testQemuHotplug(const void *data)
 
     priv = vm->privateData;
     priv->mon = qemuMonitorTestGetMonitor(test_mon);
-    priv->monJSON = true;
 
     /* XXX We need to unlock the monitor here, as
      * qemuDomainObjEnterMonitorInternal (called from qemuDomainChangeGraphics)
@@ -394,7 +394,8 @@ testQemuHotplugCpuDataFree(struct testQemuHotplugCpuData *data)
 
 static struct testQemuHotplugCpuData *
 testQemuHotplugCpuPrepare(const char *test,
-                          bool modern)
+                          bool modern,
+                          virHashTablePtr qmpschema)
 {
     qemuDomainObjPrivatePtr priv = NULL;
     virCapsPtr caps = NULL;
@@ -435,11 +436,10 @@ testQemuHotplugCpuPrepare(const char *test,
         virQEMUCapsSet(priv->qemuCaps, QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS);
 
     if (!(data->mon = qemuMonitorTestNewFromFileFull(data->file_json_monitor,
-                                                     &driver, data->vm)))
+                                                     &driver, data->vm, qmpschema)))
         goto error;
 
     priv->mon = qemuMonitorTestGetMonitor(data->mon);
-    priv->monJSON = true;
     virObjectUnlock(priv->mon);
 
     if (qemuDomainRefreshVcpuInfo(&driver, data->vm, 0, false) < 0)
@@ -499,6 +499,7 @@ struct testQemuHotplugCpuParams {
     bool state;
     bool modern;
     bool fail;
+    virHashTablePtr schema;
 };
 
 
@@ -510,7 +511,8 @@ testQemuHotplugCpuGroup(const void *opaque)
     int ret = -1;
     int rc;
 
-    if (!(data = testQemuHotplugCpuPrepare(params->test, params->modern)))
+    if (!(data = testQemuHotplugCpuPrepare(params->test, params->modern,
+                                           params->schema)))
         return -1;
 
     rc = qemuDomainSetVcpusInternal(&driver, data->vm, data->vm->def,
@@ -546,7 +548,8 @@ testQemuHotplugCpuIndividual(const void *opaque)
     int ret = -1;
     int rc;
 
-    if (!(data = testQemuHotplugCpuPrepare(params->test, params->modern)))
+    if (!(data = testQemuHotplugCpuPrepare(params->test, params->modern,
+                                           params->schema)))
         return -1;
 
     if (virBitmapParse(params->cpumap, &map, 128) < 0)
@@ -580,6 +583,7 @@ testQemuHotplugCpuIndividual(const void *opaque)
 static int
 mymain(void)
 {
+    VIR_AUTOPTR(virHashTable) qmpschema = NULL;
     int ret = 0;
     struct qemuHotplugTestData data = {0};
     struct testQemuHotplugCpuParams cpudata;
@@ -603,6 +607,13 @@ mymain(void)
 
     if (!(driver.domainEventState = virObjectEventStateNew()))
         return EXIT_FAILURE;
+
+    if (!(qmpschema = testQEMUSchemaLoad())) {
+        VIR_TEST_VERBOSE("failed to load qapi schema\n");
+        return EXIT_FAILURE;
+    }
+
+    cpudata.schema = qmpschema;
 
     driver.lockManager = virLockManagerPluginNew("nop", "qemu",
                                                  driver.config->configBaseDir,

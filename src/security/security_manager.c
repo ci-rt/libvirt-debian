@@ -432,6 +432,45 @@ virSecurityManagerRestoreImageLabel(virSecurityManagerPtr mgr,
 }
 
 
+/**
+ * virSecurityManagerMoveImageMetadata:
+ * @mgr: security manager
+ * @pid: domain's PID
+ * @src: source of metadata
+ * @dst: destination to move metadata to
+ *
+ * For given source @src, metadata is moved to destination @dst.
+ *
+ * If @dst is NULL then metadata is removed from @src and not
+ * stored anywhere.
+ *
+ * If @pid is not -1 enther the @pid mount namespace (usually
+ * @pid refers to a domain) and perform the move from there. If
+ * @pid is -1 then the move is performed from the caller's
+ * namespace.
+ *
+ * Returns: 0 on success,
+ *         -1 otherwise.
+ */
+int
+virSecurityManagerMoveImageMetadata(virSecurityManagerPtr mgr,
+                                    pid_t pid,
+                                    virStorageSourcePtr src,
+                                    virStorageSourcePtr dst)
+{
+    if (mgr->drv->domainMoveImageMetadata) {
+        int ret;
+        virObjectLock(mgr);
+        ret = mgr->drv->domainMoveImageMetadata(mgr, pid, src, dst);
+        virObjectUnlock(mgr);
+        return ret;
+    }
+
+    virReportUnsupportedError();
+    return -1;
+}
+
+
 int
 virSecurityManagerSetDaemonSocketLabel(virSecurityManagerPtr mgr,
                                        virDomainDefPtr vm)
@@ -1250,16 +1289,40 @@ virSecurityManagerMetadataLock(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     if (VIR_ALLOC_N(fds, npaths) < 0)
         return NULL;
 
-    /* Sort paths to lock in order to avoid deadlocks. */
+    /* Sort paths to lock in order to avoid deadlocks with other
+     * processes. For instance, if one process wants to lock
+     * paths A B and there's another that is trying to lock them
+     * in reversed order a deadlock might occur.  But if we sort
+     * the paths alphabetically then both processes will try lock
+     * paths in the same order and thus no deadlock can occur.
+     * Lastly, it makes searching for duplicate paths below
+     * simpler. */
     qsort(paths, npaths, sizeof(*paths), cmpstringp);
 
     for (i = 0; i < npaths; i++) {
         const char *p = paths[i];
         struct stat sb;
+        size_t j;
         int retries = 10 * 1000;
         int fd;
 
-        if (!p || stat(p, &sb) < 0)
+        if (!p)
+            continue;
+
+        /* If there's a duplicate path on the list, skip it over.
+         * Not only we would fail open()-ing it the second time,
+         * we would deadlock with ourselves trying to lock it the
+         * second time. After all, we've locked it when iterating
+         * over it the first time. */
+        for (j = 0; j < i; j++) {
+            if (STREQ_NULLABLE(p, paths[j]))
+                break;
+        }
+
+        if (i != j)
+            continue;
+
+        if (stat(p, &sb) < 0)
             continue;
 
         if (S_ISDIR(sb.st_mode)) {

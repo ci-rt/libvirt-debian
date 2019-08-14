@@ -18,16 +18,15 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_CPU_H
-# define LIBVIRT_CPU_H
+#pragma once
 
-# include "virerror.h"
-# include "datatypes.h"
-# include "virarch.h"
-# include "domain_capabilities.h"
-# include "cpu_conf.h"
-# include "cpu_x86_data.h"
-# include "cpu_ppc64_data.h"
+#include "virerror.h"
+#include "datatypes.h"
+#include "virarch.h"
+#include "domain_capabilities.h"
+#include "cpu_conf.h"
+#include "cpu_x86_data.h"
+#include "cpu_ppc64_data.h"
 
 
 typedef struct _virCPUData virCPUData;
@@ -118,6 +117,10 @@ typedef virCPUDefPtr
 typedef int
 (*virCPUArchValidateFeatures)(virCPUDefPtr cpu);
 
+typedef int
+(*virCPUArchDataAddFeature)(virCPUDataPtr cpuData,
+                            const char *name);
+
 struct cpuArchDriver {
     const char *name;
     const virArch *arch;
@@ -140,6 +143,7 @@ struct cpuArchDriver {
     virCPUArchExpandFeatures expandFeatures;
     virCPUArchCopyMigratable copyMigratable;
     virCPUArchValidateFeatures validateFeatures;
+    virCPUArchDataAddFeature dataAddFeature;
 };
 
 
@@ -257,6 +261,10 @@ virCPUValidateFeatures(virArch arch,
                        virCPUDefPtr cpu)
     ATTRIBUTE_NONNULL(2);
 
+int
+virCPUDataAddFeature(virCPUDataPtr cpuData,
+                     const char *name);
+
 /* virCPUDataFormat and virCPUDataParse are implemented for unit tests only and
  * have no real-life usage
  */
@@ -264,5 +272,3 @@ char *virCPUDataFormat(const virCPUData *data)
     ATTRIBUTE_NONNULL(1);
 virCPUDataPtr virCPUDataParse(const char *xmlStr)
     ATTRIBUTE_NONNULL(1);
-
-#endif /* LIBVIRT_CPU_H */

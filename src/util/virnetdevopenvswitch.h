@@ -18,14 +18,13 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRNETDEVOPENVSWITCH_H
-# define LIBVIRT_VIRNETDEVOPENVSWITCH_H
+#pragma once
 
-# include "internal.h"
-# include "virnetdevvportprofile.h"
-# include "virnetdevvlan.h"
+#include "internal.h"
+#include "virnetdevvportprofile.h"
+#include "virnetdevvlan.h"
 
-# define VIR_NETDEV_OVS_DEFAULT_TIMEOUT 5
+#define VIR_NETDEV_OVS_DEFAULT_TIMEOUT 5
 
 void virNetDevOpenvswitchSetTimeout(unsigned int timeout);
 
@@ -50,6 +49,10 @@ int virNetDevOpenvswitchGetMigrateData(char **migrate, const char *ifname)
 int virNetDevOpenvswitchSetMigrateData(char *migrate, const char *ifname)
     ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
+int virNetDevOpenvswitchInterfaceParseStats(const char *json,
+                                            virDomainInterfaceStatsPtr stats)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+
 int virNetDevOpenvswitchInterfaceStats(const char *ifname,
                                        virDomainInterfaceStatsPtr stats)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
@@ -64,5 +67,3 @@ int virNetDevOpenvswitchGetVhostuserIfname(const char *path,
 int virNetDevOpenvswitchUpdateVlan(const char *ifname,
                                    virNetDevVlanPtr virtVlan)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
-
-#endif /* LIBVIRT_VIRNETDEVOPENVSWITCH_H */

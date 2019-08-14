@@ -3617,6 +3617,10 @@ static const vshCmdOptDef opts_undefine[] = {
      .help = N_("remove all associated storage volumes (use with caution)")
     },
     {.name = "delete-snapshots",
+     .type = VSH_OT_ALIAS,
+     .help = "delete-storage-volume-snapshots"
+    },
+    {.name = "delete-storage-volume-snapshots",
      .type = VSH_OT_BOOL,
      .help = N_("delete snapshots associated with volume(s), requires "
                 "--remove-all-storage (must be supported by storage driver)")
@@ -3627,7 +3631,11 @@ static const vshCmdOptDef opts_undefine[] = {
     },
     {.name = "snapshots-metadata",
      .type = VSH_OT_BOOL,
-     .help = N_("remove all domain snapshot metadata, if inactive")
+     .help = N_("remove all domain snapshot metadata (vm must be inactive)")
+    },
+    {.name = "checkpoints-metadata",
+     .type = VSH_OT_BOOL,
+     .help = N_("remove all domain checkpoint metadata (vm must be inactive)")
     },
     {.name = "nvram",
      .type = VSH_OT_BOOL,
@@ -3658,6 +3666,7 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
     /* User-requested actions.  */
     bool managed_save = vshCommandOptBool(cmd, "managed-save");
     bool snapshots_metadata = vshCommandOptBool(cmd, "snapshots-metadata");
+    bool checkpoints_metadata = vshCommandOptBool(cmd, "checkpoints-metadata");
     bool wipe_storage = vshCommandOptBool(cmd, "wipe-storage");
     bool remove_all_storage = vshCommandOptBool(cmd, "remove-all-storage");
     bool delete_snapshots = vshCommandOptBool(cmd, "delete-snapshots");
@@ -3712,6 +3721,8 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA;
         snapshots_safe = true;
     }
+    if (checkpoints_metadata)
+        flags |= VIR_DOMAIN_UNDEFINE_CHECKPOINTS_METADATA;
     if (nvram)
         flags |= VIR_DOMAIN_UNDEFINE_NVRAM;
     if (keep_nvram)
@@ -10781,13 +10792,14 @@ doMigrate(void *opaque)
             goto save_error;
     }
 
-    if (vshCommandOptInt(ctl, cmd, "parallel-connections", &intOpt) < 0)
+    if ((rv = vshCommandOptInt(ctl, cmd, "parallel-connections", &intOpt)) < 0) {
         goto out;
-    if (intOpt &&
-        virTypedParamsAddInt(&params, &nparams, &maxparams,
-                             VIR_MIGRATE_PARAM_PARALLEL_CONNECTIONS,
-                             intOpt) < 0)
-        goto save_error;
+    } else if (rv > 0) {
+        if (virTypedParamsAddInt(&params, &nparams, &maxparams,
+                                 VIR_MIGRATE_PARAM_PARALLEL_CONNECTIONS,
+                                 intOpt) < 0)
+            goto save_error;
+    }
 
     if (vshCommandOptBool(cmd, "live"))
         flags |= VIR_MIGRATE_LIVE;

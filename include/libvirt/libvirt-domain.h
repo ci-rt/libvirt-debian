@@ -637,10 +637,22 @@ typedef enum {
     VIR_DOMAIN_MEMORY_STAT_DISK_CACHES     = 10,
 
     /*
+     * The amount of successful huge page allocations from inside the domain via
+     * virtio balloon.
+     */
+    VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGALLOC    = 11,
+
+    /*
+     * The amount of failed huge page allocations from inside the domain via
+     * virtio balloon.
+     */
+    VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGFAIL    = 12,
+
+    /*
      * The number of statistics supported by this version of the interface.
      * To add new statistics, add them to the enum and increase this value.
      */
-    VIR_DOMAIN_MEMORY_STAT_NR              = 11,
+    VIR_DOMAIN_MEMORY_STAT_NR              = 13,
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_MEMORY_STAT_LAST = VIR_DOMAIN_MEMORY_STAT_NR
@@ -1788,6 +1800,9 @@ typedef enum {
     VIR_DOMAIN_UNDEFINE_NVRAM              = (1 << 2), /* Also remove any
                                                           nvram file */
     VIR_DOMAIN_UNDEFINE_KEEP_NVRAM         = (1 << 3), /* Keep nvram file */
+    VIR_DOMAIN_UNDEFINE_CHECKPOINTS_METADATA = (1 << 4), /* If last use of domain,
+                                                            then also remove any
+                                                            checkpoint metadata */
 
     /* Future undefine control flags should come here. */
 } virDomainUndefineFlagsValues;
@@ -1826,6 +1841,9 @@ typedef enum {
 
     VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT   = 1 << 12,
     VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT    = 1 << 13,
+
+    VIR_CONNECT_LIST_DOMAINS_HAS_CHECKPOINT = 1 << 14,
+    VIR_CONNECT_LIST_DOMAINS_NO_CHECKPOINT  = 1 << 15,
 } virConnectListAllDomainsFlags;
 
 int                     virConnectListAllDomains (virConnectPtr conn,

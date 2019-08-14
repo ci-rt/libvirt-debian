@@ -18,10 +18,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_QEMU_TPM_H
-# define LIBVIRT_QEMU_TPM_H
+#pragma once
 
-# include "vircommand.h"
+#include "vircommand.h"
 
 int qemuExtTPMInitPaths(virQEMUDriverPtr driver,
                         virDomainDefPtr def)
@@ -38,7 +37,8 @@ void qemuExtTPMCleanupHost(virDomainDefPtr def)
 
 int qemuExtTPMStart(virQEMUDriverPtr driver,
                     virDomainObjPtr vm,
-                    qemuDomainLogContextPtr logCtxt)
+                    qemuDomainLogContextPtr logCtxt,
+                    bool incomingMigration)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_RETURN_CHECK;
 
@@ -51,5 +51,3 @@ int qemuExtTPMSetupCgroup(virQEMUDriverPtr driver,
                           virCgroupPtr cgroup)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_RETURN_CHECK;
-
-#endif /* LIBVIRT_QEMU_TPM_H */

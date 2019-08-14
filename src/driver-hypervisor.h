@@ -18,12 +18,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_DRIVER_HYPERVISOR_H
-# define LIBVIRT_DRIVER_HYPERVISOR_H
+#pragma once
 
-# ifndef __VIR_DRIVER_H_INCLUDES___
-#  error "Don't include this file directly, only use driver.h"
-# endif
+#ifndef __VIR_DRIVER_H_INCLUDES___
+# error "Don't include this file directly, only use driver.h"
+#endif
 
 typedef int
 (*virDrvConnectURIProbe)(char **uri);
@@ -1328,6 +1327,37 @@ typedef int
                                         int *nparams,
                                         unsigned int flags);
 
+typedef virDomainCheckpointPtr
+(*virDrvDomainCheckpointCreateXML)(virDomainPtr domain,
+                                   const char *xmlDesc,
+                                   unsigned int flags);
+
+typedef char *
+(*virDrvDomainCheckpointGetXMLDesc)(virDomainCheckpointPtr checkpoint,
+                                    unsigned int flags);
+
+typedef int
+(*virDrvDomainListAllCheckpoints)(virDomainPtr domain,
+                                  virDomainCheckpointPtr **checkpoints,
+                                  unsigned int flags);
+
+typedef int
+(*virDrvDomainCheckpointListAllChildren)(virDomainCheckpointPtr checkpoint,
+                                         virDomainCheckpointPtr **children,
+                                         unsigned int flags);
+
+typedef virDomainCheckpointPtr
+(*virDrvDomainCheckpointLookupByName)(virDomainPtr domain,
+                                      const char *name,
+                                      unsigned int flags);
+
+typedef virDomainCheckpointPtr
+(*virDrvDomainCheckpointGetParent)(virDomainCheckpointPtr checkpoint,
+                                   unsigned int flags);
+
+typedef int
+(*virDrvDomainCheckpointDelete)(virDomainCheckpointPtr checkpoint,
+                                unsigned int flags);
 
 typedef struct _virHypervisorDriver virHypervisorDriver;
 typedef virHypervisorDriver *virHypervisorDriverPtr;
@@ -1580,7 +1610,11 @@ struct _virHypervisorDriver {
     virDrvConnectBaselineHypervisorCPU connectBaselineHypervisorCPU;
     virDrvNodeGetSEVInfo nodeGetSEVInfo;
     virDrvDomainGetLaunchSecurityInfo domainGetLaunchSecurityInfo;
+    virDrvDomainCheckpointCreateXML domainCheckpointCreateXML;
+    virDrvDomainCheckpointGetXMLDesc domainCheckpointGetXMLDesc;
+    virDrvDomainListAllCheckpoints domainListAllCheckpoints;
+    virDrvDomainCheckpointListAllChildren domainCheckpointListAllChildren;
+    virDrvDomainCheckpointLookupByName domainCheckpointLookupByName;
+    virDrvDomainCheckpointGetParent domainCheckpointGetParent;
+    virDrvDomainCheckpointDelete domainCheckpointDelete;
 };
-
-
-#endif /* LIBVIRT_DRIVER_HYPERVISOR_H */

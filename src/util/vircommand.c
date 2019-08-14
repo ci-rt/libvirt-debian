@@ -66,7 +66,6 @@ enum {
     VIR_EXEC_CLEAR_CAPS = (1 << 2),
     VIR_EXEC_RUN_SYNC   = (1 << 3),
     VIR_EXEC_ASYNC_IO   = (1 << 4),
-    VIR_EXEC_LISTEN_FDS = (1 << 5),
 };
 
 typedef struct _virCommandFD virCommandFD;
@@ -75,6 +74,16 @@ typedef virCommandFD *virCommandFDPtr;
 struct _virCommandFD {
     int fd;
     unsigned int flags;
+};
+
+typedef struct _virCommandSendBuffer virCommandSendBuffer;
+typedef virCommandSendBuffer *virCommandSendBufferPtr;
+
+struct _virCommandSendBuffer {
+    int fd;
+    unsigned char *buffer;
+    size_t buflen;
+    off_t offset;
 };
 
 struct _virCommand {
@@ -136,6 +145,9 @@ struct _virCommand {
     char *appArmorProfile;
 #endif
     int mask;
+
+    virCommandSendBufferPtr sendBuffers;
+    size_t numSendBuffers;
 };
 
 /* See virCommandSetDryRun for description for this variable */
@@ -204,78 +216,6 @@ virCommandFDSet(virCommandPtr cmd,
 }
 
 #ifndef WIN32
-
-static void
-virCommandReorderFDs(virCommandPtr cmd)
-{
-    int maxfd = 0;
-    int openmax = 0;
-    size_t i = 0;
-
-    if (!cmd || cmd->has_error || !cmd->npassfd)
-        return;
-
-    for (i = 0; i < cmd->npassfd; i++)
-        maxfd = MAX(cmd->passfd[i].fd, maxfd);
-
-    openmax = sysconf(_SC_OPEN_MAX);
-    if (openmax < 0 ||
-        maxfd + cmd->npassfd > openmax)
-        goto error;
-
-    /*
-     * Simple two-pass sort, nothing fancy.  This is not designed for
-     * anything else than passing around 2 FDs into the child.
-     *
-     * So first dup2() them somewhere else.
-     */
-    for (i = 0; i < cmd->npassfd; i++) {
-        int newfd = maxfd + i + 1;
-        int oldfd = cmd->passfd[i].fd;
-        if (dup2(oldfd, newfd) != newfd) {
-            virReportSystemError(errno,
-                                 _("Cannot dup2() fd %d before "
-                                   "passing it to the child"),
-                                 oldfd);
-            goto error;
-        }
-        VIR_FORCE_CLOSE(cmd->passfd[i].fd);
-    }
-
-    VIR_DEBUG("First reorder pass done");
-
-    /*
-     * And then dup2() them in orderly manner.
-     */
-    for (i = 0; i < cmd->npassfd; i++) {
-        int newfd = STDERR_FILENO + i + 1;
-        int oldfd = maxfd + i + 1;
-        if (dup2(oldfd, newfd) != newfd) {
-            virReportSystemError(errno,
-                                 _("Cannot dup2() fd %d before "
-                                   "passing it to the child"),
-                                 oldfd);
-            goto error;
-        }
-        if (virSetInherit(newfd, true) < 0) {
-            virReportSystemError(errno,
-                                 _("Cannot set O_CLOEXEC on fd %d before "
-                                   "passing it to the child"),
-                                 newfd);
-            goto error;
-        }
-        VIR_FORCE_CLOSE(oldfd);
-        cmd->passfd[i].fd = newfd;
-    }
-
-    VIR_DEBUG("Second reorder pass done");
-
-    return;
-
- error:
-    cmd->has_error = -1;
-    return;
-}
 
 /**
  * virFork:
@@ -491,6 +431,107 @@ virExecCommon(virCommandPtr cmd, gid_t *groups, int ngroups)
     return ret;
 }
 
+# ifdef __linux__
+/* On Linux, we can utilize procfs and read the table of opened
+ * FDs and selectively close only those FDs we don't want to pass
+ * onto child process (well, the one we will exec soon since this
+ * is called from the child). */
+static int
+virCommandMassCloseGetFDsLinux(virCommandPtr cmd ATTRIBUTE_UNUSED,
+                               virBitmapPtr fds)
+{
+    DIR *dp = NULL;
+    struct dirent *entry;
+    const char *dirName = "/proc/self/fd";
+    int rc;
+    int ret = -1;
+
+    if (virDirOpen(&dp, dirName) < 0)
+        return -1;
+
+    while ((rc = virDirRead(dp, &entry, dirName)) > 0) {
+        int fd;
+
+        if (virStrToLong_i(entry->d_name, NULL, 10, &fd) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unable to parse FD: %s"),
+                           entry->d_name);
+            goto cleanup;
+        }
+
+        ignore_value(virBitmapSetBit(fds, fd));
+    }
+
+    if (rc < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    VIR_DIR_CLOSE(dp);
+    return ret;
+}
+
+# else /* !__linux__ */
+
+static int
+virCommandMassCloseGetFDsGeneric(virCommandPtr cmd ATTRIBUTE_UNUSED,
+                                 virBitmapPtr fds)
+{
+    virBitmapSetAll(fds);
+    return 0;
+}
+# endif /* !__linux__ */
+
+static int
+virCommandMassClose(virCommandPtr cmd,
+                    int childin,
+                    int childout,
+                    int childerr)
+{
+    VIR_AUTOPTR(virBitmap) fds = NULL;
+    int openmax = sysconf(_SC_OPEN_MAX);
+    int fd = -1;
+
+    /* In general, it is not safe to call malloc() between fork() and exec()
+     * because the child might have forked at the worst possible time, i.e.
+     * when another thread was in malloc() and thus held its lock. That is to
+     * say, POSIX does not mandate malloc() to be async-safe. Fortunately,
+     * glibc developers are aware of this and made malloc() async-safe.
+     * Therefore we can safely allocate memory here (and transitively call
+     * opendir/readdir) without a deadlock. */
+
+    if (openmax < 0) {
+        virReportSystemError(errno, "%s", _("sysconf(_SC_OPEN_MAX) failed"));
+        return -1;
+    }
+
+    if (!(fds = virBitmapNew(openmax)))
+        return -1;
+
+# ifdef __linux__
+    if (virCommandMassCloseGetFDsLinux(cmd, fds) < 0)
+        return -1;
+# else
+    if (virCommandMassCloseGetFDsGeneric(cmd, fds) < 0)
+        return -1;
+# endif
+
+    fd = virBitmapNextSetBit(fds, 2);
+    for (; fd >= 0; fd = virBitmapNextSetBit(fds, fd)) {
+        if (fd == childin || fd == childout || fd == childerr)
+            continue;
+        if (!virCommandFDIsSet(cmd, fd)) {
+            int tmpfd = fd;
+            VIR_MASS_CLOSE(tmpfd);
+        } else if (virSetInherit(fd, true) < 0) {
+            virReportSystemError(errno, _("failed to preserve fd %d"), fd);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 /*
  * virExec:
  * @cmd virCommandPtr containing all information about the program to
@@ -500,13 +541,12 @@ static int
 virExec(virCommandPtr cmd)
 {
     pid_t pid;
-    int null = -1, fd, openmax;
+    int null = -1;
     int pipeout[2] = {-1, -1};
     int pipeerr[2] = {-1, -1};
     int childin = cmd->infd;
     int childout = -1;
     int childerr = -1;
-    int tmpfd;
     VIR_AUTOFREE(char *) binarystr = NULL;
     const char *binary = NULL;
     int ret;
@@ -612,23 +652,9 @@ virExec(virCommandPtr cmd)
     if (cmd->mask)
         umask(cmd->mask);
     ret = EXIT_CANCELED;
-    openmax = sysconf(_SC_OPEN_MAX);
-    if (openmax < 0) {
-        virReportSystemError(errno,  "%s",
-                             _("sysconf(_SC_OPEN_MAX) failed"));
+
+    if (virCommandMassClose(cmd, childin, childout, childerr) < 0)
         goto fork_error;
-    }
-    for (fd = 3; fd < openmax; fd++) {
-        if (fd == childin || fd == childout || fd == childerr)
-            continue;
-        if (!virCommandFDIsSet(cmd, fd)) {
-            tmpfd = fd;
-            VIR_MASS_CLOSE(tmpfd);
-        } else if (virSetInherit(fd, true) < 0) {
-            virReportSystemError(errno, _("failed to preserve fd %d"), fd);
-            goto fork_error;
-        }
-    }
 
     if (prepareStdFd(childin, STDIN_FILENO) < 0) {
         virReportSystemError(errno,
@@ -761,15 +787,6 @@ virExec(virCommandPtr cmd)
         virReportSystemError(errno, "%s",
                              _("Could not re-enable SIGPIPE"));
         goto fork_error;
-    }
-
-    if (cmd->flags & VIR_EXEC_LISTEN_FDS) {
-        virCommandReorderFDs(cmd);
-        virCommandAddEnvFormat(cmd, "LISTEN_PID=%u", getpid());
-        virCommandAddEnvFormat(cmd, "LISTEN_FDS=%zu", cmd->npassfd);
-
-        if (cmd->has_error)
-            goto fork_error;
     }
 
     /* Close logging again to ensure no FDs leak to child */
@@ -1002,23 +1019,6 @@ virCommandPassFD(virCommandPtr cmd, int fd, unsigned int flags)
     }
 }
 
-/**
- * virCommandPassListenFDs:
- * @cmd: the command to modify
- *
- * Pass LISTEN_FDS and LISTEN_PID environment variables into the
- * child.  LISTEN_PID has the value of the child's PID and LISTEN_FDS
- * is a number of passed file descriptors starting from 3.
- */
-void
-virCommandPassListenFDs(virCommandPtr cmd)
-{
-    if (!cmd || cmd->has_error)
-        return;
-
-    cmd->flags |= VIR_EXEC_LISTEN_FDS;
-}
-
 /*
  * virCommandPassFDGetFDIndex:
  * @cmd: pointer to virCommand
@@ -1033,6 +1033,9 @@ int
 virCommandPassFDGetFDIndex(virCommandPtr cmd, int fd)
 {
     size_t i = 0;
+
+    if (!cmd || cmd->has_error)
+        return -1;
 
     while (i < cmd->npassfd) {
         if (cmd->passfd[i].fd == fd)
@@ -1738,6 +1741,141 @@ virCommandSetWorkingDirectory(virCommandPtr cmd, const char *pwd)
 }
 
 
+static int
+virCommandGetNumSendBuffers(virCommandPtr cmd)
+{
+    return cmd->numSendBuffers;
+}
+
+
+static void
+virCommandFreeSendBuffers(virCommandPtr cmd)
+{
+    size_t i;
+
+    for (i = 0; i < virCommandGetNumSendBuffers(cmd); i++) {
+        VIR_FORCE_CLOSE(cmd->sendBuffers[i].fd);
+        VIR_FREE(cmd->sendBuffers[i].buffer);
+    }
+    VIR_FREE(cmd->sendBuffers);
+}
+
+
+/**
+ * virCommandSetSendBuffer
+ * @cmd: the command to modify
+ *
+ * Pass a buffer to virCommand that will be written into the
+ * given file descriptor. The buffer will be freed automatically
+ * and the file descriptor closed.
+ */
+#if defined(F_SETFL)
+int
+virCommandSetSendBuffer(virCommandPtr cmd,
+                        int fd,
+                        unsigned char *buffer, size_t buflen)
+{
+    size_t i;
+
+    if (!cmd || cmd->has_error)
+        return -1;
+
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("fcntl failed to set O_NONBLOCK"));
+        cmd->has_error = errno;
+        return -1;
+    }
+
+    i = virCommandGetNumSendBuffers(cmd);
+    if (VIR_REALLOC_N(cmd->sendBuffers, i + 1) < 0) {
+        cmd->has_error = ENOMEM;
+        return -1;
+    }
+
+    cmd->sendBuffers[i].fd = fd;
+    cmd->sendBuffers[i].buffer = buffer;
+    cmd->sendBuffers[i].buflen = buflen;
+    cmd->sendBuffers[i].offset = 0;
+
+    cmd->numSendBuffers++;
+
+    return 0;
+}
+
+#else /* !defined(F_SETFL) */
+
+int
+virCommandSetSendBuffer(virCommandPtr cmd,
+                        int fd ATTRIBUTE_UNUSED,
+                        unsigned char *buffer ATTRIBUTE_UNUSED,
+                        size_t buflen ATTRIBUTE_UNUSED)
+{
+    if (!cmd || cmd->has_error)
+        return -1;
+
+    cmd->has_error = ENOTSUP;
+
+    return -1;
+}
+
+#endif
+
+static int
+virCommandSendBuffersFillPollfd(virCommandPtr cmd,
+                                struct pollfd *fds,
+                                int startidx)
+{
+    size_t i, j;
+
+    for (i = 0, j = 0; i < virCommandGetNumSendBuffers(cmd); i++) {
+        if (cmd->sendBuffers[i].fd >= 0) {
+            fds[startidx + j].fd = cmd->sendBuffers[i].fd;
+            fds[startidx + j].events = POLLOUT;
+            fds[startidx + j].revents = 0;
+            j++;
+        }
+    }
+
+    return j;
+}
+
+
+static int
+virCommandSendBuffersHandlePoll(virCommandPtr cmd,
+                                struct pollfd *fds)
+{
+    size_t i;
+    ssize_t done;
+
+    for (i = 0; i < virCommandGetNumSendBuffers(cmd); i++) {
+        if (fds->fd == cmd->sendBuffers[i].fd)
+            break;
+    }
+    if (i == virCommandGetNumSendBuffers(cmd))
+        return 0;
+
+    done = write(fds->fd,
+                 cmd->sendBuffers[i].buffer + cmd->sendBuffers[i].offset,
+                 cmd->sendBuffers[i].buflen - cmd->sendBuffers[i].offset);
+    if (done < 0) {
+        if (errno == EPIPE) {
+            VIR_DEBUG("child closed PIPE early, ignoring EPIPE "
+                      "on fd %d", cmd->sendBuffers[i].fd);
+            VIR_FORCE_CLOSE(cmd->sendBuffers[i].fd);
+        } else if (errno != EINTR && errno != EAGAIN) {
+            virReportSystemError(errno, "%s",
+                                 _("unable to write to child input"));
+            return -1;
+        }
+    } else {
+        cmd->sendBuffers[i].offset += done;
+        if (cmd->sendBuffers[i].offset == cmd->sendBuffers[i].buflen)
+            VIR_FORCE_CLOSE(cmd->sendBuffers[i].fd);
+    }
+    return 0;
+}
+
 /**
  * virCommandSetInputBuffer:
  * @cmd: the command to modify
@@ -2060,6 +2198,7 @@ virCommandProcessIO(virCommandPtr cmd)
     size_t inlen = 0, outlen = 0, errlen = 0;
     size_t inoff = 0;
     int ret = 0;
+    VIR_AUTOFREE(struct pollfd *) fds = NULL;
 
     if (dryRunBuffer || dryRunCallback) {
         VIR_DEBUG("Dry run requested, skipping I/O processing");
@@ -2091,9 +2230,11 @@ virCommandProcessIO(virCommandPtr cmd)
         goto cleanup;
     ret = -1;
 
+    if (VIR_ALLOC_N(fds, 3 + virCommandGetNumSendBuffers(cmd)) < 0)
+        goto cleanup;
+
     for (;;) {
         size_t i;
-        struct pollfd fds[3];
         int nfds = 0;
 
         if (cmd->inpipe != -1) {
@@ -2114,6 +2255,8 @@ virCommandProcessIO(virCommandPtr cmd)
             fds[nfds].revents = 0;
             nfds++;
         }
+
+        nfds += virCommandSendBuffersFillPollfd(cmd, fds, nfds);
 
         if (nfds == 0)
             break;
@@ -2187,6 +2330,9 @@ virCommandProcessIO(virCommandPtr cmd)
                     if (inoff == inlen)
                         VIR_FORCE_CLOSE(cmd->inpipe);
                 }
+            } else if (fds[i].revents & (POLLOUT | POLLHUP | POLLERR)) {
+                if (virCommandSendBuffersHandlePoll(cmd, &fds[i]) < 0)
+                    goto cleanup;
             }
         }
     }
@@ -2453,6 +2599,19 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
         }
         cmd->infd = infd[0];
         cmd->inpipe = infd[1];
+#if defined (F_SETFL)
+        if (fcntl(cmd->inpipe, F_SETFL, O_NONBLOCK) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("fcntl failed to set O_NONBLOCK"));
+            cmd->has_error = -1;
+            ret = -1;
+            goto cleanup;
+        }
+#else /* !defined(F_SETFL) */
+        cmd->has_error = ENOTSUP;
+        ret = -1;
+        goto cleanup;
+#endif
     } else if ((cmd->inbuf && cmd->infd == -1) ||
                (cmd->outbuf && cmd->outfdptr != &cmd->outfd) ||
                (cmd->errbuf && cmd->errfdptr != &cmd->errfd)) {
@@ -2876,6 +3035,8 @@ virCommandFree(virCommandPtr cmd)
 #if defined(WITH_SECDRIVER_APPARMOR)
     VIR_FREE(cmd->appArmorProfile);
 #endif
+
+    virCommandFreeSendBuffers(cmd);
 
     VIR_FREE(cmd);
 }

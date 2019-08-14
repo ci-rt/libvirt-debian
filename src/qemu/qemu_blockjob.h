@@ -19,11 +19,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_QEMU_BLOCKJOB_H
-# define LIBVIRT_QEMU_BLOCKJOB_H
+#pragma once
 
-# include "internal.h"
-# include "qemu_conf.h"
+#include "internal.h"
+#include "qemu_conf.h"
 
 /**
  * This enum has to map all known block job states from enum virDomainBlockJobType
@@ -39,9 +38,15 @@ typedef enum {
     /* Additional enum values local to qemu */
     QEMU_BLOCKJOB_STATE_NEW,
     QEMU_BLOCKJOB_STATE_RUNNING,
+    QEMU_BLOCKJOB_STATE_CONCLUDED, /* job has finished, but it's unknown
+                                      whether it has failed or not */
+    QEMU_BLOCKJOB_STATE_ABORTING,
+    QEMU_BLOCKJOB_STATE_PIVOTING,
     QEMU_BLOCKJOB_STATE_LAST
 } qemuBlockjobState;
 verify((int)QEMU_BLOCKJOB_STATE_NEW == VIR_DOMAIN_BLOCK_JOB_LAST);
+
+VIR_ENUM_DECL(qemuBlockjobState);
 
 /**
  * This enum has to map all known block job types from enum virDomainBlockJobType
@@ -61,6 +66,27 @@ typedef enum {
 } qemuBlockJobType;
 verify((int)QEMU_BLOCKJOB_TYPE_INTERNAL == VIR_DOMAIN_BLOCK_JOB_TYPE_LAST);
 
+VIR_ENUM_DECL(qemuBlockjob);
+
+
+typedef struct _qemuBlockJobPullData qemuBlockJobPullData;
+typedef qemuBlockJobPullData *qemuBlockJobDataPullPtr;
+
+struct _qemuBlockJobPullData {
+    virStorageSourcePtr base;
+};
+
+
+typedef struct _qemuBlockJobCommitData qemuBlockJobCommitData;
+typedef qemuBlockJobCommitData *qemuBlockJobDataCommitPtr;
+
+struct _qemuBlockJobCommitData {
+    virStorageSourcePtr topparent;
+    virStorageSourcePtr top;
+    virStorageSourcePtr base;
+};
+
+
 typedef struct _qemuBlockJobData qemuBlockJobData;
 typedef qemuBlockJobData *qemuBlockJobDataPtr;
 
@@ -70,37 +96,80 @@ struct _qemuBlockJobData {
     char *name;
 
     virDomainDiskDefPtr disk; /* may be NULL, if blockjob does not correspond to any disk */
+    virStorageSourcePtr chain; /* Reference to the chain the job operates on. */
+    virStorageSourcePtr mirrorChain; /* reference to 'mirror' part of the job */
 
-    bool started;
+    union {
+        qemuBlockJobPullData pull;
+        qemuBlockJobCommitData commit;
+    } data;
+
     int type; /* qemuBlockJobType */
     int state; /* qemuBlockjobState */
     char *errmsg;
     bool synchronous; /* API call is waiting for this job */
 
-    int newstate; /* virConnectDomainEventBlockJobStatus - new state to be processed */
+    int newstate; /* qemuBlockjobState, subset of events emitted by qemu */
+
+    bool invalidData; /* the job data (except name) is not valid */
+    bool reconnected; /* internal field for tracking whether job is live after reconnect to qemu */
 };
 
+int
+qemuBlockJobRegister(qemuBlockJobDataPtr job,
+                     virDomainObjPtr vm,
+                     virDomainDiskDefPtr disk,
+                     bool savestatus)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 qemuBlockJobDataPtr
-qemuBlockJobDiskNew(virDomainDiskDefPtr disk,
+qemuBlockJobDataNew(qemuBlockJobType type,
+                    const char *name)
+    ATTRIBUTE_NONNULL(2);
+
+qemuBlockJobDataPtr
+qemuBlockJobDiskNew(virDomainObjPtr vm,
+                    virDomainDiskDefPtr disk,
                     qemuBlockJobType type,
                     const char *jobname)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(4);
+
+void
+qemuBlockJobDiskRegisterMirror(qemuBlockJobDataPtr job)
+    ATTRIBUTE_NONNULL(1);
+
+qemuBlockJobDataPtr
+qemuBlockJobDiskNewPull(virDomainObjPtr vm,
+                        virDomainDiskDefPtr disk,
+                        virStorageSourcePtr base);
+
+qemuBlockJobDataPtr
+qemuBlockJobDiskNewCommit(virDomainObjPtr vm,
+                          virDomainDiskDefPtr disk,
+                          virStorageSourcePtr topparent,
+                          virStorageSourcePtr top,
+                          virStorageSourcePtr base);
 
 qemuBlockJobDataPtr
 qemuBlockJobDiskGetJob(virDomainDiskDefPtr disk)
     ATTRIBUTE_NONNULL(1);
 
 void
-qemuBlockJobStarted(qemuBlockJobDataPtr job)
-    ATTRIBUTE_NONNULL(1);
+qemuBlockJobStarted(qemuBlockJobDataPtr job,
+                    virDomainObjPtr vm)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 bool
 qemuBlockJobIsRunning(qemuBlockJobDataPtr job)
     ATTRIBUTE_NONNULL(1);
 
 void
-qemuBlockJobStartupFinalize(qemuBlockJobDataPtr job);
+qemuBlockJobStartupFinalize(virDomainObjPtr vm,
+                            qemuBlockJobDataPtr job);
+
+int
+qemuBlockJobRefreshJobs(virQEMUDriverPtr driver,
+                        virDomainObjPtr vm);
 
 int qemuBlockJobUpdate(virDomainObjPtr vm,
                        qemuBlockJobDataPtr job,
@@ -115,4 +184,5 @@ qemuBlockJobDataPtr
 qemuBlockJobGetByDisk(virDomainDiskDefPtr disk)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
-#endif /* LIBVIRT_QEMU_BLOCKJOB_H */
+qemuBlockjobState
+qemuBlockjobConvertMonitorStatus(int monitorstatus);

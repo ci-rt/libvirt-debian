@@ -1,0 +1,869 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>libvirt-storage: APIs for management of storage pools and volumes</title>
+    <meta name="generator" content="Libvirt devhelp stylesheet"/>
+    <link rel="start" href="index.html" title="libvirt Reference Manual"/>
+    <link rel="up" href="general.html" title="API"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="chapter" href="general.html" title="API"/>
+  </head>
+  <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+    <table class="navigation" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+      <tr valign="middle">
+        <td>
+          <a accesskey="p" href="libvirt-libvirt-secret.html">
+            <img src="left.png" width="24" height="24" border="0" alt="Prev"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="u" href="general.html">
+            <img src="up.png" width="24" height="24" border="0" alt="Up"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="h" href="index.html">
+            <img src="home.png" width="24" height="24" border="0" alt="Home"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="n" href="libvirt-libvirt-stream.html">
+            <img src="right.png" width="24" height="24" border="0" alt="Next"/>
+          </a>
+        </td>
+        <th width="100%" align="center">libvirt Reference Manual</th>
+      </tr>
+    </table>
+    <h2>
+      <span class="refentrytitle">libvirt-storage</span>
+    </h2>
+    <p>libvirt-storage - APIs for management of storage pools and volumes</p>
+    <p>Provides APIs for the management of storage pools and volumes  Copyright (C) 2006-2016 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <div class="refsynopsisdiv">
+      <h2>Synopsis</h2>
+      <pre class="synopsis">#define <a href="#VIR_STORAGE_POOL_EVENT_CALLBACK">VIR_STORAGE_POOL_EVENT_CALLBACK</a>;
+typedef enum <a href="#virConnectListAllStoragePoolsFlags">virConnectListAllStoragePoolsFlags</a>;
+typedef struct _virStoragePool <a href="#virStoragePool">virStoragePool</a>;
+typedef enum <a href="#virStoragePoolBuildFlags">virStoragePoolBuildFlags</a>;
+typedef enum <a href="#virStoragePoolCreateFlags">virStoragePoolCreateFlags</a>;
+typedef enum <a href="#virStoragePoolDeleteFlags">virStoragePoolDeleteFlags</a>;
+typedef enum <a href="#virStoragePoolEventID">virStoragePoolEventID</a>;
+typedef enum <a href="#virStoragePoolEventLifecycleType">virStoragePoolEventLifecycleType</a>;
+typedef struct _virStoragePoolInfo <a href="#virStoragePoolInfo">virStoragePoolInfo</a>;
+typedef <a href="libvirt-libvirt-storage.html#virStoragePoolInfo">virStoragePoolInfo</a> * <a href="#virStoragePoolInfoPtr">virStoragePoolInfoPtr</a>;
+typedef <a href="libvirt-libvirt-storage.html#virStoragePool">virStoragePool</a> * <a href="#virStoragePoolPtr">virStoragePoolPtr</a>;
+typedef enum <a href="#virStoragePoolState">virStoragePoolState</a>;
+typedef struct _virStorageVol <a href="#virStorageVol">virStorageVol</a>;
+typedef enum <a href="#virStorageVolCreateFlags">virStorageVolCreateFlags</a>;
+typedef enum <a href="#virStorageVolDeleteFlags">virStorageVolDeleteFlags</a>;
+typedef enum <a href="#virStorageVolDownloadFlags">virStorageVolDownloadFlags</a>;
+typedef struct _virStorageVolInfo <a href="#virStorageVolInfo">virStorageVolInfo</a>;
+typedef enum <a href="#virStorageVolInfoFlags">virStorageVolInfoFlags</a>;
+typedef <a href="libvirt-libvirt-storage.html#virStorageVolInfo">virStorageVolInfo</a> * <a href="#virStorageVolInfoPtr">virStorageVolInfoPtr</a>;
+typedef <a href="libvirt-libvirt-storage.html#virStorageVol">virStorageVol</a> * <a href="#virStorageVolPtr">virStorageVolPtr</a>;
+typedef enum <a href="#virStorageVolResizeFlags">virStorageVolResizeFlags</a>;
+typedef enum <a href="#virStorageVolType">virStorageVolType</a>;
+typedef enum <a href="#virStorageVolUploadFlags">virStorageVolUploadFlags</a>;
+typedef enum <a href="#virStorageVolWipeAlgorithm">virStorageVolWipeAlgorithm</a>;
+typedef enum <a href="#virStorageXMLFlags">virStorageXMLFlags</a>;
+char *	<a href="#virConnectFindStoragePoolSources">virConnectFindStoragePoolSources</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * type, <br/>						 const char * srcSpec, <br/>						 unsigned int flags);
+char *	<a href="#virConnectGetStoragePoolCapabilities">virConnectGetStoragePoolCapabilities</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 unsigned int flags);
+int	<a href="#virConnectListAllStoragePools">virConnectListAllStoragePools</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> ** pools, <br/>					 unsigned int flags);
+int	<a href="#virConnectListDefinedStoragePools">virConnectListDefinedStoragePools</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 char ** const names, <br/>						 int maxnames);
+int	<a href="#virConnectListStoragePools">virConnectListStoragePools</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
+int	<a href="#virConnectNumOfDefinedStoragePools">virConnectNumOfDefinedStoragePools</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectNumOfStoragePools">virConnectNumOfStoragePools</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectStoragePoolEventDeregisterAny">virConnectStoragePoolEventDeregisterAny</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 int callbackID);
+typedef void <a href="#virConnectStoragePoolEventGenericCallback">virConnectStoragePoolEventGenericCallback</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 void * opaque);
+typedef void <a href="#virConnectStoragePoolEventLifecycleCallback">virConnectStoragePoolEventLifecycleCallback</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 int event, <br/>							 int detail, <br/>							 void * opaque);
+int	<a href="#virConnectStoragePoolEventRegisterAny">virConnectStoragePoolEventRegisterAny</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt-storage.html#virConnectStoragePoolEventGenericCallback">virConnectStoragePoolEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> freecb);
+int	<a href="#virStoragePoolBuild">virStoragePoolBuild</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags);
+int	<a href="#virStoragePoolCreate">virStoragePoolCreate</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags);
+<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	<a href="#virStoragePoolCreateXML">virStoragePoolCreateXML</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags);
+<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	<a href="#virStoragePoolDefineXML">virStoragePoolDefineXML</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xml, <br/>						 unsigned int flags);
+int	<a href="#virStoragePoolDelete">virStoragePoolDelete</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags);
+int	<a href="#virStoragePoolDestroy">virStoragePoolDestroy</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
+int	<a href="#virStoragePoolFree">virStoragePoolFree</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
+int	<a href="#virStoragePoolGetAutostart">virStoragePoolGetAutostart</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 int * autostart);
+<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	<a href="#virStoragePoolGetConnect">virStoragePoolGetConnect</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
+int	<a href="#virStoragePoolGetInfo">virStoragePoolGetInfo</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 <a href="libvirt-libvirt-storage.html#virStoragePoolInfoPtr">virStoragePoolInfoPtr</a> info);
+const char *	<a href="#virStoragePoolGetName">virStoragePoolGetName</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
+int	<a href="#virStoragePoolGetUUID">virStoragePoolGetUUID</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned char * uuid);
+int	<a href="#virStoragePoolGetUUIDString">virStoragePoolGetUUIDString</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 char * buf);
+char *	<a href="#virStoragePoolGetXMLDesc">virStoragePoolGetXMLDesc</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags);
+int	<a href="#virStoragePoolIsActive">virStoragePoolIsActive</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
+int	<a href="#virStoragePoolIsPersistent">virStoragePoolIsPersistent</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
+int	<a href="#virStoragePoolListAllVolumes">virStoragePoolListAllVolumes</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 <a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> ** vols, <br/>					 unsigned int flags);
+int	<a href="#virStoragePoolListVolumes">virStoragePoolListVolumes</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 char ** const names, <br/>					 int maxnames);
+<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	<a href="#virStoragePoolLookupByName">virStoragePoolLookupByName</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * name);
+<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	<a href="#virStoragePoolLookupByTargetPath">virStoragePoolLookupByTargetPath</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * path);
+<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	<a href="#virStoragePoolLookupByUUID">virStoragePoolLookupByUUID</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const unsigned char * uuid);
+<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	<a href="#virStoragePoolLookupByUUIDString">virStoragePoolLookupByUUIDString</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * uuidstr);
+<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	<a href="#virStoragePoolLookupByVolume">virStoragePoolLookupByVolume</a>	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol);
+int	<a href="#virStoragePoolNumOfVolumes">virStoragePoolNumOfVolumes</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
+int	<a href="#virStoragePoolRef">virStoragePoolRef</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
+int	<a href="#virStoragePoolRefresh">virStoragePoolRefresh</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags);
+int	<a href="#virStoragePoolSetAutostart">virStoragePoolSetAutostart</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 int autostart);
+int	<a href="#virStoragePoolUndefine">virStoragePoolUndefine</a>		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
+<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolCreateXML">virStorageVolCreateXML</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags);
+<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolCreateXMLFrom">virStorageVolCreateXMLFrom</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * xmlDesc, <br/>							 <a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> clonevol, <br/>							 unsigned int flags);
+int	<a href="#virStorageVolDelete">virStorageVolDelete</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags);
+int	<a href="#virStorageVolDownload">virStorageVolDownload</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt-host.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 unsigned long long offset, <br/>					 unsigned long long length, <br/>					 unsigned int flags);
+int	<a href="#virStorageVolFree">virStorageVolFree</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol);
+<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	<a href="#virStorageVolGetConnect">virStorageVolGetConnect</a>	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol);
+int	<a href="#virStorageVolGetInfo">virStorageVolGetInfo</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt-storage.html#virStorageVolInfoPtr">virStorageVolInfoPtr</a> info);
+int	<a href="#virStorageVolGetInfoFlags">virStorageVolGetInfoFlags</a>	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt-storage.html#virStorageVolInfoPtr">virStorageVolInfoPtr</a> info, <br/>					 unsigned int flags);
+const char *	<a href="#virStorageVolGetKey">virStorageVolGetKey</a>	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol);
+const char *	<a href="#virStorageVolGetName">virStorageVolGetName</a>	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol);
+char *	<a href="#virStorageVolGetPath">virStorageVolGetPath</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol);
+char *	<a href="#virStorageVolGetXMLDesc">virStorageVolGetXMLDesc</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags);
+<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolLookupByKey">virStorageVolLookupByKey</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * key);
+<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolLookupByName">virStorageVolLookupByName</a>	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * name);
+<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolLookupByPath">virStorageVolLookupByPath</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * path);
+int	<a href="#virStorageVolRef">virStorageVolRef</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol);
+int	<a href="#virStorageVolResize">virStorageVolResize</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned long long capacity, <br/>					 unsigned int flags);
+int	<a href="#virStorageVolUpload">virStorageVolUpload</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt-host.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 unsigned long long offset, <br/>					 unsigned long long length, <br/>					 unsigned int flags);
+int	<a href="#virStorageVolWipe">virStorageVolWipe</a>		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags);
+int	<a href="#virStorageVolWipePattern">virStorageVolWipePattern</a>	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int algorithm, <br/>					 unsigned int flags);
+</pre>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Description</h2>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Details</h2>
+      <div class="refsect2" lang="en">
+        <div class="refsect2" lang="en"><h3><a name="VIR_STORAGE_POOL_EVENT_CALLBACK">Macro </a>VIR_STORAGE_POOL_EVENT_CALLBACK</h3><pre class="programlisting">#define <a href="#VIR_STORAGE_POOL_EVENT_CALLBACK">VIR_STORAGE_POOL_EVENT_CALLBACK</a>;
+</pre><p>Used to cast the event specific callback into the generic one for use for virConnectStoragePoolEventRegisterAny()</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllStoragePoolsFlags">Enum </a>virConnectListAllStoragePoolsFlags</h3><pre class="programlisting">enum <a href="#virConnectListAllStoragePoolsFlags">virConnectListAllStoragePoolsFlags</a> {
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE">VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE</a> = 1
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE">VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE</a> = 2
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_PERSISTENT">VIR_CONNECT_LIST_STORAGE_POOLS_PERSISTENT</a> = 4
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT">VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT</a> = 8
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART">VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART</a> = 16
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART">VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART</a> = 32 /* List pools by type */
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_DIR">VIR_CONNECT_LIST_STORAGE_POOLS_DIR</a> = 64
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_FS">VIR_CONNECT_LIST_STORAGE_POOLS_FS</a> = 128
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_NETFS">VIR_CONNECT_LIST_STORAGE_POOLS_NETFS</a> = 256
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL">VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL</a> = 512
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_DISK">VIR_CONNECT_LIST_STORAGE_POOLS_DISK</a> = 1024
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI">VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI</a> = 2048
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_SCSI">VIR_CONNECT_LIST_STORAGE_POOLS_SCSI</a> = 4096
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_MPATH">VIR_CONNECT_LIST_STORAGE_POOLS_MPATH</a> = 8192
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_RBD">VIR_CONNECT_LIST_STORAGE_POOLS_RBD</a> = 16384
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG">VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG</a> = 32768
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER">VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER</a> = 65536
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_ZFS">VIR_CONNECT_LIST_STORAGE_POOLS_ZFS</a> = 131072
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE">VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE</a> = 262144
+    <a name="VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI_DIRECT">VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI_DIRECT</a> = 524288
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePool">Structure </a>virStoragePool</h3><pre class="programlisting">struct _virStoragePool {
+The content of this structure is not made public by the API.
+} virStoragePool;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolBuildFlags">Enum </a>virStoragePoolBuildFlags</h3><pre class="programlisting">enum <a href="#virStoragePoolBuildFlags">virStoragePoolBuildFlags</a> {
+    <a name="VIR_STORAGE_POOL_BUILD_NEW">VIR_STORAGE_POOL_BUILD_NEW</a> = 0 /* Regular build from scratch */
+    <a name="VIR_STORAGE_POOL_BUILD_REPAIR">VIR_STORAGE_POOL_BUILD_REPAIR</a> = 1 /* Repair / reinitialize */
+    <a name="VIR_STORAGE_POOL_BUILD_RESIZE">VIR_STORAGE_POOL_BUILD_RESIZE</a> = 2 /* Extend existing pool */
+    <a name="VIR_STORAGE_POOL_BUILD_NO_OVERWRITE">VIR_STORAGE_POOL_BUILD_NO_OVERWRITE</a> = 4 /* Do not overwrite existing pool */
+    <a name="VIR_STORAGE_POOL_BUILD_OVERWRITE">VIR_STORAGE_POOL_BUILD_OVERWRITE</a> = 8 /* Overwrite data */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolCreateFlags">Enum </a>virStoragePoolCreateFlags</h3><pre class="programlisting">enum <a href="#virStoragePoolCreateFlags">virStoragePoolCreateFlags</a> {
+    <a name="VIR_STORAGE_POOL_CREATE_NORMAL">VIR_STORAGE_POOL_CREATE_NORMAL</a> = 0 /* Create the pool and perform pool build without any flags */
+    <a name="VIR_STORAGE_POOL_CREATE_WITH_BUILD">VIR_STORAGE_POOL_CREATE_WITH_BUILD</a> = 1 /* Create the pool and perform pool build using the  VIR_STORAGE_POOL_BUILD_OVERWRITE flag. This is mutually  exclusive to VIR_STORAGE_POOL_CREATE_WITH_BUILD_NO_OVERWRITE */
+    <a name="VIR_STORAGE_POOL_CREATE_WITH_BUILD_OVERWRITE">VIR_STORAGE_POOL_CREATE_WITH_BUILD_OVERWRITE</a> = 2 /* Create the pool and perform pool build using the  VIR_STORAGE_POOL_BUILD_NO_OVERWRITE flag. This is mutually  exclusive to VIR_STORAGE_POOL_CREATE_WITH_BUILD_OVERWRITE */
+    <a name="VIR_STORAGE_POOL_CREATE_WITH_BUILD_NO_OVERWRITE">VIR_STORAGE_POOL_CREATE_WITH_BUILD_NO_OVERWRITE</a> = 4
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolDeleteFlags">Enum </a>virStoragePoolDeleteFlags</h3><pre class="programlisting">enum <a href="#virStoragePoolDeleteFlags">virStoragePoolDeleteFlags</a> {
+    <a name="VIR_STORAGE_POOL_DELETE_NORMAL">VIR_STORAGE_POOL_DELETE_NORMAL</a> = 0 /* Delete metadata only    (fast) */
+    <a name="VIR_STORAGE_POOL_DELETE_ZEROED">VIR_STORAGE_POOL_DELETE_ZEROED</a> = 1 /* Clear all data to zeros (slow) */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolEventID">Enum </a>virStoragePoolEventID</h3><pre class="programlisting">enum <a href="#virStoragePoolEventID">virStoragePoolEventID</a> {
+    <a name="VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE">VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE</a> = 0 /* virConnectStoragePoolEventLifecycleCallback */
+    <a name="VIR_STORAGE_POOL_EVENT_ID_REFRESH">VIR_STORAGE_POOL_EVENT_ID_REFRESH</a> = 1 /* virConnectStoragePoolEventGenericCallback */
+    <a name="VIR_STORAGE_POOL_EVENT_ID_LAST">VIR_STORAGE_POOL_EVENT_ID_LAST</a> = 2 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolEventLifecycleType">Enum </a>virStoragePoolEventLifecycleType</h3><pre class="programlisting">enum <a href="#virStoragePoolEventLifecycleType">virStoragePoolEventLifecycleType</a> {
+    <a name="VIR_STORAGE_POOL_EVENT_DEFINED">VIR_STORAGE_POOL_EVENT_DEFINED</a> = 0
+    <a name="VIR_STORAGE_POOL_EVENT_UNDEFINED">VIR_STORAGE_POOL_EVENT_UNDEFINED</a> = 1
+    <a name="VIR_STORAGE_POOL_EVENT_STARTED">VIR_STORAGE_POOL_EVENT_STARTED</a> = 2
+    <a name="VIR_STORAGE_POOL_EVENT_STOPPED">VIR_STORAGE_POOL_EVENT_STOPPED</a> = 3
+    <a name="VIR_STORAGE_POOL_EVENT_CREATED">VIR_STORAGE_POOL_EVENT_CREATED</a> = 4
+    <a name="VIR_STORAGE_POOL_EVENT_DELETED">VIR_STORAGE_POOL_EVENT_DELETED</a> = 5
+    <a name="VIR_STORAGE_POOL_EVENT_LAST">VIR_STORAGE_POOL_EVENT_LAST</a> = 6
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolInfo">Structure </a>virStoragePoolInfo</h3><pre class="programlisting">struct _virStoragePoolInfo {
+    int	state	: <a href="libvirt-libvirt-storage.html#virStoragePoolState">virStoragePoolState</a> flags
+    unsigned long long	capacity	: Logical size bytes
+    unsigned long long	allocation	: Current allocation bytes
+    unsigned long long	available	: Remaining free space bytes
+} virStoragePoolInfo;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolInfoPtr">Typedef </a>virStoragePoolInfoPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStoragePoolInfo">virStoragePoolInfo</a> * virStoragePoolInfoPtr;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolPtr">Typedef </a>virStoragePoolPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStoragePool">virStoragePool</a> * virStoragePoolPtr;
+</pre><p>a <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> is pointer to a <a href="libvirt-libvirt-storage.html#virStoragePool">virStoragePool</a> private structure, this is the type used to reference a storage pool in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolState">Enum </a>virStoragePoolState</h3><pre class="programlisting">enum <a href="#virStoragePoolState">virStoragePoolState</a> {
+    <a name="VIR_STORAGE_POOL_INACTIVE">VIR_STORAGE_POOL_INACTIVE</a> = 0 /* Not running */
+    <a name="VIR_STORAGE_POOL_BUILDING">VIR_STORAGE_POOL_BUILDING</a> = 1 /* Initializing pool, not available */
+    <a name="VIR_STORAGE_POOL_RUNNING">VIR_STORAGE_POOL_RUNNING</a> = 2 /* Running normally */
+    <a name="VIR_STORAGE_POOL_DEGRADED">VIR_STORAGE_POOL_DEGRADED</a> = 3 /* Running degraded */
+    <a name="VIR_STORAGE_POOL_INACCESSIBLE">VIR_STORAGE_POOL_INACCESSIBLE</a> = 4 /* Running, but not accessible */
+    <a name="VIR_STORAGE_POOL_STATE_LAST">VIR_STORAGE_POOL_STATE_LAST</a> = 5
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVol">Structure </a>virStorageVol</h3><pre class="programlisting">struct _virStorageVol {
+The content of this structure is not made public by the API.
+} virStorageVol;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolCreateFlags">Enum </a>virStorageVolCreateFlags</h3><pre class="programlisting">enum <a href="#virStorageVolCreateFlags">virStorageVolCreateFlags</a> {
+    <a name="VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA">VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA</a> = 1
+    <a name="VIR_STORAGE_VOL_CREATE_REFLINK">VIR_STORAGE_VOL_CREATE_REFLINK</a> = 2 /* perform a btrfs lightweight copy */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolDeleteFlags">Enum </a>virStorageVolDeleteFlags</h3><pre class="programlisting">enum <a href="#virStorageVolDeleteFlags">virStorageVolDeleteFlags</a> {
+    <a name="VIR_STORAGE_VOL_DELETE_NORMAL">VIR_STORAGE_VOL_DELETE_NORMAL</a> = 0 /* Delete metadata only    (fast) */
+    <a name="VIR_STORAGE_VOL_DELETE_ZEROED">VIR_STORAGE_VOL_DELETE_ZEROED</a> = 1 /* Clear all data to zeros (slow) */
+    <a name="VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS">VIR_STORAGE_VOL_DELETE_WITH_SNAPSHOTS</a> = 2 /* Force removal of volume, even if in use */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolDownloadFlags">Enum </a>virStorageVolDownloadFlags</h3><pre class="programlisting">enum <a href="#virStorageVolDownloadFlags">virStorageVolDownloadFlags</a> {
+    <a name="VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM">VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM</a> = 1 /* Use sparse stream */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolInfo">Structure </a>virStorageVolInfo</h3><pre class="programlisting">struct _virStorageVolInfo {
+    int	type	: <a href="libvirt-libvirt-storage.html#virStorageVolType">virStorageVolType</a> flags
+    unsigned long long	capacity	: Logical size bytes
+    unsigned long long	allocation	: Current allocation bytes
+} virStorageVolInfo;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolInfoFlags">Enum </a>virStorageVolInfoFlags</h3><pre class="programlisting">enum <a href="#virStorageVolInfoFlags">virStorageVolInfoFlags</a> {
+    <a name="VIR_STORAGE_VOL_USE_ALLOCATION">VIR_STORAGE_VOL_USE_ALLOCATION</a> = 0 /* Return the physical size in allocation */
+    <a name="VIR_STORAGE_VOL_GET_PHYSICAL">VIR_STORAGE_VOL_GET_PHYSICAL</a> = 1
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolInfoPtr">Typedef </a>virStorageVolInfoPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStorageVolInfo">virStorageVolInfo</a> * virStorageVolInfoPtr;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolPtr">Typedef </a>virStorageVolPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStorageVol">virStorageVol</a> * virStorageVolPtr;
+</pre><p>a <a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> is pointer to a <a href="libvirt-libvirt-storage.html#virStorageVol">virStorageVol</a> private structure, this is the type used to reference a storage volume in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolResizeFlags">Enum </a>virStorageVolResizeFlags</h3><pre class="programlisting">enum <a href="#virStorageVolResizeFlags">virStorageVolResizeFlags</a> {
+    <a name="VIR_STORAGE_VOL_RESIZE_ALLOCATE">VIR_STORAGE_VOL_RESIZE_ALLOCATE</a> = 1 /* force allocation of new size */
+    <a name="VIR_STORAGE_VOL_RESIZE_DELTA">VIR_STORAGE_VOL_RESIZE_DELTA</a> = 2 /* size is relative to current */
+    <a name="VIR_STORAGE_VOL_RESIZE_SHRINK">VIR_STORAGE_VOL_RESIZE_SHRINK</a> = 4 /* allow decrease in capacity */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolType">Enum </a>virStorageVolType</h3><pre class="programlisting">enum <a href="#virStorageVolType">virStorageVolType</a> {
+    <a name="VIR_STORAGE_VOL_FILE">VIR_STORAGE_VOL_FILE</a> = 0 /* Regular file based volumes */
+    <a name="VIR_STORAGE_VOL_BLOCK">VIR_STORAGE_VOL_BLOCK</a> = 1 /* Block based volumes */
+    <a name="VIR_STORAGE_VOL_DIR">VIR_STORAGE_VOL_DIR</a> = 2 /* Directory-passthrough based volume */
+    <a name="VIR_STORAGE_VOL_NETWORK">VIR_STORAGE_VOL_NETWORK</a> = 3 /* Network volumes like RBD (RADOS Block Device) */
+    <a name="VIR_STORAGE_VOL_NETDIR">VIR_STORAGE_VOL_NETDIR</a> = 4 /* Network accessible directory that can  contain other network volumes */
+    <a name="VIR_STORAGE_VOL_PLOOP">VIR_STORAGE_VOL_PLOOP</a> = 5 /* Ploop based volumes */
+    <a name="VIR_STORAGE_VOL_LAST">VIR_STORAGE_VOL_LAST</a> = 6
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolUploadFlags">Enum </a>virStorageVolUploadFlags</h3><pre class="programlisting">enum <a href="#virStorageVolUploadFlags">virStorageVolUploadFlags</a> {
+    <a name="VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM">VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM</a> = 1 /* Use sparse stream */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolWipeAlgorithm">Enum </a>virStorageVolWipeAlgorithm</h3><pre class="programlisting">enum <a href="#virStorageVolWipeAlgorithm">virStorageVolWipeAlgorithm</a> {
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_ZERO">VIR_STORAGE_VOL_WIPE_ALG_ZERO</a> = 0 /* 1-pass, all zeroes */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_NNSA">VIR_STORAGE_VOL_WIPE_ALG_NNSA</a> = 1 /* 4-pass  NNSA Policy Letter NAP-14.1-C (XVI-8) */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_DOD">VIR_STORAGE_VOL_WIPE_ALG_DOD</a> = 2 /* 4-pass DoD 5220.22-M section 8-306 procedure */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_BSI">VIR_STORAGE_VOL_WIPE_ALG_BSI</a> = 3 /* 9-pass method recommended by the German Center of Security in Information Technologies */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_GUTMANN">VIR_STORAGE_VOL_WIPE_ALG_GUTMANN</a> = 4 /* The canonical 35-pass sequence */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER">VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER</a> = 5 /* 7-pass method described by Bruce Schneier in "Applied Cryptography" (1996) */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7">VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7</a> = 6 /* 7-pass random */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33">VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33</a> = 7 /* 33-pass random */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_RANDOM">VIR_STORAGE_VOL_WIPE_ALG_RANDOM</a> = 8 /* 1-pass random */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_TRIM">VIR_STORAGE_VOL_WIPE_ALG_TRIM</a> = 9 /* 1-pass, trim all data on the volume by using TRIM or DISCARD */
+    <a name="VIR_STORAGE_VOL_WIPE_ALG_LAST">VIR_STORAGE_VOL_WIPE_ALG_LAST</a> = 10 /* NB: this enum value will increase over time as new algorithms are  added to the libvirt API. It reflects the last algorithm supported  by this version of the libvirt API. */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageXMLFlags">Enum </a>virStorageXMLFlags</h3><pre class="programlisting">enum <a href="#virStorageXMLFlags">virStorageXMLFlags</a> {
+    <a name="VIR_STORAGE_XML_INACTIVE">VIR_STORAGE_XML_INACTIVE</a> = 1 /* dump inactive pool/volume information */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectStoragePoolEventGenericCallback"/>Function type virConnectStoragePoolEventGenericCallback</h3><pre class="programlisting">void	virConnectStoragePoolEventGenericCallback	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 void * opaque)<br/>
+</pre><p>A generic storage pool event callback handler, for use with
+virConnectStoragePoolEventRegisterAny(). Specific events usually
+have a customization with extra parameters, often with @opaque being
+passed in a different parameter position; use
+VIR_STORAGE_POOL_EVENT_CALLBACK() when registering an appropriate handler.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection pointer</td></tr><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>the pool pointer</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectStoragePoolEventLifecycleCallback"/>Function type virConnectStoragePoolEventLifecycleCallback</h3><pre class="programlisting">void	virConnectStoragePoolEventLifecycleCallback	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 int event, <br/>							 int detail, <br/>							 void * opaque)<br/>
+</pre><p>This callback is called when a pool lifecycle action is performed, like start
+or stop.
+
+The callback signature to use when registering for an event of type
+VIR_STORAGE_POOL_EVENT_ID_LIFECYCLE with
+virConnectStoragePoolEventRegisterAny()</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pool on which the event occurred</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>The specific virStoragePoolEventLifeCycleType which occurred</td></tr><tr><td><span class="term"><i><tt>detail</tt></i>:</span></td><td>contains some details on the reason of the event.</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectFindStoragePoolSources"/>virConnectFindStoragePoolSources ()</h3><pre class="programlisting">char *	virConnectFindStoragePoolSources	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * type, <br/>						 const char * srcSpec, <br/>						 unsigned int flags)<br/>
+</pre><p>Talks to a storage backend and attempts to auto-discover the set of
+available storage pool sources. e.g. For iSCSI this would be a set of
+iSCSI targets. For NFS this would be a list of exported paths. The
+srcSpec (optional for some storage pool types, e.g. local ones) is
+an instance of the storage pool's source element specifying where
+to look for the pools.
+
+srcSpec is not required for some types (e.g., those querying
+local storage resources only)</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>type of storage pool sources to discover</td></tr><tr><td><span class="term"><i><tt>srcSpec</tt></i>:</span></td><td>XML document specifying discovery source</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>an xml document consisting of a SourceList element containing a source document appropriate to the given pool type for each discovered source.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetStoragePoolCapabilities"/>virConnectGetStoragePoolCapabilities ()</h3><pre class="programlisting">char *	virConnectGetStoragePoolCapabilities	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 unsigned int flags)<br/>
+</pre><p>Prior creating a storage pool (for instance via virStoragePoolCreateXML
+or virStoragePoolDefineXML) it may be suitable to know what pool types
+are supported along with the file/disk formats for each pool.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error or an XML string defining the capabilities.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllStoragePools"/>virConnectListAllStoragePools ()</h3><pre class="programlisting">int	virConnectListAllStoragePools	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> ** pools, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect the list of storage pools, and allocate an array to store those
+objects. This API solves the race inherent between
+virConnectListStoragePools and virConnectListDefinedStoragePools.
+
+Normally, all storage pools are returned; however, @flags can be used to
+filter the results for a smaller list of targeted pools. The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a pool, and where all bits
+within a group describe all possible pools.
+
+The first group of @flags is <a href="libvirt-libvirt-storage.html#VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE">VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE</a> (online)
+and <a href="libvirt-libvirt-storage.html#VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE">VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE</a> (offline) to filter the pools
+by state.
+
+The second group of @flags is VIR_CONNECT_LIST_STORAGE_POOLS_PERSITENT
+(defined) and <a href="libvirt-libvirt-storage.html#VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT">VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT</a> (running but not
+defined), to filter the pools by whether they have persistent config or not.
+
+The third group of @flags is VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART
+and VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART, to filter the pools by
+whether they are marked as autostart or not.
+
+The last group of @flags is provided to filter the pools by the types,
+the flags include:
+VIR_CONNECT_LIST_STORAGE_POOLS_DIR
+VIR_CONNECT_LIST_STORAGE_POOLS_FS
+VIR_CONNECT_LIST_STORAGE_POOLS_NETFS
+VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL
+VIR_CONNECT_LIST_STORAGE_POOLS_DISK
+VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI
+VIR_CONNECT_LIST_STORAGE_POOLS_SCSI
+VIR_CONNECT_LIST_STORAGE_POOLS_MPATH
+VIR_CONNECT_LIST_STORAGE_POOLS_RBD
+VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG
+VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER
+VIR_CONNECT_LIST_STORAGE_POOLS_ZFS
+VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE
+VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI_DIRECT</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>pools</tt></i>:</span></td><td>Pointer to a variable to store the array containing storage pool objects or NULL if the list is not required (just returns number of pools).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of virConnectListAllStoragePoolsFlags.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of storage pools found or -1 and sets @pools to NULL in case of error. On success, the array stored into @pools is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virStoragePoolFree() on each array element, then calling free() on @pools.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListDefinedStoragePools"/>virConnectListDefinedStoragePools ()</h3><pre class="programlisting">int	virConnectListDefinedStoragePools	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 char ** const names, <br/>						 int maxnames)<br/>
+</pre><p>Provides the list of names of inactive storage pools up to maxnames.
+If there are more than maxnames, the remaining names will be silently
+ignored.
+
+For more control over the results, see virConnectListAllStoragePools().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array of char * to fill with pool names (allocated by caller)</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of the names array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of names provided in the array or -1 in case of error. Note that this command is inherently racy; a pool can be defined between a call to virConnectNumOfDefinedStoragePools() and this call; you are only guaranteed that all currently defined pools were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListStoragePools"/>virConnectListStoragePools ()</h3><pre class="programlisting">int	virConnectListStoragePools	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
+</pre><p>Provides the list of names of active storage pools up to maxnames.
+If there are more than maxnames, the remaining names will be silently
+ignored.
+
+For more control over the results, see virConnectListAllStoragePools().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array of char * to fill with pool names (allocated by caller)</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of the names array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of pools found or -1 in case of error. Note that this command is inherently racy; a pool can be started between a call to virConnectNumOfStoragePools() and this call; you are only guaranteed that all currently active pools were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNumOfDefinedStoragePools"/>virConnectNumOfDefinedStoragePools ()</h3><pre class="programlisting">int	virConnectNumOfDefinedStoragePools	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Provides the number of inactive storage pools</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of pools found, or -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNumOfStoragePools"/>virConnectNumOfStoragePools ()</h3><pre class="programlisting">int	virConnectNumOfStoragePools	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Provides the number of active storage pools</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of pools found, or -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectStoragePoolEventDeregisterAny"/>virConnectStoragePoolEventDeregisterAny ()</h3><pre class="programlisting">int	virConnectStoragePoolEventDeregisterAny	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 int callbackID)<br/>
+</pre><p>Removes an event callback. The callbackID parameter should be the
+value obtained from a previous virConnectStoragePoolEventRegisterAny() method.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>callbackID</tt></i>:</span></td><td>the callback identifier</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectStoragePoolEventRegisterAny"/>virConnectStoragePoolEventRegisterAny ()</h3><pre class="programlisting">int	virConnectStoragePoolEventRegisterAny	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt-storage.html#virConnectStoragePoolEventGenericCallback">virConnectStoragePoolEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> freecb)<br/>
+</pre><p>Adds a callback to receive notifications of arbitrary storage pool events
+occurring on a storage pool. This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
+
+If @pool is NULL, then events will be monitored for any storage pool.
+If @pool is non-NULL, then only the specific storage pool will be monitored.
+
+Most types of events have a callback providing a custom set of parameters
+for the event. When registering an event, it is thus necessary to use
+the VIR_STORAGE_POOL_EVENT_CALLBACK() macro to cast the
+supplied function pointer to match the signature of this method.
+
+The <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object handle passed into the callback upon delivery
+of an event is only valid for the duration of execution of the callback.
+If the callback wishes to keep the storage pool object after the callback
+returns, it shall take a reference to it, by calling virStoragePoolRef().
+The reference can be released once the object is no longer required
+by calling virStoragePoolFree().
+
+The return value from this method is a positive integer identifier
+for the callback. To unregister a callback, this callback ID should
+be passed to the virConnectStoragePoolEventDeregisterAny() method.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to the storage pool</td></tr><tr><td><span class="term"><i><tt>eventID</tt></i>:</span></td><td>the event type to receive</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling network events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a callback identifier on success, -1 on failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolBuild"/>virStoragePoolBuild ()</h3><pre class="programlisting">int	virStoragePoolBuild		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags)<br/>
+</pre><p>Currently only filesystem pool accepts flags VIR_STORAGE_POOL_BUILD_OVERWRITE
+and VIR_STORAGE_POOL_BUILD_NO_OVERWRITE.
+
+Build the underlying storage pool</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStoragePoolBuildFlags">virStoragePoolBuildFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 upon failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolCreate"/>virStoragePoolCreate ()</h3><pre class="programlisting">int	virStoragePoolCreate		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags)<br/>
+</pre><p>Starts an inactive storage pool</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStoragePoolCreateFlags">virStoragePoolCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 if it could not be started</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolCreateXML"/>virStoragePoolCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolCreateXML	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags)<br/>
+</pre><p>Create a new storage based on its XML description. The
+pool is not persistent, so its definition will disappear
+when it is destroyed, or if the host is restarted
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>XML description for new pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStoragePoolCreateFlags">virStoragePoolCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if creation failed</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolDefineXML"/>virStoragePoolDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolDefineXML	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * xml, <br/>						 unsigned int flags)<br/>
+</pre><p>Define an inactive persistent storage pool or modify an existing persistent
+one from the XML description.
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>XML description for new pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if creation failed</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolDelete"/>virStoragePoolDelete ()</h3><pre class="programlisting">int	virStoragePoolDelete		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags)<br/>
+</pre><p>Delete the underlying pool resources. This is
+a non-recoverable operation. The <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object
+itself is not free'd.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStoragePoolDeleteFlags">virStoragePoolDeleteFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 if it could not be obliterate</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolDestroy"/>virStoragePoolDestroy ()</h3><pre class="programlisting">int	virStoragePoolDestroy		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
+</pre><p>Destroy an active storage pool. This will deactivate the
+pool on the host, but keep any persistent config associated
+with it. If it has a persistent config it can later be
+restarted with virStoragePoolCreate(). This does not free
+the associated <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 if it could not be destroyed</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolFree"/>virStoragePoolFree ()</h3><pre class="programlisting">int	virStoragePoolFree		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
+</pre><p>Free a storage pool object, releasing all memory associated with
+it. Does not change the state of the pool on the host.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 if it could not be free'd.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolGetAutostart"/>virStoragePoolGetAutostart ()</h3><pre class="programlisting">int	virStoragePoolGetAutostart	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 int * autostart)<br/>
+</pre><p>Fetches the value of the autostart flag, which determines
+whether the pool is automatically started at boot time</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>autostart</tt></i>:</span></td><td>location in which to store autostart flag</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolGetConnect"/>virStoragePoolGetConnect ()</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	virStoragePoolGetConnect	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
+</pre><p>Provides the connection pointer associated with a storage pool. The
+reference counter on the connection is not increased by this
+call.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to a pool</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the <a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> or NULL in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolGetInfo"/>virStoragePoolGetInfo ()</h3><pre class="programlisting">int	virStoragePoolGetInfo		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 <a href="libvirt-libvirt-storage.html#virStoragePoolInfoPtr">virStoragePoolInfoPtr</a> info)<br/>
+</pre><p>Get volatile information about the storage pool
+such as free space / usage summary</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer at which to store info</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolGetName"/>virStoragePoolGetName ()</h3><pre class="programlisting">const char *	virStoragePoolGetName	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
+</pre><p>Fetch the locally unique name of the storage pool</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the name of the pool, or NULL on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolGetUUID"/>virStoragePoolGetUUID ()</h3><pre class="programlisting">int	virStoragePoolGetUUID		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned char * uuid)<br/>
+</pre><p>Fetch the globally unique ID of the storage pool</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>buffer of <a href="libvirt-libvirt-host.html#VIR_UUID_BUFLEN">VIR_UUID_BUFLEN</a> bytes in size</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on error;</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolGetUUIDString"/>virStoragePoolGetUUIDString ()</h3><pre class="programlisting">int	virStoragePoolGetUUIDString	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 char * buf)<br/>
+</pre><p>Fetch the globally unique ID of the storage pool as a string</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>buf</tt></i>:</span></td><td>buffer of <a href="libvirt-libvirt-host.html#VIR_UUID_STRING_BUFLEN">VIR_UUID_STRING_BUFLEN</a> bytes in size</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on error;</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolGetXMLDesc"/>virStoragePoolGetXMLDesc ()</h3><pre class="programlisting">char *	virStoragePoolGetXMLDesc	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags)<br/>
+</pre><p>Fetch an XML document describing all aspects of the
+storage pool. This is suitable for later feeding back
+into the <a href="libvirt-libvirt-storage.html#virStoragePoolCreateXML">virStoragePoolCreateXML</a> method.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStorageXMLFlags">virStorageXMLFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a XML document (caller frees), or NULL on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolIsActive"/>virStoragePoolIsActive ()</h3><pre class="programlisting">int	virStoragePoolIsActive		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
+</pre><p>Determine if the storage pool is currently running</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to the storage pool object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if running, 0 if inactive, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolIsPersistent"/>virStoragePoolIsPersistent ()</h3><pre class="programlisting">int	virStoragePoolIsPersistent	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
+</pre><p>Determine if the storage pool has a persistent configuration
+which means it will still exist after shutting down</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to the storage pool object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if persistent, 0 if transient, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolListAllVolumes"/>virStoragePoolListAllVolumes ()</h3><pre class="programlisting">int	virStoragePoolListAllVolumes	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 <a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> ** vols, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect the list of storage volumes, and allocate an array to store those
+objects.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>Pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>vols</tt></i>:</span></td><td>Pointer to a variable to store the array containing storage volume objects or NULL if the list is not required (just returns number of volumes).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of storage volumes found or -1 and sets @vols to NULL in case of error. On success, the array stored into @vols is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virStorageVolFree() on each array element, then calling free() on @vols.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolListVolumes"/>virStoragePoolListVolumes ()</h3><pre class="programlisting">int	virStoragePoolListVolumes	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
+</pre><p>Fetch list of storage volume names, limiting to
+at most maxnames.
+
+To list the volume objects directly, see virStoragePoolListAllVolumes().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array in which to storage volume names</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of names array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of names fetched, or -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolLookupByName"/>virStoragePoolLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolLookupByName	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * name)<br/>
+</pre><p>Fetch a storage pool based on its unique name
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of pool to fetch</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if no matching pool is found</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolLookupByTargetPath"/>virStoragePoolLookupByTargetPath ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolLookupByTargetPath	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * path)<br/>
+</pre><p>Fetch a storage pool which maps to a particular target directory.
+If more than one pool maps to the path, it is undefined which
+will be returned first.
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>path at which the pool is exposed</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if no matching pool is found</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolLookupByUUID"/>virStoragePoolLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolLookupByUUID	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const unsigned char * uuid)<br/>
+</pre><p>Fetch a storage pool based on its globally unique id
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>globally unique id of pool to fetch</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if no matching pool is found</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolLookupByUUIDString"/>virStoragePoolLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolLookupByUUIDString	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * uuidstr)<br/>
+</pre><p>Fetch a storage pool based on its globally unique id
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>globally unique id of pool to fetch</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if no matching pool is found</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolLookupByVolume"/>virStoragePoolLookupByVolume ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a>	virStoragePoolLookupByVolume	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>
+</pre><p>Fetch a storage pool which contains a particular volume
+
+virStoragePoolFree should be used to free the resources after the
+storage pool object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a <a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> object, or NULL if no matching pool is found</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolNumOfVolumes"/>virStoragePoolNumOfVolumes ()</h3><pre class="programlisting">int	virStoragePoolNumOfVolumes	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
+</pre><p>Fetch the number of storage volumes within a pool</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of storage pools, or -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolRef"/>virStoragePoolRef ()</h3><pre class="programlisting">int	virStoragePoolRef		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
+</pre><p>Increment the reference count on the pool. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt-storage.html#virStoragePoolFree">virStoragePoolFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection remain open until all threads have finished using
+it. ie, each new thread using a pool would increment
+the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>the pool to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolRefresh"/>virStoragePoolRefresh ()</h3><pre class="programlisting">int	virStoragePoolRefresh		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags)<br/>
+</pre><p>Request that the pool refresh its list of volumes. This may
+involve communicating with a remote server, and/or initializing
+new devices at the OS layer</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the volume list was refreshed, -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolSetAutostart"/>virStoragePoolSetAutostart ()</h3><pre class="programlisting">int	virStoragePoolSetAutostart	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 int autostart)<br/>
+</pre><p>Configure the storage pool to be automatically started
+when the host machine boots.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>autostart</tt></i>:</span></td><td>whether the storage pool should be automatically started 0 or 1</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStoragePoolUndefine"/>virStoragePoolUndefine ()</h3><pre class="programlisting">int	virStoragePoolUndefine		(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
+</pre><p>Undefine an inactive storage pool</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolCreateXML"/>virStorageVolCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolCreateXML	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags)<br/>
+</pre><p>Create a storage volume within a pool based
+on an XML description. Not all pools support
+creation of volumes.
+
+Since 1.0.1 VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA
+in flags can be used to get higher performance with
+qcow2 image files which don't support full preallocation,
+by creating a sparse image file with metadata.
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>description of volume to create</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStorageVolCreateFlags">virStorageVolCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume, or NULL on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolCreateXMLFrom"/>virStorageVolCreateXMLFrom ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolCreateXMLFrom	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * xmlDesc, <br/>							 <a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> clonevol, <br/>							 unsigned int flags)<br/>
+</pre><p>Create a storage volume in the parent pool, using the
+'clonevol' volume as input. Information for the new
+volume (name, perms) are passed via a typical volume
+XML description.
+
+Since 1.0.1 VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA
+in flags can be used to get higher performance with
+qcow2 image files which don't support full preallocation,
+by creating a sparse image file with metadata.
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to parent pool for the new volume</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>description of volume to create</td></tr><tr><td><span class="term"><i><tt>clonevol</tt></i>:</span></td><td>storage volume to use as input</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStorageVolCreateFlags">virStorageVolCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume, or NULL on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolDelete"/>virStorageVolDelete ()</h3><pre class="programlisting">int	virStorageVolDelete		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags)<br/>
+</pre><p>Delete the storage volume from the pool</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStorageVolDeleteFlags">virStorageVolDeleteFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolDownload"/>virStorageVolDownload ()</h3><pre class="programlisting">int	virStorageVolDownload		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt-host.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 unsigned long long offset, <br/>					 unsigned long long length, <br/>					 unsigned int flags)<br/>
+</pre><p>Download the content of the volume as a stream. If @length
+is zero, then the remaining contents of the volume after
+@offset will be downloaded.
+
+If <a href="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM">VIR_STORAGE_VOL_DOWNLOAD_SPARSE_STREAM</a> is set in @flags
+effective transmission of holes is enabled. This assumes using
+the @stream with combination of virStreamSparseRecvAll() or
+virStreamRecvFlags(stream, ..., flags =
+VIR_STREAM_RECV_STOP_AT_HOLE) for honouring holes sent by
+server.
+
+This call sets up an asynchronous stream; subsequent use of
+stream APIs is necessary to transfer the actual data,
+determine how much data is successfully transferred, and
+detect any errors. The results will be unpredictable if
+another active stream is writing to the storage volume.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to volume to download from</td></tr><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>stream to use as output</td></tr><tr><td><span class="term"><i><tt>offset</tt></i>:</span></td><td>position in @vol to start reading from</td></tr><tr><td><span class="term"><i><tt>length</tt></i>:</span></td><td>limit on amount of data to download</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStorageVolDownloadFlags">virStorageVolDownloadFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0, or -1 upon error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolFree"/>virStorageVolFree ()</h3><pre class="programlisting">int	virStorageVolFree		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>
+</pre><p>Release the storage volume handle. The underlying
+storage volume continues to exist.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolGetConnect"/>virStorageVolGetConnect ()</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	virStorageVolGetConnect	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>
+</pre><p>Provides the connection pointer associated with a storage volume. The
+reference counter on the connection is not increased by this
+call.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to a pool</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the <a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> or NULL in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolGetInfo"/>virStorageVolGetInfo ()</h3><pre class="programlisting">int	virStorageVolGetInfo		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt-storage.html#virStorageVolInfoPtr">virStorageVolInfoPtr</a> info)<br/>
+</pre><p>Fetches volatile information about the storage
+volume such as its current allocation</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer at which to store info</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolGetInfoFlags"/>virStorageVolGetInfoFlags ()</h3><pre class="programlisting">int	virStorageVolGetInfoFlags	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt-storage.html#virStorageVolInfoPtr">virStorageVolInfoPtr</a> info, <br/>					 unsigned int flags)<br/>
+</pre><p>Fetches volatile information about the storage
+volume such as its current allocation.
+
+If the @flags argument is VIR_STORAGE_VOL_GET_PHYSICAL, then the physical
+bytes used for the volume will be returned in the @info allocation field.
+This is useful for sparse files and certain volume file types where the
+physical on disk usage can be different than the calculated allocation value
+as is the case with qcow2 files.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer at which to store info</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStorageVolInfoFlags">virStorageVolInfoFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolGetKey"/>virStorageVolGetKey ()</h3><pre class="programlisting">const char *	virStorageVolGetKey	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>
+</pre><p>Fetch the storage volume key. This is globally
+unique, so the same volume will have the same
+key no matter what host it is accessed from</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the volume key, or NULL on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolGetName"/>virStorageVolGetName ()</h3><pre class="programlisting">const char *	virStorageVolGetName	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>
+</pre><p>Fetch the storage volume name. This is unique
+within the scope of a pool</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the volume name, or NULL on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolGetPath"/>virStorageVolGetPath ()</h3><pre class="programlisting">char *	virStorageVolGetPath		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>
+</pre><p>Fetch the storage volume path. Depending on the pool
+configuration this is either persistent across hosts,
+or dynamically assigned at pool startup. Consult
+pool documentation for information on getting the
+persistent naming</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume path, or NULL on error. The caller must free() the returned path after use.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolGetXMLDesc"/>virStorageVolGetXMLDesc ()</h3><pre class="programlisting">char *	virStorageVolGetXMLDesc		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags)<br/>
+</pre><p>Fetch an XML document describing all aspects of
+the storage volume</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the XML document, or NULL on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolLookupByKey"/>virStorageVolLookupByKey ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolLookupByKey	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * key)<br/>
+</pre><p>Fetch a pointer to a storage volume based on its
+globally unique key
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>key</tt></i>:</span></td><td>globally unique key</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a storage volume, or NULL if not found / error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolLookupByName"/>virStorageVolLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolLookupByName	(<a href="libvirt-libvirt-storage.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * name)<br/>
+</pre><p>Fetch a pointer to a storage volume based on its name
+within a pool
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name of storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a storage volume, or NULL if not found / error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolLookupByPath"/>virStorageVolLookupByPath ()</h3><pre class="programlisting"><a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolLookupByPath	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * path)<br/>
+</pre><p>Fetch a pointer to a storage volume based on its
+locally (host) unique path
+
+virStorageVolFree should be used to free the resources after the
+storage volume object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>locally unique path</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a storage volume, or NULL if not found / error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolRef"/>virStorageVolRef ()</h3><pre class="programlisting">int	virStorageVolRef		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>
+</pre><p>Increment the reference count on the vol. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt-storage.html#virStorageVolFree">virStorageVolFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection remain open until all threads have finished using
+it. ie, each new thread using a vol would increment
+the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>the vol to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolResize"/>virStorageVolResize ()</h3><pre class="programlisting">int	virStorageVolResize		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned long long capacity, <br/>					 unsigned int flags)<br/>
+</pre><p>Changes the capacity of the storage volume @vol to @capacity. The
+operation will fail if the new capacity requires allocation that would
+exceed the remaining free space in the parent pool. The contents of
+the new capacity will appear as all zero bytes. The capacity value will
+be rounded to the granularity supported by the hypervisor.
+
+Normally, the operation will attempt to affect capacity with a minimum
+impact on allocation (that is, the default operation favors a sparse
+resize). If @flags contains VIR_STORAGE_VOL_RESIZE_ALLOCATE, then the
+operation will ensure that allocation is sufficient for the new
+capacity; this may make the operation take noticeably longer.
+
+Normally, the operation treats @capacity as the new size in bytes;
+but if @flags contains VIR_STORAGE_VOL_RESIZE_DELTA, then @capacity
+represents the size difference to add to the current size. It is
+up to the storage pool implementation whether unaligned requests are
+rounded up to the next valid boundary, or rejected.
+
+Normally, this operation should only be used to enlarge capacity;
+but if @flags contains VIR_STORAGE_VOL_RESIZE_SHRINK, it is possible to
+attempt a reduction in capacity even though it might cause data loss.
+If <a href="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_RESIZE_DELTA">VIR_STORAGE_VOL_RESIZE_DELTA</a> is also present, then @capacity is
+subtracted from the current size; without it, @capacity represents
+the absolute new size regardless of whether it is larger or smaller
+than the current size.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>capacity</tt></i>:</span></td><td>new capacity, in bytes</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStorageVolResizeFlags">virStorageVolResizeFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolUpload"/>virStorageVolUpload ()</h3><pre class="programlisting">int	virStorageVolUpload		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt-host.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 unsigned long long offset, <br/>					 unsigned long long length, <br/>					 unsigned int flags)<br/>
+</pre><p>Upload new content to the volume from a stream. This call
+will fail if @offset + @length exceeds the size of the
+volume. Otherwise, if @length is non-zero, an error
+will be raised if an attempt is made to upload greater
+than @length bytes of data.
+
+If <a href="libvirt-libvirt-storage.html#VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM">VIR_STORAGE_VOL_UPLOAD_SPARSE_STREAM</a> is set in @flags
+effective transmission of holes is enabled. This assumes using
+the @stream with combination of virStreamSparseSendAll() or
+virStreamSendHole() to preserve source file sparseness.
+
+This call sets up an asynchronous stream; subsequent use of
+stream APIs is necessary to transfer the actual data,
+determine how much data is successfully transferred, and
+detect any errors. The results will be unpredictable if
+another active stream is writing to the storage volume.
+
+When the data stream is closed whether the upload is successful
+or not an attempt will be made to refresh the target storage pool
+if an asynchronous build is not running in order to reflect pool
+and volume changes as a result of the upload. Depending on
+the target volume storage backend and the source stream type
+for a successful upload, the target volume may take on the
+characteristics from the source stream such as format type,
+capacity, and allocation.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to volume to upload</td></tr><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>stream to use as input</td></tr><tr><td><span class="term"><i><tt>offset</tt></i>:</span></td><td>position to start writing to</td></tr><tr><td><span class="term"><i><tt>length</tt></i>:</span></td><td>limit on amount of data to upload</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-storage.html#virStorageVolUploadFlags">virStorageVolUploadFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0, or -1 upon error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolWipe"/>virStorageVolWipe ()</h3><pre class="programlisting">int	virStorageVolWipe		(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags)<br/>
+</pre><p>Ensure data previously on a volume is not accessible to future reads.
+
+The data to be wiped may include the format and possibly size information,
+so non-raw images might become raw with a different size. It is storage
+backend dependent whether the format and size information is regenerated
+once the initial volume wipe is completed.
+
+Depending on the actual volume representation, this call may not
+overwrite the physical location of the volume. For instance, files
+stored journaled, log structured, copy-on-write, versioned, and
+network file systems are known to be problematic.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolWipePattern"/>virStorageVolWipePattern ()</h3><pre class="programlisting">int	virStorageVolWipePattern	(<a href="libvirt-libvirt-storage.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int algorithm, <br/>					 unsigned int flags)<br/>
+</pre><p>Similar to virStorageVolWipe, but one can choose between
+different wiping algorithms. Also note, that depending on the
+actual volume representation, this call may not really
+overwrite the physical location of the volume. For instance,
+files stored journaled, log structured, copy-on-write,
+versioned, and network file systems are known to be
+problematic.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>algorithm</tt></i>:</span></td><td>one of <a href="libvirt-libvirt-storage.html#virStorageVolWipeAlgorithm">virStorageVolWipeAlgorithm</a></td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>future flags, use 0 for now</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+      </div>
+    </div>
+  </body>
+</html>

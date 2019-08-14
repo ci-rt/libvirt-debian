@@ -4,7 +4,7 @@
 # that's still supported by the vendor. It may work on other distros
 # or versions, but no effort will be made to ensure that going forward.
 %define min_rhel 7
-%define min_fedora 28
+%define min_fedora 29
 
 %if (0%{?fedora} && 0%{?fedora} >= %{min_fedora}) || (0%{?rhel} && 0%{?rhel} >= %{min_rhel})
     %define supported_platform 1
@@ -215,7 +215,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 5.3.0
+Version: 5.6.0
 Release: 1%{?dist}
 License: LGPLv2+
 URL: https://libvirt.org/
@@ -297,7 +297,6 @@ BuildRequires: sanlock-devel >= 2.4
 %endif
 BuildRequires: libpcap-devel
 BuildRequires: libnl3-devel
-BuildRequires: avahi-devel
 BuildRequires: libselinux-devel
 BuildRequires: dnsmasq >= 2.41
 BuildRequires: iptables
@@ -436,7 +435,6 @@ Requires: iproute
 Requires: iproute-tc
 %endif
 
-Requires: avahi-libs
 Requires: polkit >= 0.112
 %ifarch %{ix86} x86_64 ia64
 # For virConnectGetSysinfo
@@ -720,9 +718,6 @@ parted and more.
 Summary: QEMU driver plugin for the libvirtd daemon
 Requires: libvirt-daemon = %{version}-%{release}
 Requires: libvirt-libs = %{version}-%{release}
-# There really is a hard cross-driver dependency here
-Requires: libvirt-daemon-driver-network = %{version}-%{release}
-Requires: libvirt-daemon-driver-storage-core = %{version}-%{release}
 Requires: /usr/bin/qemu-img
 # For image compression
 Requires: gzip
@@ -1166,7 +1161,6 @@ rm -f po/stamp-po
            %{?arg_vbox} \
            %{?arg_libxl} \
            --with-sasl \
-           --with-avahi \
            --with-polkit \
            --with-libvirtd \
            %{?arg_phyp} \
@@ -1232,8 +1226,6 @@ export SOURCE_DATE_EPOCH=$(stat --printf='%Y' %{_specdir}/%{name}.spec)
 
 %make_install %{?_smp_mflags} SYSTEMD_UNIT_DIR=%{_unitdir} V=1
 
-make %{?_smp_mflags} -C examples distclean V=1
-
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.a
 rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/lock-driver/*.la
@@ -1255,8 +1247,8 @@ install -d -m 0755 $RPM_BUILD_ROOT%{_datadir}/lib/libvirt/dnsmasq/
 install -d -m 0755 $RPM_BUILD_ROOT%{_datadir}/libvirt/networks/
 cp $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu/networks/default.xml \
    $RPM_BUILD_ROOT%{_datadir}/libvirt/networks/default.xml
-rm -f $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu/networks/default.xml
-rm -f $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu/networks/autostart/default.xml
+# libvirt saves this file with mode 0600
+chmod 0600 $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/qemu/networks/default.xml
 
 # nwfilter files are installed in /usr/share/libvirt and copied to /etc in %post
 # to avoid verification errors on changed files in /etc
@@ -1300,7 +1292,7 @@ rm -f $RPM_BUILD_ROOT%{_datadir}/augeas/lenses/tests/test_libvirtd_libxl.aug
 %endif
 
 # Copied into libvirt-docs subpackage eventually
-mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version} libvirt-docs
+mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt libvirt-docs
 
 %ifarch %{power64} s390x x86_64 ia64 alpha sparc64
 mv $RPM_BUILD_ROOT%{_datadir}/systemtap/tapset/libvirt_probes.stp \
@@ -1350,6 +1342,8 @@ exit 0
 
 %systemd_post virtlockd.socket virtlockd-admin.socket
 %systemd_post virtlogd.socket virtlogd-admin.socket
+%systemd_post libvirtd.socket libvirtd-ro.socket libvirtd-admin.socket
+%systemd_post libvirtd-tcp.socket libvirtd-tls.socket
 %systemd_post libvirtd.service
 
 # request daemon restart in posttrans
@@ -1358,6 +1352,8 @@ touch %{_localstatedir}/lib/rpm-state/libvirt/restart || :
 
 %preun daemon
 %systemd_preun libvirtd.service
+%systemd_preun libvirtd-tcp.socket libvirtd-tls.socket
+%systemd_preun libvirtd.socket libvirtd-ro.socket libvirtd-admin.socket
 %systemd_preun virtlogd.socket virtlogd-admin.socket virtlogd.service
 %systemd_preun virtlockd.socket virtlockd-admin.socket virtlockd.service
 
@@ -1382,7 +1378,20 @@ fi
 
 %posttrans daemon
 if [ -f %{_localstatedir}/lib/rpm-state/libvirt/restart ]; then
-    /bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 || :
+    # Old libvirtd owns the sockets and will delete them on
+    # shutdown. Can't use a try-restart as libvirtd will simply
+    # own the sockets again when it comes back up. Thus we must
+    # do this particular ordering
+    /bin/systemctl is-active libvirtd.service 1>/dev/null 2>&1
+    if test $? = 0 ; then
+        /bin/systemctl stop libvirtd.service >/dev/null 2>&1 || :
+
+        /bin/systemctl try-restart libvirtd.socket >/dev/null 2>&1 || :
+        /bin/systemctl try-restart libvirtd-ro.socket >/dev/null 2>&1 || :
+        /bin/systemctl try-restart libvirtd-admin.socket >/dev/null 2>&1 || :
+
+        /bin/systemctl start libvirtd.service >/dev/null 2>&1 || :
+    fi
 fi
 rm -rf %{_localstatedir}/lib/rpm-state/libvirt || :
 
@@ -1432,6 +1441,8 @@ if test $1 -eq 1 && test ! -f %{_sysconfdir}/libvirt/qemu/networks/default.xml ;
          < %{_datadir}/libvirt/networks/default.xml \
          > %{_sysconfdir}/libvirt/qemu/networks/default.xml
     ln -s ../default.xml %{_sysconfdir}/libvirt/qemu/networks/autostart/default.xml
+    # libvirt saves this file with mode 0600
+    chmod 0600 %{_sysconfdir}/libvirt/qemu/networks/default.xml
 
     # Make sure libvirt picks up the new network defininiton
     mkdir -p %{_localstatedir}/lib/rpm-state/libvirt || :
@@ -1446,6 +1457,8 @@ rm -rf %{_localstatedir}/lib/rpm-state/libvirt || :
 
 %post daemon-config-nwfilter
 cp %{_datadir}/libvirt/nwfilter/*.xml %{_sysconfdir}/libvirt/nwfilter/
+# libvirt saves these files with mode 600
+chmod 600 %{_sysconfdir}/libvirt/nwfilter/*.xml
 # Make sure libvirt picks up the new nwfilter defininitons
 mkdir -p %{_localstatedir}/lib/rpm-state/libvirt || :
 touch %{_localstatedir}/lib/rpm-state/libvirt/restart || :
@@ -1484,14 +1497,6 @@ exit 0
 %postun client
 %systemd_postun libvirt-guests.service
 
-%if %{with_sanlock}
-%post lock-sanlock
-if getent group sanlock > /dev/null ; then
-    chmod 0770 %{_localstatedir}/lib/libvirt/sanlock
-    chown root:sanlock %{_localstatedir}/lib/libvirt/sanlock
-fi
-%endif
-
 %if %{with_lxc}
 %pre login-shell
 getent group virtlogin >/dev/null || groupadd -r virtlogin
@@ -1510,16 +1515,6 @@ exit 0
 %doc %{_datadir}/gtk-doc/html/libvirt/*.html
 %doc %{_datadir}/gtk-doc/html/libvirt/*.png
 %doc %{_datadir}/gtk-doc/html/libvirt/*.css
-%doc examples/hellolibvirt
-%doc examples/object-events
-%doc examples/dominfo
-%doc examples/domsuspend
-%doc examples/dommigrate
-%doc examples/openauth
-%doc examples/xml
-%doc examples/rename
-%doc examples/systemtap
-%doc examples/admin
 
 
 %files daemon
@@ -1527,6 +1522,11 @@ exit 0
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/
 
 %{_unitdir}/libvirtd.service
+%{_unitdir}/libvirtd.socket
+%{_unitdir}/libvirtd-ro.socket
+%{_unitdir}/libvirtd-admin.socket
+%{_unitdir}/libvirtd-tcp.socket
+%{_unitdir}/libvirtd-tls.socket
 %{_unitdir}/virt-guest-shutdown.target
 %{_unitdir}/virtlogd.service
 %{_unitdir}/virtlogd.socket
@@ -1587,11 +1587,11 @@ exit 0
 %{_mandir}/man8/virtlockd.8*
 %{_mandir}/man7/virkey*.7*
 
-%doc examples/polkit/*.rules
-
 %files daemon-config-network
 %dir %{_datadir}/libvirt/networks/
 %{_datadir}/libvirt/networks/default.xml
+%ghost %{_sysconfdir}/libvirt/qemu/networks/default.xml
+%ghost %{_sysconfdir}/libvirt/qemu/networks/autostart/default.xml
 
 %files daemon-config-nwfilter
 %dir %{_datadir}/libvirt/nwfilter/
@@ -1682,7 +1682,7 @@ exit 0
 %config(noreplace) %{_sysconfdir}/libvirt/qemu.conf
 %config(noreplace) %{_sysconfdir}/libvirt/qemu-lockd.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/libvirtd.qemu
-%ghost %dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
+%ghost %dir %{_localstatedir}/run/libvirt/qemu/
 %dir %attr(0751, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
 %{_datadir}/augeas/lenses/libvirtd_qemu.aug
@@ -1754,7 +1754,7 @@ exit 0
 %attr(0755, root, root) %{_libdir}/libvirt/lock-driver/sanlock.so
 %{_datadir}/augeas/lenses/libvirt_sanlock.aug
 %{_datadir}/augeas/lenses/tests/test_libvirt_sanlock.aug
-%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/sanlock
+%dir %attr(0770, root, sanlock) %{_localstatedir}/lib/libvirt/sanlock
 %{_sbindir}/virt-sanlock-cleanup
 %{_mandir}/man8/virt-sanlock-cleanup.8*
 %attr(0755, root, root) %{_libexecdir}/libvirt_sanlock_helper
@@ -1802,11 +1802,13 @@ exit 0
 %{_datadir}/libvirt/schemas/cputypes.rng
 %{_datadir}/libvirt/schemas/domain.rng
 %{_datadir}/libvirt/schemas/domaincaps.rng
+%{_datadir}/libvirt/schemas/domaincheckpoint.rng
 %{_datadir}/libvirt/schemas/domaincommon.rng
 %{_datadir}/libvirt/schemas/domainsnapshot.rng
 %{_datadir}/libvirt/schemas/interface.rng
 %{_datadir}/libvirt/schemas/network.rng
 %{_datadir}/libvirt/schemas/networkcommon.rng
+%{_datadir}/libvirt/schemas/networkport.rng
 %{_datadir}/libvirt/schemas/nodedev.rng
 %{_datadir}/libvirt/schemas/nwfilter.rng
 %{_datadir}/libvirt/schemas/nwfilter_params.rng
@@ -1860,6 +1862,7 @@ exit 0
 %{_includedir}/libvirt/libvirt-admin.h
 %{_includedir}/libvirt/libvirt-common.h
 %{_includedir}/libvirt/libvirt-domain.h
+%{_includedir}/libvirt/libvirt-domain-checkpoint.h
 %{_includedir}/libvirt/libvirt-domain-snapshot.h
 %{_includedir}/libvirt/libvirt-event.h
 %{_includedir}/libvirt/libvirt-host.h
@@ -1882,8 +1885,6 @@ exit 0
 %{_datadir}/libvirt/api/libvirt-admin-api.xml
 %{_datadir}/libvirt/api/libvirt-qemu-api.xml
 %{_datadir}/libvirt/api/libvirt-lxc-api.xml
-# Needed building python bindings
-%doc docs/libvirt-api.xml
 
 
 %changelog

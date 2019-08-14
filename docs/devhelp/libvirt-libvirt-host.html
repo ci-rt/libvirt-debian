@@ -1,0 +1,978 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>libvirt-host: APIs for management of hosts</title>
+    <meta name="generator" content="Libvirt devhelp stylesheet"/>
+    <link rel="start" href="index.html" title="libvirt Reference Manual"/>
+    <link rel="up" href="general.html" title="API"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="chapter" href="general.html" title="API"/>
+  </head>
+  <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+    <table class="navigation" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+      <tr valign="middle">
+        <td>
+          <a accesskey="p" href="libvirt-libvirt-event.html">
+            <img src="left.png" width="24" height="24" border="0" alt="Prev"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="u" href="general.html">
+            <img src="up.png" width="24" height="24" border="0" alt="Up"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="h" href="index.html">
+            <img src="home.png" width="24" height="24" border="0" alt="Home"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="n" href="libvirt-libvirt-interface.html">
+            <img src="right.png" width="24" height="24" border="0" alt="Next"/>
+          </a>
+        </td>
+        <th width="100%" align="center">libvirt Reference Manual</th>
+      </tr>
+    </table>
+    <h2>
+      <span class="refentrytitle">libvirt-host</span>
+    </h2>
+    <p>libvirt-host - APIs for management of hosts</p>
+    <p>Provides APIs for the management of hosts  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <div class="refsynopsisdiv">
+      <h2>Synopsis</h2>
+      <pre class="synopsis">#define <a href="#VIR_NODEINFO_MAXCPUS">VIR_NODEINFO_MAXCPUS</a>(nodeinfo);
+#define <a href="#VIR_NODE_CPU_STATS_FIELD_LENGTH">VIR_NODE_CPU_STATS_FIELD_LENGTH</a>;
+#define <a href="#VIR_NODE_CPU_STATS_IDLE">VIR_NODE_CPU_STATS_IDLE</a>;
+#define <a href="#VIR_NODE_CPU_STATS_INTR">VIR_NODE_CPU_STATS_INTR</a>;
+#define <a href="#VIR_NODE_CPU_STATS_IOWAIT">VIR_NODE_CPU_STATS_IOWAIT</a>;
+#define <a href="#VIR_NODE_CPU_STATS_KERNEL">VIR_NODE_CPU_STATS_KERNEL</a>;
+#define <a href="#VIR_NODE_CPU_STATS_USER">VIR_NODE_CPU_STATS_USER</a>;
+#define <a href="#VIR_NODE_CPU_STATS_UTILIZATION">VIR_NODE_CPU_STATS_UTILIZATION</a>;
+#define <a href="#VIR_NODE_MEMORY_SHARED_FULL_SCANS">VIR_NODE_MEMORY_SHARED_FULL_SCANS</a>;
+#define <a href="#VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES">VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES</a>;
+#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_SHARED">VIR_NODE_MEMORY_SHARED_PAGES_SHARED</a>;
+#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_SHARING">VIR_NODE_MEMORY_SHARED_PAGES_SHARING</a>;
+#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN">VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN</a>;
+#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED">VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED</a>;
+#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE">VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE</a>;
+#define <a href="#VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS">VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS</a>;
+#define <a href="#VIR_NODE_MEMORY_STATS_BUFFERS">VIR_NODE_MEMORY_STATS_BUFFERS</a>;
+#define <a href="#VIR_NODE_MEMORY_STATS_CACHED">VIR_NODE_MEMORY_STATS_CACHED</a>;
+#define <a href="#VIR_NODE_MEMORY_STATS_FIELD_LENGTH">VIR_NODE_MEMORY_STATS_FIELD_LENGTH</a>;
+#define <a href="#VIR_NODE_MEMORY_STATS_FREE">VIR_NODE_MEMORY_STATS_FREE</a>;
+#define <a href="#VIR_NODE_MEMORY_STATS_TOTAL">VIR_NODE_MEMORY_STATS_TOTAL</a>;
+#define <a href="#VIR_NODE_SEV_CBITPOS">VIR_NODE_SEV_CBITPOS</a>;
+#define <a href="#VIR_NODE_SEV_CERT_CHAIN">VIR_NODE_SEV_CERT_CHAIN</a>;
+#define <a href="#VIR_NODE_SEV_PDH">VIR_NODE_SEV_PDH</a>;
+#define <a href="#VIR_NODE_SEV_REDUCED_PHYS_BITS">VIR_NODE_SEV_REDUCED_PHYS_BITS</a>;
+#define <a href="#VIR_SECURITY_DOI_BUFLEN">VIR_SECURITY_DOI_BUFLEN</a>;
+#define <a href="#VIR_SECURITY_LABEL_BUFLEN">VIR_SECURITY_LABEL_BUFLEN</a>;
+#define <a href="#VIR_SECURITY_MODEL_BUFLEN">VIR_SECURITY_MODEL_BUFLEN</a>;
+#define <a href="#VIR_UUID_BUFLEN">VIR_UUID_BUFLEN</a>;
+#define <a href="#VIR_UUID_STRING_BUFLEN">VIR_UUID_STRING_BUFLEN</a>;
+typedef enum <a href="#virCPUCompareResult">virCPUCompareResult</a>;
+typedef struct _virConnect <a href="#virConnect">virConnect</a>;
+typedef struct _virConnectAuth <a href="#virConnectAuth">virConnectAuth</a>;
+typedef <a href="libvirt-libvirt-host.html#virConnectAuth">virConnectAuth</a> * <a href="#virConnectAuthPtr">virConnectAuthPtr</a>;
+typedef enum <a href="#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a>;
+typedef enum <a href="#virConnectCompareCPUFlags">virConnectCompareCPUFlags</a>;
+typedef struct _virConnectCredential <a href="#virConnectCredential">virConnectCredential</a>;
+typedef <a href="libvirt-libvirt-host.html#virConnectCredential">virConnectCredential</a> * <a href="#virConnectCredentialPtr">virConnectCredentialPtr</a>;
+typedef enum <a href="#virConnectCredentialType">virConnectCredentialType</a>;
+typedef enum <a href="#virConnectFlags">virConnectFlags</a>;
+typedef <a href="libvirt-libvirt-host.html#virConnect">virConnect</a> * <a href="#virConnectPtr">virConnectPtr</a>;
+typedef enum <a href="#virNodeAllocPagesFlags">virNodeAllocPagesFlags</a>;
+typedef struct _virNodeCPUStats <a href="#virNodeCPUStats">virNodeCPUStats</a>;
+typedef <a href="libvirt-libvirt-host.html#virNodeCPUStats">virNodeCPUStats</a> * <a href="#virNodeCPUStatsPtr">virNodeCPUStatsPtr</a>;
+typedef enum <a href="#virNodeGetCPUStatsAllCPUs">virNodeGetCPUStatsAllCPUs</a>;
+typedef enum <a href="#virNodeGetMemoryStatsAllCells">virNodeGetMemoryStatsAllCells</a>;
+typedef struct _virNodeInfo <a href="#virNodeInfo">virNodeInfo</a>;
+typedef <a href="libvirt-libvirt-host.html#virNodeInfo">virNodeInfo</a> * <a href="#virNodeInfoPtr">virNodeInfoPtr</a>;
+typedef struct _virNodeMemoryStats <a href="#virNodeMemoryStats">virNodeMemoryStats</a>;
+typedef <a href="libvirt-libvirt-host.html#virNodeMemoryStats">virNodeMemoryStats</a> * <a href="#virNodeMemoryStatsPtr">virNodeMemoryStatsPtr</a>;
+typedef enum <a href="#virNodeSuspendTarget">virNodeSuspendTarget</a>;
+typedef struct _virSecurityLabel <a href="#virSecurityLabel">virSecurityLabel</a>;
+typedef <a href="libvirt-libvirt-host.html#virSecurityLabel">virSecurityLabel</a> * <a href="#virSecurityLabelPtr">virSecurityLabelPtr</a>;
+typedef struct _virSecurityModel <a href="#virSecurityModel">virSecurityModel</a>;
+typedef <a href="libvirt-libvirt-host.html#virSecurityModel">virSecurityModel</a> * <a href="#virSecurityModelPtr">virSecurityModelPtr</a>;
+typedef struct _virStream <a href="#virStream">virStream</a>;
+typedef <a href="libvirt-libvirt-host.html#virStream">virStream</a> * <a href="#virStreamPtr">virStreamPtr</a>;
+typedef int <a href="#virConnectAuthCallbackPtr">virConnectAuthCallbackPtr</a>	(<a href="libvirt-libvirt-host.html#virConnectCredentialPtr">virConnectCredentialPtr</a> cred, <br/>					 unsigned int ncred, <br/>					 void * cbdata);
+char *	<a href="#virConnectBaselineCPU">virConnectBaselineCPU</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char ** xmlCPUs, <br/>					 unsigned int ncpus, <br/>					 unsigned int flags);
+char *	<a href="#virConnectBaselineHypervisorCPU">virConnectBaselineHypervisorCPU</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * emulator, <br/>					 const char * arch, <br/>					 const char * machine, <br/>					 const char * virttype, <br/>					 const char ** xmlCPUs, <br/>					 unsigned int ncpus, <br/>					 unsigned int flags);
+int	<a href="#virConnectClose">virConnectClose</a>			(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+typedef void <a href="#virConnectCloseFunc">virConnectCloseFunc</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int reason, <br/>					 void * opaque);
+int	<a href="#virConnectCompareCPU">virConnectCompareCPU</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags);
+int	<a href="#virConnectCompareHypervisorCPU">virConnectCompareHypervisorCPU</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * emulator, <br/>					 const char * arch, <br/>					 const char * machine, <br/>					 const char * virttype, <br/>					 const char * xmlCPU, <br/>					 unsigned int flags);
+int	<a href="#virConnectGetCPUModelNames">virConnectGetCPUModelNames</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * arch, <br/>					 char ** * models, <br/>					 unsigned int flags);
+char *	<a href="#virConnectGetCapabilities">virConnectGetCapabilities</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+char *	<a href="#virConnectGetHostname">virConnectGetHostname</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectGetLibVersion">virConnectGetLibVersion</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long * libVer);
+int	<a href="#virConnectGetMaxVcpus">virConnectGetMaxVcpus</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * type);
+char *	<a href="#virConnectGetSysinfo">virConnectGetSysinfo</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags);
+const char *	<a href="#virConnectGetType">virConnectGetType</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+char *	<a href="#virConnectGetURI">virConnectGetURI</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectGetVersion">virConnectGetVersion</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long * hvVer);
+int	<a href="#virConnectIsAlive">virConnectIsAlive</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectIsEncrypted">virConnectIsEncrypted</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectIsSecure">virConnectIsSecure</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	<a href="#virConnectOpen">virConnectOpen</a>		(const char * name);
+<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	<a href="#virConnectOpenAuth">virConnectOpenAuth</a>	(const char * name, <br/>					 <a href="libvirt-libvirt-host.html#virConnectAuthPtr">virConnectAuthPtr</a> auth, <br/>					 unsigned int flags);
+<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	<a href="#virConnectOpenReadOnly">virConnectOpenReadOnly</a>	(const char * name);
+int	<a href="#virConnectRef">virConnectRef</a>			(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectRegisterCloseCallback">virConnectRegisterCloseCallback</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-host.html#virConnectCloseFunc">virConnectCloseFunc</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> freecb);
+int	<a href="#virConnectSetKeepAlive">virConnectSetKeepAlive</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int interval, <br/>					 unsigned int count);
+int	<a href="#virConnectUnregisterCloseCallback">virConnectUnregisterCloseCallback</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-host.html#virConnectCloseFunc">virConnectCloseFunc</a> cb);
+int	<a href="#virGetVersion">virGetVersion</a>			(unsigned long * libVer, <br/>					 const char * type, <br/>					 unsigned long * typeVer);
+int	<a href="#virInitialize">virInitialize</a>			(void);
+int	<a href="#virNodeAllocPages">virNodeAllocPages</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int npages, <br/>					 unsigned int * pageSizes, <br/>					 unsigned long long * pageCounts, <br/>					 int startCell, <br/>					 unsigned int cellCount, <br/>					 unsigned int flags);
+int	<a href="#virNodeGetCPUMap">virNodeGetCPUMap</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned char ** cpumap, <br/>					 unsigned int * online, <br/>					 unsigned int flags);
+int	<a href="#virNodeGetCPUStats">virNodeGetCPUStats</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int cpuNum, <br/>					 <a href="libvirt-libvirt-host.html#virNodeCPUStatsPtr">virNodeCPUStatsPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
+int	<a href="#virNodeGetCellsFreeMemory">virNodeGetCellsFreeMemory</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long long * freeMems, <br/>					 int startCell, <br/>					 int maxCells);
+unsigned long long	<a href="#virNodeGetFreeMemory">virNodeGetFreeMemory</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virNodeGetFreePages">virNodeGetFreePages</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int npages, <br/>					 unsigned int * pages, <br/>					 int startCell, <br/>					 unsigned int cellCount, <br/>					 unsigned long long * counts, <br/>					 unsigned int flags);
+int	<a href="#virNodeGetInfo">virNodeGetInfo</a>			(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-host.html#virNodeInfoPtr">virNodeInfoPtr</a> info);
+int	<a href="#virNodeGetMemoryParameters">virNodeGetMemoryParameters</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
+int	<a href="#virNodeGetMemoryStats">virNodeGetMemoryStats</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int cellNum, <br/>					 <a href="libvirt-libvirt-host.html#virNodeMemoryStatsPtr">virNodeMemoryStatsPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
+int	<a href="#virNodeGetSEVInfo">virNodeGetSEVInfo</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 unsigned int flags);
+int	<a href="#virNodeGetSecurityModel">virNodeGetSecurityModel</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-host.html#virSecurityModelPtr">virSecurityModelPtr</a> secmodel);
+int	<a href="#virNodeSetMemoryParameters">virNodeSetMemoryParameters</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
+int	<a href="#virNodeSuspendForDuration">virNodeSuspendForDuration</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int target, <br/>					 unsigned long long duration, <br/>					 unsigned int flags);
+</pre>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Description</h2>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Details</h2>
+      <div class="refsect2" lang="en">
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODEINFO_MAXCPUS">Macro </a>VIR_NODEINFO_MAXCPUS</h3><pre class="programlisting">#define <a href="#VIR_NODEINFO_MAXCPUS">VIR_NODEINFO_MAXCPUS</a>(nodeinfo);
+</pre><p>This macro is to calculate the total number of CPUs supported but not necessary active in the host.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nodeinfo</tt></i>:</span></td><td><a href="libvirt-libvirt-host.html#virNodeInfo">virNodeInfo</a> instance</td></tr></tbody></table></div>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_FIELD_LENGTH">Macro </a>VIR_NODE_CPU_STATS_FIELD_LENGTH</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_FIELD_LENGTH">VIR_NODE_CPU_STATS_FIELD_LENGTH</a>;
+</pre><p>Macro providing the field length of <a href="libvirt-libvirt-host.html#virNodeCPUStats">virNodeCPUStats</a></p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_IDLE">Macro </a>VIR_NODE_CPU_STATS_IDLE</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_IDLE">VIR_NODE_CPU_STATS_IDLE</a>;
+</pre><p>The cumulative idle CPU time, since the node booting up (in nanoseconds).</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_INTR">Macro </a>VIR_NODE_CPU_STATS_INTR</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_INTR">VIR_NODE_CPU_STATS_INTR</a>;
+</pre><p>The cumulative interrupt CPU time, since the node booting up (in nanoseconds).</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_IOWAIT">Macro </a>VIR_NODE_CPU_STATS_IOWAIT</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_IOWAIT">VIR_NODE_CPU_STATS_IOWAIT</a>;
+</pre><p>The cumulative I/O wait CPU time, since the node booting up (in nanoseconds).</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_KERNEL">Macro </a>VIR_NODE_CPU_STATS_KERNEL</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_KERNEL">VIR_NODE_CPU_STATS_KERNEL</a>;
+</pre><p>Macro for the cumulative CPU time which was spent by the kernel, since the node booting up (in nanoseconds).</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_USER">Macro </a>VIR_NODE_CPU_STATS_USER</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_USER">VIR_NODE_CPU_STATS_USER</a>;
+</pre><p>The cumulative CPU time which was spent by user processes, since the node booting up (in nanoseconds).</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_UTILIZATION">Macro </a>VIR_NODE_CPU_STATS_UTILIZATION</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_UTILIZATION">VIR_NODE_CPU_STATS_UTILIZATION</a>;
+</pre><p>The CPU utilization of a node. The usage value is in percent and 100% represents all CPUs of the node.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_SHARED_FULL_SCANS">Macro </a>VIR_NODE_MEMORY_SHARED_FULL_SCANS</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_SHARED_FULL_SCANS">VIR_NODE_MEMORY_SHARED_FULL_SCANS</a>;
+</pre><p>Macro for typed parameter that represents how many times all mergeable areas have been scanned.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES">Macro </a>VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES">VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES</a>;
+</pre><p>Macro for typed parameter that represents whether pages from different NUMA nodes can be merged. The parameter has type int, when its value is 0, only pages which physically reside in the memory area of same NUMA node are merged; When its value is 1, pages from all nodes can be merged. Other values are reserved for future use.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_SHARED_PAGES_SHARED">Macro </a>VIR_NODE_MEMORY_SHARED_PAGES_SHARED</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_SHARED">VIR_NODE_MEMORY_SHARED_PAGES_SHARED</a>;
+</pre><p>Macro for typed parameter that represents how many the shared memory pages are being used.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_SHARED_PAGES_SHARING">Macro </a>VIR_NODE_MEMORY_SHARED_PAGES_SHARING</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_SHARING">VIR_NODE_MEMORY_SHARED_PAGES_SHARING</a>;
+</pre><p>Macro for typed parameter that represents how many sites are sharing the pages i.e. how much saved.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN">Macro </a>VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN">VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN</a>;
+</pre><p>Macro for typed parameter that represents how many present pages to scan before the shared memory service goes to sleep.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED">Macro </a>VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED">VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED</a>;
+</pre><p>Macro for typed parameter that represents how many pages unique but repeatedly checked for merging.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE">Macro </a>VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE">VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE</a>;
+</pre><p>Macro for typed parameter that represents how many pages changing too fast to be placed in a tree.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS">Macro </a>VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS">VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS</a>;
+</pre><p>Macro for typed parameter that represents how many milliseconds the shared memory service should sleep before next scan.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_STATS_BUFFERS">Macro </a>VIR_NODE_MEMORY_STATS_BUFFERS</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_STATS_BUFFERS">VIR_NODE_MEMORY_STATS_BUFFERS</a>;
+</pre><p>Macro for the buffer memory: On Linux, it is only returned in case of VIR_NODE_MEMORY_STATS_ALL_CELLS.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_STATS_CACHED">Macro </a>VIR_NODE_MEMORY_STATS_CACHED</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_STATS_CACHED">VIR_NODE_MEMORY_STATS_CACHED</a>;
+</pre><p>Macro for the cached memory: On Linux, it is only returned in case of VIR_NODE_MEMORY_STATS_ALL_CELLS.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_STATS_FIELD_LENGTH">Macro </a>VIR_NODE_MEMORY_STATS_FIELD_LENGTH</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_STATS_FIELD_LENGTH">VIR_NODE_MEMORY_STATS_FIELD_LENGTH</a>;
+</pre><p>Macro providing the field length of <a href="libvirt-libvirt-host.html#virNodeMemoryStats">virNodeMemoryStats</a></p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_STATS_FREE">Macro </a>VIR_NODE_MEMORY_STATS_FREE</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_STATS_FREE">VIR_NODE_MEMORY_STATS_FREE</a>;
+</pre><p>Macro for the free memory of specified cell: On Linux, it includes buffer and cached memory, in case of VIR_NODE_MEMORY_STATS_ALL_CELLS.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_STATS_TOTAL">Macro </a>VIR_NODE_MEMORY_STATS_TOTAL</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_STATS_TOTAL">VIR_NODE_MEMORY_STATS_TOTAL</a>;
+</pre><p>Macro for the total memory of specified cell: it represents the maximum memory.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_SEV_CBITPOS">Macro </a>VIR_NODE_SEV_CBITPOS</h3><pre class="programlisting">#define <a href="#VIR_NODE_SEV_CBITPOS">VIR_NODE_SEV_CBITPOS</a>;
+</pre><p>Macro represents the CBit Position used by hypervisor when SEV is enabled.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_SEV_CERT_CHAIN">Macro </a>VIR_NODE_SEV_CERT_CHAIN</h3><pre class="programlisting">#define <a href="#VIR_NODE_SEV_CERT_CHAIN">VIR_NODE_SEV_CERT_CHAIN</a>;
+</pre><p>Macro represents the platform certificate chain that includes the platform endorsement key (PEK), owner certificate authority (OCD) and chip endorsement key (CEK), as VIR_TYPED_PARAMS_STRING.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_SEV_PDH">Macro </a>VIR_NODE_SEV_PDH</h3><pre class="programlisting">#define <a href="#VIR_NODE_SEV_PDH">VIR_NODE_SEV_PDH</a>;
+</pre><p>Macro represents the Platform Diffie-Hellman key, as VIR_TYPED_PARAMS_STRING.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_SEV_REDUCED_PHYS_BITS">Macro </a>VIR_NODE_SEV_REDUCED_PHYS_BITS</h3><pre class="programlisting">#define <a href="#VIR_NODE_SEV_REDUCED_PHYS_BITS">VIR_NODE_SEV_REDUCED_PHYS_BITS</a>;
+</pre><p>Macro represents the number of bits we lose in physical address space when SEV is enabled in the guest.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_SECURITY_DOI_BUFLEN">Macro </a>VIR_SECURITY_DOI_BUFLEN</h3><pre class="programlisting">#define <a href="#VIR_SECURITY_DOI_BUFLEN">VIR_SECURITY_DOI_BUFLEN</a>;
+</pre><p>Macro providing the maximum length of the <a href="libvirt-libvirt-host.html#virSecurityModel">virSecurityModel</a> doi string.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_SECURITY_LABEL_BUFLEN">Macro </a>VIR_SECURITY_LABEL_BUFLEN</h3><pre class="programlisting">#define <a href="#VIR_SECURITY_LABEL_BUFLEN">VIR_SECURITY_LABEL_BUFLEN</a>;
+</pre><p>Macro providing the maximum length of the <a href="libvirt-libvirt-host.html#virSecurityLabel">virSecurityLabel</a> label string. Note that this value is based on that used by Labeled NFS.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_SECURITY_MODEL_BUFLEN">Macro </a>VIR_SECURITY_MODEL_BUFLEN</h3><pre class="programlisting">#define <a href="#VIR_SECURITY_MODEL_BUFLEN">VIR_SECURITY_MODEL_BUFLEN</a>;
+</pre><p>Macro providing the maximum length of the <a href="libvirt-libvirt-host.html#virSecurityModel">virSecurityModel</a> model string.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_UUID_BUFLEN">Macro </a>VIR_UUID_BUFLEN</h3><pre class="programlisting">#define <a href="#VIR_UUID_BUFLEN">VIR_UUID_BUFLEN</a>;
+</pre><p>This macro provides the length of the buffer required for virDomainGetUUID()</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_UUID_STRING_BUFLEN">Macro </a>VIR_UUID_STRING_BUFLEN</h3><pre class="programlisting">#define <a href="#VIR_UUID_STRING_BUFLEN">VIR_UUID_STRING_BUFLEN</a>;
+</pre><p>This macro provides the length of the buffer required for virDomainGetUUIDString()</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virCPUCompareResult">Enum </a>virCPUCompareResult</h3><pre class="programlisting">enum <a href="#virCPUCompareResult">virCPUCompareResult</a> {
+    <a name="VIR_CPU_COMPARE_ERROR">VIR_CPU_COMPARE_ERROR</a> = -1
+    <a name="VIR_CPU_COMPARE_INCOMPATIBLE">VIR_CPU_COMPARE_INCOMPATIBLE</a> = 0
+    <a name="VIR_CPU_COMPARE_IDENTICAL">VIR_CPU_COMPARE_IDENTICAL</a> = 1
+    <a name="VIR_CPU_COMPARE_SUPERSET">VIR_CPU_COMPARE_SUPERSET</a> = 2
+    <a name="VIR_CPU_COMPARE_LAST">VIR_CPU_COMPARE_LAST</a> = 3
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnect">Structure </a>virConnect</h3><pre class="programlisting">struct _virConnect {
+The content of this structure is not made public by the API.
+} virConnect;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectAuth">Structure </a>virConnectAuth</h3><pre class="programlisting">struct _virConnectAuth {
+    int *	credtype	: List of supported <a href="libvirt-libvirt-host.html#virConnectCredentialType">virConnectCredentialType</a> values
+    unsigned int	ncredtype
+    <a href="libvirt-libvirt-host.html#virConnectAuthCallbackPtr">virConnectAuthCallbackPtr</a>	cb	: Callback used to collect credentials
+    void *	cbdata
+} virConnectAuth;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectAuthPtr">Typedef </a>virConnectAuthPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectAuth">virConnectAuth</a> * virConnectAuthPtr;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectBaselineCPUFlags">Enum </a>virConnectBaselineCPUFlags</h3><pre class="programlisting">enum <a href="#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a> {
+    <a name="VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES">VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES</a> = 1 /* show all features */
+    <a name="VIR_CONNECT_BASELINE_CPU_MIGRATABLE">VIR_CONNECT_BASELINE_CPU_MIGRATABLE</a> = 2 /* filter out non-migratable features */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectCompareCPUFlags">Enum </a>virConnectCompareCPUFlags</h3><pre class="programlisting">enum <a href="#virConnectCompareCPUFlags">virConnectCompareCPUFlags</a> {
+    <a name="VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE">VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE</a> = 1 /* treat incompatible CPUs as failure */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectCredential">Structure </a>virConnectCredential</h3><pre class="programlisting">struct _virConnectCredential {
+    int	type	: One of <a href="libvirt-libvirt-host.html#virConnectCredentialType">virConnectCredentialType</a> constants
+    const char *	prompt	: Prompt to show to user
+    const char *	challenge	: Additional challenge to show
+    const char *	defresult	: Optional default result
+    char *	result	: Result to be filled with user response (or defresult)
+    unsigned int	resultlen	: Length of the result
+} virConnectCredential;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectCredentialPtr">Typedef </a>virConnectCredentialPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectCredential">virConnectCredential</a> * virConnectCredentialPtr;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectCredentialType">Enum </a>virConnectCredentialType</h3><pre class="programlisting">enum <a href="#virConnectCredentialType">virConnectCredentialType</a> {
+    <a name="VIR_CRED_USERNAME">VIR_CRED_USERNAME</a> = 1 /* Identity to act as */
+    <a name="VIR_CRED_AUTHNAME">VIR_CRED_AUTHNAME</a> = 2 /* Identify to authorize as */
+    <a name="VIR_CRED_LANGUAGE">VIR_CRED_LANGUAGE</a> = 3 /* RFC 1766 languages, comma separated */
+    <a name="VIR_CRED_CNONCE">VIR_CRED_CNONCE</a> = 4 /* client supplies a nonce */
+    <a name="VIR_CRED_PASSPHRASE">VIR_CRED_PASSPHRASE</a> = 5 /* Passphrase secret */
+    <a name="VIR_CRED_ECHOPROMPT">VIR_CRED_ECHOPROMPT</a> = 6 /* Challenge response */
+    <a name="VIR_CRED_NOECHOPROMPT">VIR_CRED_NOECHOPROMPT</a> = 7 /* Challenge response */
+    <a name="VIR_CRED_REALM">VIR_CRED_REALM</a> = 8 /* Authentication realm */
+    <a name="VIR_CRED_EXTERNAL">VIR_CRED_EXTERNAL</a> = 9 /* Externally managed credential */
+    <a name="VIR_CRED_LAST">VIR_CRED_LAST</a> = 10 /* More may be added - expect the unexpected */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectFlags">Enum </a>virConnectFlags</h3><pre class="programlisting">enum <a href="#virConnectFlags">virConnectFlags</a> {
+    <a name="VIR_CONNECT_RO">VIR_CONNECT_RO</a> = 1 /* A readonly connection */
+    <a name="VIR_CONNECT_NO_ALIASES">VIR_CONNECT_NO_ALIASES</a> = 2 /* Don't try to resolve URI aliases */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectPtr">Typedef </a>virConnectPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnect">virConnect</a> * virConnectPtr;
+</pre><p>a <a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> is pointer to a <a href="libvirt-libvirt-host.html#virConnect">virConnect</a> private structure, this is the type used to reference a connection to the Hypervisor in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeAllocPagesFlags">Enum </a>virNodeAllocPagesFlags</h3><pre class="programlisting">enum <a href="#virNodeAllocPagesFlags">virNodeAllocPagesFlags</a> {
+    <a name="VIR_NODE_ALLOC_PAGES_ADD">VIR_NODE_ALLOC_PAGES_ADD</a> = 0 /* Add @pageCounts to the pages pool. This can be used only to size up the pool. */
+    <a name="VIR_NODE_ALLOC_PAGES_SET">VIR_NODE_ALLOC_PAGES_SET</a> = 1 /* Don't add @pageCounts, instead set passed number of pages. This can be used to free allocated pages. */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeCPUStats">Structure </a>virNodeCPUStats</h3><pre class="programlisting">struct _virNodeCPUStats {
+    char field[VIR_NODE_CPU_STATS_FIELD_LENGTH]	field
+    unsigned long long	value
+} virNodeCPUStats;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeCPUStatsPtr">Typedef </a>virNodeCPUStatsPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virNodeCPUStats">virNodeCPUStats</a> * virNodeCPUStatsPtr;
+</pre><p>a <a href="libvirt-libvirt-host.html#virNodeCPUStatsPtr">virNodeCPUStatsPtr</a> is a pointer to a <a href="libvirt-libvirt-host.html#virNodeCPUStats">virNodeCPUStats</a> structure.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetCPUStatsAllCPUs">Enum </a>virNodeGetCPUStatsAllCPUs</h3><pre class="programlisting">enum <a href="#virNodeGetCPUStatsAllCPUs">virNodeGetCPUStatsAllCPUs</a> {
+    <a name="VIR_NODE_CPU_STATS_ALL_CPUS">VIR_NODE_CPU_STATS_ALL_CPUS</a> = -1
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetMemoryStatsAllCells">Enum </a>virNodeGetMemoryStatsAllCells</h3><pre class="programlisting">enum <a href="#virNodeGetMemoryStatsAllCells">virNodeGetMemoryStatsAllCells</a> {
+    <a name="VIR_NODE_MEMORY_STATS_ALL_CELLS">VIR_NODE_MEMORY_STATS_ALL_CELLS</a> = -1
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeInfo">Structure </a>virNodeInfo</h3><pre class="programlisting">struct _virNodeInfo {
+    char model[32]	model	: string indicating the CPU model
+    unsigned long	memory	: memory size in kilobytes
+    unsigned int	cpus	: the number of active CPUs
+    unsigned int	mhz	: expected CPU frequency, 0 if not known or on unusual architectures
+    unsigned int	nodes	: the number of NUMA cell, 1 for unusual NUMA topologies or uniform memo
+    unsigned int	sockets	: number of CPU sockets per node if nodes &gt; 1, 1 in case of unusual NUMA
+    unsigned int	cores	: number of cores per socket, total number of processors in case of unus
+    unsigned int	threads	: number of threads per core, 1 in case of unusual numa topology
+} virNodeInfo;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeInfoPtr">Typedef </a>virNodeInfoPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virNodeInfo">virNodeInfo</a> * virNodeInfoPtr;
+</pre><p>a <a href="libvirt-libvirt-host.html#virNodeInfoPtr">virNodeInfoPtr</a> is a pointer to a <a href="libvirt-libvirt-host.html#virNodeInfo">virNodeInfo</a> structure.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeMemoryStats">Structure </a>virNodeMemoryStats</h3><pre class="programlisting">struct _virNodeMemoryStats {
+    char field[VIR_NODE_MEMORY_STATS_FIELD_LENGTH]	field
+    unsigned long long	value
+} virNodeMemoryStats;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeMemoryStatsPtr">Typedef </a>virNodeMemoryStatsPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virNodeMemoryStats">virNodeMemoryStats</a> * virNodeMemoryStatsPtr;
+</pre><p>a <a href="libvirt-libvirt-host.html#virNodeMemoryStatsPtr">virNodeMemoryStatsPtr</a> is a pointer to a <a href="libvirt-libvirt-host.html#virNodeMemoryStats">virNodeMemoryStats</a> structure.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeSuspendTarget">Enum </a>virNodeSuspendTarget</h3><pre class="programlisting">enum <a href="#virNodeSuspendTarget">virNodeSuspendTarget</a> {
+    <a name="VIR_NODE_SUSPEND_TARGET_MEM">VIR_NODE_SUSPEND_TARGET_MEM</a> = 0
+    <a name="VIR_NODE_SUSPEND_TARGET_DISK">VIR_NODE_SUSPEND_TARGET_DISK</a> = 1
+    <a name="VIR_NODE_SUSPEND_TARGET_HYBRID">VIR_NODE_SUSPEND_TARGET_HYBRID</a> = 2
+    <a name="VIR_NODE_SUSPEND_TARGET_LAST">VIR_NODE_SUSPEND_TARGET_LAST</a> = 3 /* This constant is subject to change */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virSecurityLabel">Structure </a>virSecurityLabel</h3><pre class="programlisting">struct _virSecurityLabel {
+    char label[VIR_SECURITY_LABEL_BUFLEN]	label	: security label string
+    int	enforcing	: 1 if security policy is being enforced for domain
+} virSecurityLabel;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virSecurityLabelPtr">Typedef </a>virSecurityLabelPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virSecurityLabel">virSecurityLabel</a> * virSecurityLabelPtr;
+</pre><p>a <a href="libvirt-libvirt-host.html#virSecurityLabelPtr">virSecurityLabelPtr</a> is a pointer to a virSecurityLabel.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virSecurityModel">Structure </a>virSecurityModel</h3><pre class="programlisting">struct _virSecurityModel {
+    char model[VIR_SECURITY_MODEL_BUFLEN]	model	: security model string
+    char doi[VIR_SECURITY_DOI_BUFLEN]	doi	: domain of interpretation
+} virSecurityModel;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virSecurityModelPtr">Typedef </a>virSecurityModelPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virSecurityModel">virSecurityModel</a> * virSecurityModelPtr;
+</pre><p>a <a href="libvirt-libvirt-host.html#virSecurityModelPtr">virSecurityModelPtr</a> is a pointer to a virSecurityModel.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStream">Structure </a>virStream</h3><pre class="programlisting">struct _virStream {
+The content of this structure is not made public by the API.
+} virStream;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStreamPtr">Typedef </a>virStreamPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virStream">virStream</a> * virStreamPtr;
+</pre><p>a <a href="libvirt-libvirt-host.html#virStreamPtr">virStreamPtr</a> is pointer to a <a href="libvirt-libvirt-host.html#virStream">virStream</a> private structure, this is the type used to reference a data stream in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectAuthCallbackPtr"/>Function type virConnectAuthCallbackPtr</h3><pre class="programlisting">int	virConnectAuthCallbackPtr	(<a href="libvirt-libvirt-host.html#virConnectCredentialPtr">virConnectCredentialPtr</a> cred, <br/>					 unsigned int ncred, <br/>					 void * cbdata)<br/>
+</pre><p>When authentication requires one or more interactions, this callback
+is invoked. For each interaction supplied, data must be gathered
+from the user and filled in to the 'result' and 'resultlen' fields.
+If an interaction cannot be filled, fill in NULL and 0.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cred</tt></i>:</span></td><td>list of <a href="libvirt-libvirt-host.html#virConnectCredential">virConnectCredential</a> object to fetch from user</td></tr><tr><td><span class="term"><i><tt>ncred</tt></i>:</span></td><td>size of cred list</td></tr><tr><td><span class="term"><i><tt>cbdata</tt></i>:</span></td><td>opaque data passed to <a href="libvirt-libvirt-host.html#virConnectOpenAuth">virConnectOpenAuth</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if all interactions were filled, or -1 upon error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectCloseFunc"/>Function type virConnectCloseFunc</h3><pre class="programlisting">void	virConnectCloseFunc		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int reason, <br/>					 void * opaque)<br/>
+</pre><p>A callback function to be registered, and called when the connection
+is closed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt-host.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>reason why the connection was closed (one of virConnectCloseReason)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque user data</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectAuthPtrDefault">Variable </a>virConnectAuthPtrDefault</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectAuthPtr">virConnectAuthPtr</a> virConnectAuthPtrDefault;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectBaselineCPU"/>virConnectBaselineCPU ()</h3><pre class="programlisting">char *	virConnectBaselineCPU		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char ** xmlCPUs, <br/>					 unsigned int ncpus, <br/>					 unsigned int flags)<br/>
+</pre><p>Computes the most feature-rich CPU which is compatible with all given
+host CPUs.
+
+See virConnectBaselineHypervisorCPU() to get a CPU which can be provided
+by the hypervisor.
+
+If @flags includes <a href="libvirt-libvirt-host.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES">VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES</a> then libvirt
+will explicitly list all CPU features that are part of the host CPU,
+without this flag features that are part of the CPU model will not be
+listed.
+
+If @flags includes VIR_CONNECT_BASELINE_CPU_MIGRATABLE, the resulting
+CPU will not include features that block migration.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt-host.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlCPUs</tt></i>:</span></td><td>array of XML descriptions of host CPUs</td></tr><tr><td><span class="term"><i><tt>ncpus</tt></i>:</span></td><td>number of CPUs in xmlCPUs</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-host.html#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>XML description of the computed CPU (caller frees) or NULL on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectBaselineHypervisorCPU"/>virConnectBaselineHypervisorCPU ()</h3><pre class="programlisting">char *	virConnectBaselineHypervisorCPU	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * emulator, <br/>					 const char * arch, <br/>					 const char * machine, <br/>					 const char * virttype, <br/>					 const char ** xmlCPUs, <br/>					 unsigned int ncpus, <br/>					 unsigned int flags)<br/>
+</pre><p>Computes the most feature-rich CPU which is compatible with all given CPUs
+and can be provided by the specified hypervisor. For best results the
+host-model CPUs as advertised by virConnectGetDomainCapabilities() should be
+passed in @xmlCPUs. Any of @emulator, @arch, @machine, and @virttype
+parameters may be NULL; libvirt will choose sensible defaults tailored to
+the host and its current configuration.
+
+This is different from virConnectBaselineCPU() which doesn't consider any
+hypervisor abilities when computing the best CPU.
+
+If @flags includes <a href="libvirt-libvirt-host.html#VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES">VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES</a> then libvirt
+will explicitly list all CPU features that are part of the computed CPU,
+without this flag features that are part of the CPU model will not be
+listed.
+
+If @flags includes VIR_CONNECT_BASELINE_CPU_MIGRATABLE, the resulting
+CPU will not include features that block migration.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>emulator</tt></i>:</span></td><td>path to the emulator binary</td></tr><tr><td><span class="term"><i><tt>arch</tt></i>:</span></td><td>CPU architecture</td></tr><tr><td><span class="term"><i><tt>machine</tt></i>:</span></td><td>machine type</td></tr><tr><td><span class="term"><i><tt>virttype</tt></i>:</span></td><td>virtualization type</td></tr><tr><td><span class="term"><i><tt>xmlCPUs</tt></i>:</span></td><td>array of XML descriptions of CPUs</td></tr><tr><td><span class="term"><i><tt>ncpus</tt></i>:</span></td><td>number of CPUs in xmlCPUs</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-host.html#virConnectBaselineCPUFlags">virConnectBaselineCPUFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>XML description of the computed CPU (caller frees) or NULL on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectClose"/>virConnectClose ()</h3><pre class="programlisting">int	virConnectClose			(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>This function closes the connection to the Hypervisor. This should
+not be called if further interaction with the Hypervisor are needed
+especially if there is running domain which need further monitoring by
+the application.
+
+Connections are reference counted; the count is explicitly
+increased by the initial open (virConnectOpen, virConnectOpenAuth,
+and the like) as well as virConnectRef; it is also temporarily
+increased by other API that depend on the connection remaining
+alive. The open and every <a href="libvirt-libvirt-host.html#virConnectRef">virConnectRef</a> call should have a
+matching virConnectClose, and all other references will be released
+after the corresponding operation completes.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a positive number if at least 1 reference remains on success. The returned value should not be assumed to be the total reference count. A return of 0 implies no references remain and the connection is closed and memory has been freed. A return of -1 implies a failure. It is possible for the last <a href="libvirt-libvirt-host.html#virConnectClose">virConnectClose</a> to return a positive value if some other object still has a temporary reference to the connection, but the application should not try to further use a connection after the <a href="libvirt-libvirt-host.html#virConnectClose">virConnectClose</a> that matches the initial open.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectCompareCPU"/>virConnectCompareCPU ()</h3><pre class="programlisting">int	virConnectCompareCPU		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags)<br/>
+</pre><p>Compares the given CPU description with the host CPU.
+
+See virConnectCompareHypervisorCPU() if you want to consider hypervisor
+abilities and compare the CPU to the CPU which a hypervisor is able to
+provide on the host.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt-host.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>XML describing the CPU to compare with host CPU</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-host.html#virConnectCompareCPUFlags">virConnectCompareCPUFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>comparison result according to enum virCPUCompareResult. If <a href="libvirt-libvirt-host.html#VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE">VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE</a> is used and @xmlDesc CPU is incompatible with host CPU, this function will return <a href="libvirt-libvirt-host.html#VIR_CPU_COMPARE_ERROR">VIR_CPU_COMPARE_ERROR</a> (instead of VIR_CPU_COMPARE_INCOMPATIBLE) and the error will use the <a href="libvirt-virterror.html#VIR_ERR_CPU_INCOMPATIBLE">VIR_ERR_CPU_INCOMPATIBLE</a> code with a message providing more details about the incompatibility.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectCompareHypervisorCPU"/>virConnectCompareHypervisorCPU ()</h3><pre class="programlisting">int	virConnectCompareHypervisorCPU	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * emulator, <br/>					 const char * arch, <br/>					 const char * machine, <br/>					 const char * virttype, <br/>					 const char * xmlCPU, <br/>					 unsigned int flags)<br/>
+</pre><p>Compares the given CPU description with the CPU the specified hypervisor is
+able to provide on the host. Any of @emulator, @arch, @machine, and
+@virttype parameters may be NULL; libvirt will choose sensible defaults
+tailored to the host and its current configuration.
+
+This is different from virConnectCompareCPU() which compares the CPU
+definition with the host CPU without considering any specific hypervisor and
+its abilities.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>emulator</tt></i>:</span></td><td>path to the emulator binary</td></tr><tr><td><span class="term"><i><tt>arch</tt></i>:</span></td><td>CPU architecture</td></tr><tr><td><span class="term"><i><tt>machine</tt></i>:</span></td><td>machine type</td></tr><tr><td><span class="term"><i><tt>virttype</tt></i>:</span></td><td>virtualization type</td></tr><tr><td><span class="term"><i><tt>xmlCPU</tt></i>:</span></td><td>XML describing the CPU to be compared</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-host.html#virConnectCompareCPUFlags">virConnectCompareCPUFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>comparison result according to enum virCPUCompareResult. If <a href="libvirt-libvirt-host.html#VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE">VIR_CONNECT_COMPARE_CPU_FAIL_INCOMPATIBLE</a> is used and @xmlCPU is incompatible with the CPU the specified hypervisor is able to provide on the host, this function will return <a href="libvirt-libvirt-host.html#VIR_CPU_COMPARE_ERROR">VIR_CPU_COMPARE_ERROR</a> (instead of VIR_CPU_COMPARE_INCOMPATIBLE) and the error will use the <a href="libvirt-virterror.html#VIR_ERR_CPU_INCOMPATIBLE">VIR_ERR_CPU_INCOMPATIBLE</a> code with a message providing more details about the incompatibility.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetCPUModelNames"/>virConnectGetCPUModelNames ()</h3><pre class="programlisting">int	virConnectGetCPUModelNames	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * arch, <br/>					 char ** * models, <br/>					 unsigned int flags)<br/>
+</pre><p>Get the list of CPU models supported by libvirt for a specific architecture.
+
+The returned list limits CPU models usable with libvirt (empty list means
+there's no limit imposed by libvirt) and it does not reflect capabilities of
+any particular hypervisor. See the XML returned by
+virConnectGetDomainCapabilities() for a list of CPU models supported by
+libvirt for domains created on a specific hypervisor.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt-host.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>arch</tt></i>:</span></td><td>Architecture</td></tr><tr><td><span class="term"><i><tt>models</tt></i>:</span></td><td>Pointer to a variable to store the NULL-terminated array of the CPU models supported for the specified architecture. Each element and the array itself must be freed by the caller with free. Pass NULL if only the list length is needed.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 on error, number of elements in @models on success (0 means libvirt accepts any CPU model).</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetCapabilities"/>virConnectGetCapabilities ()</h3><pre class="programlisting">char *	virConnectGetCapabilities	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Provides capabilities of the hypervisor / driver.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, or an XML string defining the capabilities. The client must free the returned string after use.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetHostname"/>virConnectGetHostname ()</h3><pre class="programlisting">char *	virConnectGetHostname		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>This returns a system hostname on which the hypervisor is
+running (based on the result of the gethostname system call, but
+possibly expanded to a fully-qualified domain name via getaddrinfo).
+If we are connected to a remote system, then this returns the
+hostname of the remote system.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to a hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the hostname which must be freed by the caller, or NULL if there was an error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetLibVersion"/>virConnectGetLibVersion ()</h3><pre class="programlisting">int	virConnectGetLibVersion		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long * libVer)<br/>
+</pre><p>Provides @libVer, which is the version of libvirt used by the
+ daemon running on the @conn host</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>libVer</tt></i>:</span></td><td>returns the libvirt library version used on the connection (OUT)</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 otherwise, and values for @libVer have the format major * 1,000,000 + minor * 1,000 + release.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetMaxVcpus"/>virConnectGetMaxVcpus ()</h3><pre class="programlisting">int	virConnectGetMaxVcpus		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * type)<br/>
+</pre><p>Provides the maximum number of virtual CPUs supported for a guest VM of a
+specific type. The 'type' parameter here corresponds to the 'type'
+attribute in the &lt;domain&gt; element of the XML. This API doesn't take emulator
+limits into consideration, hence the returned value is not guaranteed to be
+usable. It is recommended to use virConnectGetDomainCapabilities() and look
+for "&lt;vcpu max='...'&gt;" in its output instead.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>value of the 'type' attribute in the &lt;domain&gt; element</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the maximum of virtual CPU or -1 in case of error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetSysinfo"/>virConnectGetSysinfo ()</h3><pre class="programlisting">char *	virConnectGetSysinfo		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags)<br/>
+</pre><p>This returns the XML description of the sysinfo details for the
+host on which the hypervisor is running, in the same format as the
+&lt;sysinfo&gt; element of a domain XML. This information is generally
+available only for hypervisors running with root privileges.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to a hypervisor connection</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the XML string which must be freed by the caller, or NULL if there was an error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetType"/>virConnectGetType ()</h3><pre class="programlisting">const char *	virConnectGetType	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Get the name of the Hypervisor driver used. This is merely the driver
+name; for example, both KVM and QEMU guests are serviced by the
+driver for the qemu:// URI, so a return of "QEMU" does not indicate
+whether KVM acceleration is present. For more details about the
+hypervisor, use virConnectGetCapabilities().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, a static zero terminated string otherwise.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetURI"/>virConnectGetURI ()</h3><pre class="programlisting">char *	virConnectGetURI		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>This returns the URI (name) of the hypervisor connection.
+Normally this is the same as or similar to the string passed
+to the virConnectOpen/virConnectOpenReadOnly call, but
+the driver may make the URI canonical. If name == NULL
+was passed to virConnectOpen, then the driver will return
+a non-NULL URI which can be used to connect to the same
+hypervisor later.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to a hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the URI string which must be freed by the caller, or NULL if there was an error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectGetVersion"/>virConnectGetVersion ()</h3><pre class="programlisting">int	virConnectGetVersion		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long * hvVer)<br/>
+</pre><p>Get the version level of the Hypervisor running. This may work only with
+hypervisor call, i.e. with privileged access to the hypervisor, not
+with a Read-Only connection.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>hvVer</tt></i>:</span></td><td>return value for the version of the running hypervisor (OUT)</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 otherwise. if the version can't be extracted by lack of capacities returns 0 and @hvVer is 0, otherwise @hvVer value is major * 1,000,000 + minor * 1,000 + release</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectIsAlive"/>virConnectIsAlive ()</h3><pre class="programlisting">int	virConnectIsAlive		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Determine if the connection to the hypervisor is still alive
+
+A connection will be classed as alive if it is either local, or running
+over a channel (TCP or UNIX socket) which is not closed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if alive, 0 if dead, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectIsEncrypted"/>virConnectIsEncrypted ()</h3><pre class="programlisting">int	virConnectIsEncrypted		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Determine if the connection to the hypervisor is encrypted</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if encrypted, 0 if not encrypted, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectIsSecure"/>virConnectIsSecure ()</h3><pre class="programlisting">int	virConnectIsSecure		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Determine if the connection to the hypervisor is secure
+
+A connection will be classed as secure if it is either
+encrypted, or running over a channel which is not exposed
+to eavesdropping (eg a UNIX domain socket, or pipe)</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if secure, 0 if not secure, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectOpen"/>virConnectOpen ()</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	virConnectOpen		(const char * name)<br/>
+</pre><p>This function should be called first to get a connection to the
+Hypervisor and xen store
+
+If @name is NULL, if the LIBVIRT_DEFAULT_URI environment variable is set,
+then it will be used. Otherwise if the client configuration file
+has the "uri_default" parameter set, then it will be used. Finally
+probing will be done to determine a suitable default driver to activate.
+This involves trying each hypervisor in turn until one successfully opens.
+
+If connecting to an unprivileged hypervisor driver which requires
+the libvirtd daemon to be active, it will automatically be launched
+if not already running. This can be prevented by setting the
+environment variable LIBVIRT_AUTOSTART=0
+
+URIs are documented at https://libvirt.org/uri.html
+
+virConnectClose should be used to release the resources after the connection
+is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectOpenAuth"/>virConnectOpenAuth ()</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	virConnectOpenAuth	(const char * name, <br/>					 <a href="libvirt-libvirt-host.html#virConnectAuthPtr">virConnectAuthPtr</a> auth, <br/>					 unsigned int flags)<br/>
+</pre><p>This function should be called first to get a connection to the
+Hypervisor. If necessary, authentication will be performed fetching
+credentials via the callback
+
+See <a href="libvirt-libvirt-host.html#virConnectOpen">virConnectOpen</a> for notes about environment variables which can
+have an effect on opening drivers and freeing the connection resources
+
+URIs are documented at https://libvirt.org/uri.html</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>auth</tt></i>:</span></td><td>Authenticate callback parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-host.html#virConnectFlags">virConnectFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectOpenReadOnly"/>virConnectOpenReadOnly ()</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	virConnectOpenReadOnly	(const char * name)<br/>
+</pre><p>This function should be called first to get a restricted connection to the
+library functionalities. The set of APIs usable are then restricted
+on the available methods to control the domains.
+
+See <a href="libvirt-libvirt-host.html#virConnectOpen">virConnectOpen</a> for notes about environment variables which can
+have an effect on opening drivers and freeing the connection resources
+
+URIs are documented at https://libvirt.org/uri.html</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>(optional) URI of the hypervisor</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the hypervisor connection or NULL in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectRef"/>virConnectRef ()</h3><pre class="programlisting">int	virConnectRef			(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Increment the reference count on the connection. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt-host.html#virConnectClose">virConnectClose</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection remain open until all threads have finished using
+it. ie, each new thread using a connection would increment
+the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectRegisterCloseCallback"/>virConnectRegisterCloseCallback ()</h3><pre class="programlisting">int	virConnectRegisterCloseCallback	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-host.html#virConnectCloseFunc">virConnectCloseFunc</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> freecb)<br/>
+</pre><p>Registers a callback to be invoked when the connection
+is closed. This callback is invoked when there is any
+condition that causes the socket connection to the
+hypervisor to be closed.
+
+This function is only applicable to hypervisor drivers
+which maintain a persistent open connection. Drivers
+which open a new connection for every operation will
+not invoke this.
+
+The @freecb must not invoke any other libvirt public
+APIs, since it is not called from a re-entrant safe
+context.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to connection object</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to invoke upon close</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to @cb</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>callback to free @opaque</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectSetKeepAlive"/>virConnectSetKeepAlive ()</h3><pre class="programlisting">int	virConnectSetKeepAlive		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int interval, <br/>					 unsigned int count)<br/>
+</pre><p>Start sending keepalive messages after @interval seconds of inactivity and
+consider the connection to be broken when no response is received after
+@count keepalive messages sent in a row. In other words, sending count + 1
+keepalive message results in closing the connection. When @interval is
+&lt;= 0, no keepalive messages will be sent. When @count is 0, the connection
+will be automatically closed after @interval seconds of inactivity without
+sending any keepalive messages.
+
+Note: The client has to implement and run an event loop with
+virEventRegisterImpl() or virEventRegisterDefaultImpl() to be able to
+use keepalive messages. Failure to do so may result in connections
+being closed unexpectedly.
+
+Note: This API function controls only keepalive messages sent by the client.
+If the server is configured to use keepalive you still need to run the event
+loop to respond to them, even if you disable keepalives by this function.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to a hypervisor connection</td></tr><tr><td><span class="term"><i><tt>interval</tt></i>:</span></td><td>number of seconds of inactivity before a keepalive message is sent</td></tr><tr><td><span class="term"><i><tt>count</tt></i>:</span></td><td>number of messages that can be sent in a row</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 on error, 0 on success, 1 when remote party doesn't support keepalive messages.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectUnregisterCloseCallback"/>virConnectUnregisterCloseCallback ()</h3><pre class="programlisting">int	virConnectUnregisterCloseCallback	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-host.html#virConnectCloseFunc">virConnectCloseFunc</a> cb)<br/>
+</pre><p>Unregisters the callback previously set with the
+virConnectRegisterCloseCallback method. The callback
+will no longer receive notifications when the connection
+closes. If a <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> was provided at time of
+registration, it will be invoked</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to connection object</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>pointer to the current registered callback</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virGetVersion"/>virGetVersion ()</h3><pre class="programlisting">int	virGetVersion			(unsigned long * libVer, <br/>					 const char * type, <br/>					 unsigned long * typeVer)<br/>
+</pre><p>Provides version information. @libVer is the version of the
+library and will always be set unless an error occurs, in which case
+an error code will be returned. @typeVer exists for historical
+compatibility; if it is not NULL it will duplicate @libVer (it was
+originally intended to return hypervisor information based on @type,
+but due to the design of remote clients this is not reliable). To
+get the version of the running hypervisor use the virConnectGetVersion()
+function instead. To get the libvirt library version used by a
+connection use the virConnectGetLibVersion() instead.
+
+This function includes a call to virInitialize() when necessary.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>libVer</tt></i>:</span></td><td>return value for the library version (OUT)</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>ignored; pass NULL</td></tr><tr><td><span class="term"><i><tt>typeVer</tt></i>:</span></td><td>pass NULL; for historical purposes duplicates @libVer if non-NULL</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 otherwise, and values for @libVer and @typeVer have the format major * 1,000,000 + minor * 1,000 + release.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInitialize"/>virInitialize ()</h3><pre class="programlisting">int	virInitialize			(void)<br/>
+</pre><p>Initialize the library.
+
+This method is invoked automatically by any of the virConnectOpen() API
+calls, and by virGetVersion(). Since release 1.0.0, there is no need to
+call this method even in a multithreaded application, since
+initialization is performed in a thread safe manner; but applications
+using an older version of the library should manually call this before
+setting up competing threads that attempt <a href="libvirt-libvirt-host.html#virConnectOpen">virConnectOpen</a> in parallel.
+
+The only other time it would be necessary to call <a href="libvirt-libvirt-host.html#virInitialize">virInitialize</a> is if the
+application did not invoke <a href="libvirt-libvirt-host.html#virConnectOpen">virConnectOpen</a> as its first API call, such
+as when calling virEventRegisterImpl() before setting up connections,
+or when using virSetErrorFunc() to alter error reporting of the first
+connection attempt.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeAllocPages"/>virNodeAllocPages ()</h3><pre class="programlisting">int	virNodeAllocPages		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int npages, <br/>					 unsigned int * pageSizes, <br/>					 unsigned long long * pageCounts, <br/>					 int startCell, <br/>					 unsigned int cellCount, <br/>					 unsigned int flags)<br/>
+</pre><p>Sometimes, when trying to start a new domain, it may be
+necessary to reserve some huge pages in the system pool which
+can be then allocated by the domain. This API serves that
+purpose. On its input, @pageSizes and @pageCounts are arrays
+of the same cardinality of @npages. The @pageSizes contains
+page sizes which are to be allocated in the system (the size
+unit is kibibytes), and @pageCounts then contains the number
+of pages to reserve. If @flags is 0
+(VIR_NODE_ALLOC_PAGES_ADD), each pool corresponding to
+@pageSizes grows by the number of pages specified in the
+corresponding @pageCounts. If @flags contains
+VIR_NODE_ALLOC_PAGES_SET, each pool mentioned is resized to
+the given number of pages. The pages pool can be allocated
+over several NUMA nodes at once, just point at @startCell and
+tell how many subsequent NUMA nodes should be taken in. As a
+special case, if @startCell is equal to negative one, then
+kernel is instructed to allocate the pages over all NUMA nodes
+proportionally.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>npages</tt></i>:</span></td><td>number of items in the @pageSizes and @pageCounts arrays</td></tr><tr><td><span class="term"><i><tt>pageSizes</tt></i>:</span></td><td>which huge page sizes to allocate</td></tr><tr><td><span class="term"><i><tt>pageCounts</tt></i>:</span></td><td>how many pages should be allocated</td></tr><tr><td><span class="term"><i><tt>startCell</tt></i>:</span></td><td>index of first cell to allocate pages on</td></tr><tr><td><span class="term"><i><tt>cellCount</tt></i>:</span></td><td>number of consecutive cells to allocate pages on</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; binary-OR of <a href="libvirt-libvirt-host.html#virNodeAllocPagesFlags">virNodeAllocPagesFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of nodes successfully adjusted or -1 in case of an error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetCPUMap"/>virNodeGetCPUMap ()</h3><pre class="programlisting">int	virNodeGetCPUMap		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned char ** cpumap, <br/>					 unsigned int * online, <br/>					 unsigned int flags)<br/>
+</pre><p>Get CPU map of host node CPUs.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>optional pointer to a bit map of real CPUs on the host node (in 8-bit bytes) (OUT) In case of success each bit set to 1 means that corresponding CPU is online. Bytes are stored in little-endian order: CPU0-7, 8-15... In each byte, lowest CPU number is least significant bit. The bit map is allocated by <a href="libvirt-libvirt-host.html#virNodeGetCPUMap">virNodeGetCPUMap</a> and needs to be released using free() by the caller.</td></tr><tr><td><span class="term"><i><tt>online</tt></i>:</span></td><td>optional number of online CPUs in cpumap (OUT) Contains the number of online CPUs if the call was successful.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>number of CPUs present on the host node, or -1 if there was an error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetCPUStats"/>virNodeGetCPUStats ()</h3><pre class="programlisting">int	virNodeGetCPUStats		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int cpuNum, <br/>					 <a href="libvirt-libvirt-host.html#virNodeCPUStatsPtr">virNodeCPUStatsPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>This function provides individual cpu statistics of the node.
+If you want to get total cpu statistics of the node, you must specify
+VIR_NODE_CPU_STATS_ALL_CPUS to @cpuNum.
+The @params array will be filled with the values equal to the number of
+parameters suggested by @nparams
+
+As the value of @nparams is dynamic, call the API setting @nparams to 0 and
+@params as NULL, the API returns the number of parameters supported by the
+HV by updating @nparams on SUCCESS. The caller should then allocate @params
+array, i.e. (sizeof(@virNodeCPUStats) * @nparams) bytes and call
+the API again.
+
+Here is a sample code snippet:
+
+ if (virNodeGetCPUStats(conn, cpuNum, NULL, &amp;nparams, 0) == 0 &amp;&amp;
+ nparams != 0) {
+ if ((params = malloc(sizeof(virNodeCPUStats) * nparams)) == NULL)
+ goto error;
+ memset(params, 0, sizeof(virNodeCPUStats) * nparams);
+ if (virNodeGetCPUStats(conn, cpuNum, params, &amp;nparams, 0))
+ goto error;
+ }
+
+This function doesn't require privileged access to the hypervisor.
+This function expects the caller to allocate the @params.
+
+CPU time Statistics:
+
+VIR_NODE_CPU_STATS_KERNEL:
+ The cumulative CPU time which spends by kernel,
+ when the node booting up.(nanoseconds)
+VIR_NODE_CPU_STATS_USER:
+ The cumulative CPU time which spends by user processes,
+ when the node booting up.(nanoseconds)
+VIR_NODE_CPU_STATS_IDLE:
+ The cumulative idle CPU time, when the node booting up.(nanoseconds)
+VIR_NODE_CPU_STATS_IOWAIT:
+ The cumulative I/O wait CPU time, when the node booting up.(nanoseconds)
+VIR_NODE_CPU_STATS_UTILIZATION:
+ The CPU utilization. The usage value is in percent and 100%
+ represents all CPUs on the server.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>cpuNum</tt></i>:</span></td><td>number of node cpu. (VIR_NODE_CPU_STATS_ALL_CPUS means total cpu statistics)</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to node cpu time parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of node cpu time parameter (this value should be same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetCellsFreeMemory"/>virNodeGetCellsFreeMemory ()</h3><pre class="programlisting">int	virNodeGetCellsFreeMemory	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long long * freeMems, <br/>					 int startCell, <br/>					 int maxCells)<br/>
+</pre><p>This call returns the amount of free memory in one or more NUMA cells.
+The @freeMems array must be allocated by the caller and will be filled
+with the amount of free memory in bytes for each cell requested,
+starting with startCell (in freeMems[0]), up to either
+(startCell + maxCells), or the number of additional cells in the node,
+whichever is smaller.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>freeMems</tt></i>:</span></td><td>pointer to the array of unsigned long long</td></tr><tr><td><span class="term"><i><tt>startCell</tt></i>:</span></td><td>index of first cell to return freeMems info on.</td></tr><tr><td><span class="term"><i><tt>maxCells</tt></i>:</span></td><td>Maximum number of cells for which freeMems information can be returned.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of entries filled in freeMems, or -1 in case of error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetFreeMemory"/>virNodeGetFreeMemory ()</h3><pre class="programlisting">unsigned long long	virNodeGetFreeMemory	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>provides the free memory available on the Node
+Note: most libvirt APIs provide memory sizes in kibibytes, but in this
+function the returned value is in bytes. Divide by 1024 as necessary.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the available free memory in bytes or 0 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetFreePages"/>virNodeGetFreePages ()</h3><pre class="programlisting">int	virNodeGetFreePages		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int npages, <br/>					 unsigned int * pages, <br/>					 int startCell, <br/>					 unsigned int cellCount, <br/>					 unsigned long long * counts, <br/>					 unsigned int flags)<br/>
+</pre><p>This calls queries the host system on free pages of
+specified size. For the input, @pages is expected to be
+filled with pages that caller is interested in (the size
+unit is kibibytes, so e.g. pass 2048 for 2MB), then @startcell
+refers to the first NUMA node that info should be collected
+from, and @cellcount tells how many consecutive nodes should
+be queried. On the function output, @counts is filled with
+desired information, where items are grouped by NUMA node.
+So from @counts[0] till @counts[@npages - 1] you'll find count
+for the first node (@startcell), then from @counts[@npages]
+till @count[2 * @npages - 1] you'll find info for the
+(@startcell + 1) node, and so on. It's callers responsibility
+to allocate the @counts array.
+
+Example how to use this API:
+
+ unsigned int pages[] = { 4, 2048, 1048576}
+ unsigned int npages = ARRAY_CARDINALITY(pages);
+ int startcell = 0;
+ unsigned int cellcount = 2;
+
+ unsigned long long counts = malloc(sizeof(long long) * npages * cellcount);
+
+ virNodeGetFreePages(conn, pages, npages,
+ startcell, cellcount, counts, 0);
+
+ for (i = 0 ; i &lt; cellcount ; i++) {
+ fprintf(stdout, "Cell %d\n", startcell + i);
+ for (j = 0 ; j &lt; npages ; j++) {
+ fprintf(stdout, " Page size=%d count=%d bytes=%llu\n",
+ pages[j], counts[(i * npages) + j],
+ pages[j] * counts[(i * npages) + j]);
+ }
+ }
+
+ This little code snippet will produce something like this:
+Cell 0
+ Page size=4096 count=300 bytes=1228800
+ Page size=2097152 count=0 bytes=0
+ Page size=1073741824 count=1 bytes=1073741824
+Cell 1
+ Page size=4096 count=0 bytes=0
+ Page size=2097152 count=20 bytes=41943040
+ Page size=1073741824 count=0 bytes=0</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>npages</tt></i>:</span></td><td>number of items in the @pages array</td></tr><tr><td><span class="term"><i><tt>pages</tt></i>:</span></td><td>page sizes to query</td></tr><tr><td><span class="term"><i><tt>startCell</tt></i>:</span></td><td>index of first cell to return free pages info on.</td></tr><tr><td><span class="term"><i><tt>cellCount</tt></i>:</span></td><td>maximum number of cells for which free pages information can be returned.</td></tr><tr><td><span class="term"><i><tt>counts</tt></i>:</span></td><td>returned counts of free pages</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of entries filled in @counts or -1 in case of error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetInfo"/>virNodeGetInfo ()</h3><pre class="programlisting">int	virNodeGetInfo			(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-host.html#virNodeInfoPtr">virNodeInfoPtr</a> info)<br/>
+</pre><p>Extract hardware information about the node.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt-host.html#virNodeInfo">virNodeInfo</a> structure allocated by the user</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetMemoryParameters"/>virNodeGetMemoryParameters ()</h3><pre class="programlisting">int	virNodeGetMemoryParameters	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Get all node memory parameters (parameters unsupported by OS will be
+omitted). On input, @nparams gives the size of the @params array;
+on output, @nparams gives how many slots were filled with parameter
+information, which might be less but will not exceed the input value.
+
+As a special case, calling with @params as NULL and @nparams as 0 on
+input will cause @nparams on output to contain the number of parameters
+supported by the hypervisor. The caller should then allocate @params
+array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
+again. See virDomainGetMemoryParameters() for an equivalent usage
+example.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to memory parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of memory parameters; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetMemoryStats"/>virNodeGetMemoryStats ()</h3><pre class="programlisting">int	virNodeGetMemoryStats		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int cellNum, <br/>					 <a href="libvirt-libvirt-host.html#virNodeMemoryStatsPtr">virNodeMemoryStatsPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>This function provides memory stats of the node.
+If you want to get total memory statistics of the node, you must specify
+VIR_NODE_MEMORY_STATS_ALL_CELLS to @cellNum.
+The @params array will be filled with the values equal to the number of
+stats suggested by @nparams
+
+As the value of @nparams is dynamic, call the API setting @nparams to 0 and
+@params as NULL, the API returns the number of parameters supported by the
+HV by updating @nparams on SUCCESS. The caller should then allocate @params
+array, i.e. (sizeof(@virNodeMemoryStats) * @nparams) bytes and call
+the API again.
+
+Here is the sample code snippet:
+
+ if (virNodeGetMemoryStats(conn, cellNum, NULL, &amp;nparams, 0) == 0 &amp;&amp;
+ nparams != 0) {
+ if ((params = malloc(sizeof(virNodeMemoryStats) * nparams)) == NULL)
+ goto error;
+ memset(params, cellNum, 0, sizeof(virNodeMemoryStats) * nparams);
+ if (virNodeGetMemoryStats(conn, params, &amp;nparams, 0))
+ goto error;
+ }
+
+This function doesn't require privileged access to the hypervisor.
+This function expects the caller to allocate the @params.
+
+Memory Stats:
+
+VIR_NODE_MEMORY_STATS_TOTAL:
+ The total memory usage.(KB)
+VIR_NODE_MEMORY_STATS_FREE:
+ The free memory usage.(KB)
+ On linux, this usage includes buffers and cached.
+VIR_NODE_MEMORY_STATS_BUFFERS:
+ The buffers memory usage.(KB)
+VIR_NODE_MEMORY_STATS_CACHED:
+ The cached memory usage.(KB)</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>cellNum</tt></i>:</span></td><td>number of node cell. (VIR_NODE_MEMORY_STATS_ALL_CELLS means total cell statistics)</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to node memory stats objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of node memory stats (this value should be same or less than the number of stats supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetSEVInfo"/>virNodeGetSEVInfo ()</h3><pre class="programlisting">int	virNodeGetSEVInfo		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>If hypervisor supports AMD's SEV feature, then @params will contain various
+platform specific information like PDH and certificate chain. Caller is
+responsible for freeing @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>where to store SEV information</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of SEV parameters returned in @params</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetSecurityModel"/>virNodeGetSecurityModel ()</h3><pre class="programlisting">int	virNodeGetSecurityModel		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-host.html#virSecurityModelPtr">virSecurityModelPtr</a> secmodel)<br/>
+</pre><p>Extract the security model of a hypervisor. The 'model' field
+in the @secmodel argument may be initialized to the empty
+string if the driver has not activated a security model.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>a connection object</td></tr><tr><td><span class="term"><i><tt>secmodel</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt-host.html#virSecurityModel">virSecurityModel</a> structure</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeSetMemoryParameters"/>virNodeSetMemoryParameters ()</h3><pre class="programlisting">int	virNodeSetMemoryParameters	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Change all or a subset of the node memory tunables. The function
+fails if not all of the tunables are supported.
+
+Note that it's not recommended to use this function while the
+outside tuning program is running (such as ksmtuned under Linux),
+as they could change the tunables in parallel, which could cause
+conflicts.
+
+This function may require privileged access to the hypervisor.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to scheduler parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of scheduler parameter objects (this value can be the same or less than the returned value nparams of virDomainGetSchedulerType)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeSuspendForDuration"/>virNodeSuspendForDuration ()</h3><pre class="programlisting">int	virNodeSuspendForDuration	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int target, <br/>					 unsigned long long duration, <br/>					 unsigned int flags)<br/>
+</pre><p>Attempt to suspend the node (host machine) for the given duration of
+time in the specified state (Suspend-to-RAM, Suspend-to-Disk or
+Hybrid-Suspend). Schedule the node's Real-Time-Clock interrupt to
+resume the node after the duration is complete.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>target</tt></i>:</span></td><td>the state to which the host must be suspended to, such as: <a href="libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_MEM">VIR_NODE_SUSPEND_TARGET_MEM</a> (Suspend-to-RAM) <a href="libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_DISK">VIR_NODE_SUSPEND_TARGET_DISK</a> (Suspend-to-Disk) <a href="libvirt-libvirt-host.html#VIR_NODE_SUSPEND_TARGET_HYBRID">VIR_NODE_SUSPEND_TARGET_HYBRID</a> (Hybrid-Suspend, which is a combination of the former modes).</td></tr><tr><td><span class="term"><i><tt>duration</tt></i>:</span></td><td>the time duration in seconds for which the host has to be suspended</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success (i.e., the node will be suspended after a short delay), -1 on failure (the operation is not supported, or an attempted suspend is already underway).</td></tr></tbody></table></div></div>
+        <hr/>
+      </div>
+    </div>
+  </body>
+</html>

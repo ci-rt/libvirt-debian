@@ -18,10 +18,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRSH_COMPLETER_H
-# define LIBVIRT_VIRSH_COMPLETER_H
+#pragma once
 
-# include "vsh.h"
+#include "vsh.h"
 
 char ** virshDomainNameCompleter(vshControl *ctl,
                                  const vshCmd *cmd,
@@ -59,6 +58,10 @@ char ** virshNetworkEventNameCompleter(vshControl *ctl,
                                        const vshCmd *cmd,
                                        unsigned int flags);
 
+char ** virshNetworkPortUUIDCompleter(vshControl *ctl,
+                                      const vshCmd *cmd,
+                                      unsigned int flags);
+
 char ** virshNodeDeviceNameCompleter(vshControl *ctl,
                                      const vshCmd *cmd,
                                      unsigned int flags);
@@ -74,6 +77,10 @@ char ** virshNWFilterBindingNameCompleter(vshControl *ctl,
 char ** virshSecretUUIDCompleter(vshControl *ctl,
                                  const vshCmd *cmd,
                                  unsigned int flags);
+
+char ** virshCheckpointNameCompleter(vshControl *ctl,
+                                     const vshCmd *cmd,
+                                     unsigned int flags);
 
 char ** virshSnapshotNameCompleter(vshControl *ctl,
                                    const vshCmd *cmd,
@@ -103,6 +110,10 @@ char ** virshNodedevEventNameCompleter(vshControl *ctl,
                                        const vshCmd *cmd,
                                        unsigned int flags);
 
+char ** virshNodedevCapabilityNameCompleter(vshControl *ctl,
+                                            const vshCmd *cmd,
+                                            unsigned int flags);
+
 char ** virshDomainDeviceAliasCompleter(vshControl *ctl,
                                         const vshCmd *cmd,
                                         unsigned int flags);
@@ -114,4 +125,3 @@ char ** virshCellnoCompleter(vshControl *ctl,
 char ** virshDomainShutdownModeCompleter(vshControl *ctl,
                                          const vshCmd *cmd,
                                          unsigned int flags);
-#endif /* LIBVIRT_VIRSH_COMPLETER_H */

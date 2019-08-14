@@ -19,45 +19,37 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_QEMU_CONF_H
-# define LIBVIRT_QEMU_CONF_H
+#pragma once
 
-# include <unistd.h>
+#include <unistd.h>
 
-# include "virebtables.h"
-# include "internal.h"
-# include "capabilities.h"
-# include "network_conf.h"
-# include "domain_conf.h"
-# include "snapshot_conf.h"
-# include "domain_event.h"
-# include "virthread.h"
-# include "security/security_manager.h"
-# include "virpci.h"
-# include "virusb.h"
-# include "virscsi.h"
-# include "cpu_conf.h"
-# include "driver.h"
-# include "virportallocator.h"
-# include "vircommand.h"
-# include "virthreadpool.h"
-# include "locking/lock_manager.h"
-# include "qemu_capabilities.h"
-# include "virclosecallbacks.h"
-# include "virhostdev.h"
-# include "virfile.h"
-# include "virfilecache.h"
-# include "virfirmware.h"
+#include "virebtables.h"
+#include "internal.h"
+#include "capabilities.h"
+#include "network_conf.h"
+#include "domain_conf.h"
+#include "checkpoint_conf.h"
+#include "snapshot_conf.h"
+#include "domain_event.h"
+#include "virthread.h"
+#include "security/security_manager.h"
+#include "virpci.h"
+#include "virusb.h"
+#include "virscsi.h"
+#include "cpu_conf.h"
+#include "driver.h"
+#include "virportallocator.h"
+#include "vircommand.h"
+#include "virthreadpool.h"
+#include "locking/lock_manager.h"
+#include "qemu_capabilities.h"
+#include "virclosecallbacks.h"
+#include "virhostdev.h"
+#include "virfile.h"
+#include "virfilecache.h"
+#include "virfirmware.h"
 
-# ifdef CPU_SETSIZE /* Linux */
-#  define QEMUD_CPUMASK_LEN CPU_SETSIZE
-# elif defined(_SC_NPROCESSORS_CONF) /* Cygwin */
-#  define QEMUD_CPUMASK_LEN (sysconf(_SC_NPROCESSORS_CONF))
-# else
-#  error "Port me"
-# endif
-
-# define QEMU_DRIVER_NAME "QEMU"
+#define QEMU_DRIVER_NAME "QEMU"
 
 typedef struct _virQEMUDriver virQEMUDriver;
 typedef virQEMUDriver *virQEMUDriverPtr;
@@ -110,6 +102,7 @@ struct _virQEMUDriverConfig {
     char *cacheDir;
     char *saveDir;
     char *snapshotDir;
+    char *checkpointDir;
     char *channelTargetDir;
     char *nvramDir;
     char *swtpmStorageDir;
@@ -171,6 +164,7 @@ struct _virQEMUDriverConfig {
 
     unsigned int maxProcesses;
     unsigned int maxFiles;
+    unsigned int maxThreadsPerProc;
     unsigned long long maxCore;
     bool dumpGuestCore;
 
@@ -218,6 +212,8 @@ struct _virQEMUDriverConfig {
 
     uid_t swtpm_user;
     gid_t swtpm_group;
+
+    char **capabilityfilters;
 };
 
 /* Main driver state */
@@ -227,6 +223,9 @@ struct _virQEMUDriver {
     /* Require lock to get reference on 'config',
      * then lockless thereafter */
     virQEMUDriverConfigPtr config;
+
+    /* pid file FD, ensures two copies of the driver can't use the same root */
+    int lockFD;
 
     /* Immutable pointer, self-locking APIs */
     virThreadPoolPtr workerPool;
@@ -296,21 +295,6 @@ struct _virQEMUDriver {
     /* Immutable pointer, self-locking APIs */
     virHashAtomicPtr migrationErrors;
 };
-
-typedef struct _qemuDomainCmdlineDef qemuDomainCmdlineDef;
-typedef qemuDomainCmdlineDef *qemuDomainCmdlineDefPtr;
-struct _qemuDomainCmdlineDef {
-    size_t num_args;
-    char **args;
-
-    unsigned int num_env;
-    char **env_name;
-    char **env_value;
-};
-
-
-
-void qemuDomainCmdlineDefFree(qemuDomainCmdlineDefPtr def);
 
 virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged);
 
@@ -389,4 +373,3 @@ int qemuGetMemoryBackingPath(const virDomainDef *def,
                              virQEMUDriverConfigPtr cfg,
                              const char *alias,
                              char **memPath);
-#endif /* LIBVIRT_QEMU_CONF_H */

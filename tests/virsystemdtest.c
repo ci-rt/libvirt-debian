@@ -23,6 +23,7 @@
 #if defined(WITH_DBUS) && defined(__linux__)
 
 # include <dbus/dbus.h>
+# include <fcntl.h>
 
 # define LIBVIRT_VIRSYSTEMDPRIV_H_ALLOW
 # include "virsystemdpriv.h"
@@ -31,6 +32,8 @@
 # include "virdbus.h"
 # include "virlog.h"
 # include "virmock.h"
+# include "rpc/virnetsocket.h"
+# include "intprops.h"
 # define VIR_FROM_THIS VIR_FROM_NONE
 
 VIR_LOG_INIT("tests.systemdtest");
@@ -172,7 +175,7 @@ static int testCreateContainer(const void *opaque ATTRIBUTE_UNUSED)
                                 123,
                                 true,
                                 0, NULL,
-                                "highpriority.slice") < 0) {
+                                "highpriority.slice", 0) < 0) {
         fprintf(stderr, "%s", "Failed to create LXC machine\n");
         return -1;
     }
@@ -205,7 +208,7 @@ static int testCreateMachine(const void *opaque ATTRIBUTE_UNUSED)
                                 123,
                                 false,
                                 0, NULL,
-                                NULL) < 0) {
+                                NULL, 0) < 0) {
         fprintf(stderr, "%s", "Failed to create KVM machine\n");
         return -1;
     }
@@ -242,7 +245,7 @@ static int testCreateNoSystemd(const void *opaque ATTRIBUTE_UNUSED)
                                       123,
                                       false,
                                       0, NULL,
-                                      NULL)) == 0) {
+                                      NULL, 0)) == 0) {
         unsetenv("FAIL_NO_SERVICE");
         fprintf(stderr, "%s", "Unexpected create machine success\n");
         return -1;
@@ -276,7 +279,7 @@ static int testCreateSystemdNotRunning(const void *opaque ATTRIBUTE_UNUSED)
                                       123,
                                       false,
                                       0, NULL,
-                                      NULL)) == 0) {
+                                      NULL, 0)) == 0) {
         unsetenv("FAIL_NOT_REGISTERED");
         fprintf(stderr, "%s", "Unexpected create machine success\n");
         return -1;
@@ -310,7 +313,7 @@ static int testCreateBadSystemd(const void *opaque ATTRIBUTE_UNUSED)
                                       123,
                                       false,
                                       0, NULL,
-                                      NULL)) == 0) {
+                                      NULL, 0)) == 0) {
         unsetenv("FAIL_BAD_SERVICE");
         fprintf(stderr, "%s", "Unexpected create machine success\n");
         return -1;
@@ -345,7 +348,7 @@ static int testCreateNetwork(const void *opaque ATTRIBUTE_UNUSED)
                                 123,
                                 true,
                                 nnicindexes, nicindexes,
-                                "highpriority.slice") < 0) {
+                                "highpriority.slice", 0) < 0) {
         fprintf(stderr, "%s", "Failed to create LXC machine\n");
         return -1;
     }
@@ -507,6 +510,168 @@ static int testPMSupportSystemdNotRunning(const void *opaque)
     return 0;
 }
 
+
+static int
+testActivationCreateFDs(virNetSocketPtr *sockUNIX,
+                        virNetSocketPtr **sockIP,
+                        size_t *nsockIP)
+{
+    *sockUNIX = NULL;
+    *sockIP = NULL;
+    *nsockIP = 0;
+
+    if (virNetSocketNewListenUNIX("virsystemdtest.sock",
+                                  0777,
+                                  0,
+                                  0,
+                                  sockUNIX) < 0)
+        return -1;
+
+    if (virNetSocketNewListenTCP("localhost",
+                                 NULL,
+                                 AF_UNSPEC,
+                                 sockIP,
+                                 nsockIP) < 0) {
+        virObjectUnref(*sockUNIX);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+testActivation(bool useNames)
+{
+    virNetSocketPtr sockUNIX;
+    virNetSocketPtr *sockIP;
+    size_t nsockIP;
+    int ret = -1;
+    size_t i;
+    char nfdstr[INT_BUFSIZE_BOUND(size_t)];
+    char pidstr[INT_BUFSIZE_BOUND(pid_t)];
+    virSystemdActivationMap map[2];
+    int *fds = NULL;
+    size_t nfds = 0;
+    VIR_AUTOPTR(virSystemdActivation) act = NULL;
+    VIR_AUTOCLEAN(virBuffer) names = VIR_BUFFER_INITIALIZER;
+
+    virBufferAddLit(&names, "demo-unix.socket");
+
+    if (testActivationCreateFDs(&sockUNIX, &sockIP, &nsockIP) < 0)
+        return -1;
+
+    for (i = 0; i < nsockIP; i++)
+        virBufferAddLit(&names, ":demo-ip.socket");
+
+    snprintf(nfdstr, sizeof(nfdstr), "%zu", 1 + nsockIP);
+    snprintf(pidstr, sizeof(pidstr), "%lld", (long long)getpid());
+
+    setenv("LISTEN_FDS", nfdstr, 1);
+    setenv("LISTEN_PID", pidstr, 1);
+
+    if (virBufferError(&names))
+        goto cleanup;
+
+    if (useNames)
+        setenv("LISTEN_FDNAMES", virBufferCurrentContent(&names), 1);
+    else
+        unsetenv("LISTEN_FDNAMES");
+
+    map[0].name = "demo-unix.socket";
+    map[0].family = AF_UNIX;
+    map[0].path = virNetSocketGetPath(sockUNIX);
+
+    map[1].name = "demo-ip.socket";
+    map[1].family = AF_INET;
+    map[1].port = virNetSocketGetPort(sockIP[0]);
+
+    if (virSystemdGetActivation(map, ARRAY_CARDINALITY(map), &act) < 0)
+        goto cleanup;
+
+    if (act == NULL) {
+        fprintf(stderr, "Activation object was not created: %s", virGetLastErrorMessage());
+        goto cleanup;
+    }
+
+    if (virSystemdActivationComplete(act) == 0) {
+        fprintf(stderr, "Activation did not report unclaimed FDs");
+        goto cleanup;
+    }
+
+    virSystemdActivationClaimFDs(act, "demo-unix.socket", &fds, &nfds);
+
+    if (nfds != 1) {
+        fprintf(stderr, "Expected 1 UNIX fd, but got %zu\n", nfds);
+        goto cleanup;
+    }
+    VIR_FREE(fds);
+
+    virSystemdActivationClaimFDs(act, "demo-ip.socket", &fds, &nfds);
+
+    if (nfds != nsockIP) {
+        fprintf(stderr, "Expected %zu IP fd, but got %zu\n", nsockIP, nfds);
+        goto cleanup;
+    }
+    VIR_FREE(fds);
+
+    virSystemdActivationClaimFDs(act, "demo-ip-alt.socket", &fds, &nfds);
+
+    if (nfds != 0) {
+        fprintf(stderr, "Expected 0 IP fd, but got %zu\n", nfds);
+        goto cleanup;
+    }
+
+    if (virSystemdActivationComplete(act) < 0) {
+        fprintf(stderr, "Action was not complete: %s\n", virGetLastErrorMessage());
+        goto cleanup;
+    }
+
+    ret = 0;
+ cleanup:
+    virObjectUnref(sockUNIX);
+    for (i = 0; i < nsockIP; i++)
+        virObjectUnref(sockIP[i]);
+    VIR_FREE(sockIP);
+    VIR_FREE(fds);
+    return ret;
+}
+
+
+static int
+testActivationEmpty(const void *opaque ATTRIBUTE_UNUSED)
+{
+    virSystemdActivationPtr act;
+
+    unsetenv("LISTEN_FDS");
+
+    if (virSystemdGetActivation(NULL, 0, &act) < 0)
+        return -1;
+
+    if (act != NULL) {
+        fprintf(stderr, "Unexpectedly got activation object");
+        virSystemdActivationFree(&act);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+testActivationFDNames(const void *opaque ATTRIBUTE_UNUSED)
+{
+    return testActivation(true);
+}
+
+
+static int
+testActivationFDAddrs(const void *opaque ATTRIBUTE_UNUSED)
+{
+    return testActivation(false);
+}
+
+
 static int
 mymain(void)
 {
@@ -597,6 +762,20 @@ mymain(void)
     TESTS_PM_SUPPORT_HELPER("canSuspend", &virSystemdCanSuspend);
     TESTS_PM_SUPPORT_HELPER("canHibernate", &virSystemdCanHibernate);
     TESTS_PM_SUPPORT_HELPER("canHybridSleep", &virSystemdCanHybridSleep);
+
+    if (virTestRun("Test activation empty", testActivationEmpty, NULL) < 0)
+        ret = -1;
+
+    if (fcntl(STDERR_FILENO + 1, F_GETFL) == -1 && errno == EBADF &&
+        fcntl(STDERR_FILENO + 2, F_GETFL) == -1 && errno == EBADF &&
+        fcntl(STDERR_FILENO + 3, F_GETFL) == -1 && errno == EBADF) {
+        if (virTestRun("Test activation names", testActivationFDNames, NULL) < 0)
+            ret = -1;
+        if (virTestRun("Test activation addrs", testActivationFDAddrs, NULL) < 0)
+            ret = -1;
+    } else {
+        VIR_INFO("Skipping activation tests as FD 3/4/5 is open");
+    }
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

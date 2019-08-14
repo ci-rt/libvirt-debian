@@ -101,7 +101,6 @@ struct _qemuMonitor {
 
     int nextSerial;
 
-    bool json;
     bool waitGreeting;
 
     /* cache of query-command-line-options results */
@@ -133,13 +132,7 @@ struct _qemuMonitor {
                            _("monitor must not be NULL")); \
             exit; \
         } \
-        VIR_DEBUG("mon:%p vm:%p json:%d fd:%d", \
-                  mon, mon->vm, mon->json, mon->fd); \
-        if (!mon->json) { \
-            virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s", \
-                           _("JSON monitor is required")); \
-            exit; \
-        } \
+        VIR_DEBUG("mon:%p vm:%p fd:%d", mon, mon->vm, mon->fd); \
     } while (0)
 
 /* Check monitor and return NULL on error */
@@ -809,7 +802,6 @@ static qemuMonitorPtr
 qemuMonitorOpenInternal(virDomainObjPtr vm,
                         int fd,
                         bool hasSendFD,
-                        bool json,
                         qemuMonitorCallbacksPtr cb,
                         void *opaque)
 {
@@ -840,9 +832,7 @@ qemuMonitorOpenInternal(virDomainObjPtr vm,
     mon->fd = fd;
     mon->hasSendFD = hasSendFD;
     mon->vm = virObjectRef(vm);
-    mon->json = json;
-    if (json)
-        mon->waitGreeting = true;
+    mon->waitGreeting = true;
     mon->cb = cb;
     mon->callbackOpaque = opaque;
 
@@ -893,7 +883,6 @@ qemuMonitorOpenInternal(virDomainObjPtr vm,
  * qemuMonitorOpen:
  * @vm: domain object
  * @config: monitor configuration
- * @json: enable JSON on the monitor
  * @timeout: number of seconds to add to default timeout
  * @cb: monitor event handles
  * @opaque: opaque data for @cb
@@ -909,7 +898,6 @@ qemuMonitorOpenInternal(virDomainObjPtr vm,
 qemuMonitorPtr
 qemuMonitorOpen(virDomainObjPtr vm,
                 virDomainChrSourceDefPtr config,
-                bool json,
                 bool retry,
                 unsigned long long timeout,
                 qemuMonitorCallbacksPtr cb,
@@ -941,7 +929,7 @@ qemuMonitorOpen(virDomainObjPtr vm,
         return NULL;
     }
 
-    ret = qemuMonitorOpenInternal(vm, fd, hasSendFD, json, cb, opaque);
+    ret = qemuMonitorOpenInternal(vm, fd, hasSendFD, cb, opaque);
     if (!ret)
         VIR_FORCE_CLOSE(fd);
     return ret;
@@ -951,11 +939,10 @@ qemuMonitorOpen(virDomainObjPtr vm,
 qemuMonitorPtr
 qemuMonitorOpenFD(virDomainObjPtr vm,
                   int sockfd,
-                  bool json,
                   qemuMonitorCallbacksPtr cb,
                   void *opaque)
 {
-    return qemuMonitorOpenInternal(vm, sockfd, true, json, cb, opaque);
+    return qemuMonitorOpenInternal(vm, sockfd, true, cb, opaque);
 }
 
 
@@ -1208,7 +1195,7 @@ qemuMonitorInitBalloonObjectPath(qemuMonitorPtr mon,
 
 /**
  * To update video memory size in status XML we need to load correct values from
- * QEMU.  This is supported only with JSON monitor.
+ * QEMU.
  *
  * Returns 0 on success, -1 on failure and sets proper error message.
  */
@@ -1217,34 +1204,28 @@ qemuMonitorUpdateVideoMemorySize(qemuMonitorPtr mon,
                                  virDomainVideoDefPtr video,
                                  const char *videoName)
 {
-    int ret = -1;
-    char *path = NULL;
+    int rc = -1;
+    VIR_AUTOFREE(char *) path = NULL;
 
     QEMU_CHECK_MONITOR(mon);
 
-    if (mon->json) {
-        ret = qemuMonitorJSONFindLinkPath(mon, videoName,
-                                          video->info.alias, &path);
-        if (ret < 0) {
-            if (ret == -2)
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Failed to find QOM Object path for "
-                                 "device '%s'"), videoName);
-            return -1;
-        }
-
-        ret = qemuMonitorJSONUpdateVideoMemorySize(mon, video, path);
-        VIR_FREE(path);
-        return ret;
+    rc = qemuMonitorJSONFindLinkPath(mon, videoName,
+                                     video->info.alias, &path);
+    if (rc < 0) {
+        if (rc == -2)
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to find QOM Object path for "
+                             "device '%s'"), videoName);
+        return -1;
     }
 
-    return 0;
+    return qemuMonitorJSONUpdateVideoMemorySize(mon, video, path);
 }
 
 
 /**
  * To update video vram64 size in status XML we need to load correct value from
- * QEMU.  This is supported only with JSON monitor.
+ * QEMU.
  *
  * Returns 0 on success, -1 on failure and sets proper error message.
  */
@@ -1253,28 +1234,22 @@ qemuMonitorUpdateVideoVram64Size(qemuMonitorPtr mon,
                                  virDomainVideoDefPtr video,
                                  const char *videoName)
 {
-    int ret = -1;
-    char *path = NULL;
+    int rc = -1;
+    VIR_AUTOFREE(char *) path = NULL;
 
     QEMU_CHECK_MONITOR(mon);
 
-    if (mon->json) {
-        ret = qemuMonitorJSONFindLinkPath(mon, videoName,
-                                          video->info.alias, &path);
-        if (ret < 0) {
-            if (ret == -2)
-                virReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Failed to find QOM Object path for "
-                                 "device '%s'"), videoName);
-            return -1;
-        }
-
-        ret = qemuMonitorJSONUpdateVideoVram64Size(mon, video, path);
-        VIR_FREE(path);
-        return ret;
+    rc = qemuMonitorJSONFindLinkPath(mon, videoName,
+                                     video->info.alias, &path);
+    if (rc < 0) {
+        if (rc == -2)
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to find QOM Object path for "
+                             "device '%s'"), videoName);
+        return -1;
     }
 
-    return 0;
+    return qemuMonitorJSONUpdateVideoVram64Size(mon, video, path);
 }
 
 
@@ -1529,6 +1504,19 @@ qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
 
 
 int
+qemuMonitorEmitJobStatusChange(qemuMonitorPtr mon,
+                               const char *jobname,
+                               qemuMonitorJobStatus status)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, jobStatusChange, mon->vm, jobname, status);
+    return ret;
+}
+
+
+int
 qemuMonitorEmitBalloonChange(qemuMonitorPtr mon,
                              unsigned long long actual)
 {
@@ -1710,9 +1698,6 @@ int
 qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 {
     QEMU_CHECK_MONITOR(mon);
-
-    if (!mon->json)
-        return 0;
 
     return qemuMonitorJSONSetCapabilities(mon);
 }
@@ -2026,9 +2011,6 @@ qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
     if (VIR_ALLOC_N(info, maxvcpus) < 0)
         return -1;
 
-    if (!mon->json)
-        hotplug = false;
-
     /* initialize a few non-zero defaults */
     qemuMonitorCPUInfoClear(info, maxvcpus);
 
@@ -2177,9 +2159,6 @@ qemuMonitorSetMemoryStatsPeriod(qemuMonitorPtr mon,
     VIR_DEBUG("mon=%p period=%d", mon, period);
 
     if (!mon)
-        return -1;
-
-    if (!mon->json)
         return -1;
 
     if (period < 0)
@@ -2706,10 +2685,6 @@ qemuMonitorGetDumpGuestMemoryCapability(qemuMonitorPtr mon,
     VIR_DEBUG("capability=%s", capability);
 
     QEMU_CHECK_MONITOR(mon);
-
-    /* No capability is supported without JSON monitor */
-    if (!mon->json)
-        return 0;
 
     return qemuMonitorJSONGetDumpGuestMemoryCapability(mon, capability);
 }
@@ -3244,39 +3219,41 @@ qemuMonitorDriveMirror(qemuMonitorPtr mon,
                        const char *device, const char *file,
                        const char *format, unsigned long long bandwidth,
                        unsigned int granularity, unsigned long long buf_size,
-                       unsigned int flags)
+                       bool shallow,
+                       bool reuse)
 {
     VIR_DEBUG("device=%s, file=%s, format=%s, bandwidth=%lld, "
-              "granularity=%#x, buf_size=%lld, flags=0x%x",
+              "granularity=%#x, buf_size=%lld, shallow=%d, reuse=%d",
               device, file, NULLSTR(format), bandwidth, granularity,
-              buf_size, flags);
+              buf_size, shallow, reuse);
 
     QEMU_CHECK_MONITOR(mon);
 
     return qemuMonitorJSONDriveMirror(mon, device, file, format, bandwidth,
-                                      granularity, buf_size, flags);
+                                      granularity, buf_size, shallow, reuse);
 }
 
 
 int
 qemuMonitorBlockdevMirror(qemuMonitorPtr mon,
                           const char *jobname,
+                          bool persistjob,
                           const char *device,
                           const char *target,
                           unsigned long long bandwidth,
                           unsigned int granularity,
                           unsigned long long buf_size,
-                          unsigned int flags)
+                          bool shallow)
 {
-    VIR_DEBUG("jobname=%s, device=%s, target=%s, bandwidth=%lld, "
-              "granularity=%#x, buf_size=%lld, flags=0x%x",
-              NULLSTR(jobname), device, target, bandwidth, granularity,
-              buf_size, flags);
+    VIR_DEBUG("jobname=%s, persistjob=%d, device=%s, target=%s, bandwidth=%lld, "
+              "granularity=%#x, buf_size=%lld, shallow=%d",
+              NULLSTR(jobname), persistjob, device, target, bandwidth, granularity,
+              buf_size, shallow);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONBlockdevMirror(mon, jobname, device, target, bandwidth,
-                                         granularity, buf_size, flags);
+    return qemuMonitorJSONBlockdevMirror(mon, jobname, persistjob, device, target,
+                                         bandwidth, granularity, buf_size, shallow);
 }
 
 
@@ -3294,18 +3271,27 @@ qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr *actions)
 
 /* Start a block-commit block job.  bandwidth is in bytes/sec.  */
 int
-qemuMonitorBlockCommit(qemuMonitorPtr mon, const char *device,
-                       const char *top, const char *base,
+qemuMonitorBlockCommit(qemuMonitorPtr mon,
+                       const char *device,
+                       const char *jobname,
+                       bool persistjob,
+                       const char *top,
+                       const char *topNode,
+                       const char *base,
+                       const char *baseNode,
                        const char *backingName,
                        unsigned long long bandwidth)
 {
-    VIR_DEBUG("device=%s, top=%s, base=%s, backingName=%s, bandwidth=%llu",
-              device, top, base, NULLSTR(backingName), bandwidth);
+    VIR_DEBUG("device=%s, jobname=%s, persistjob=%d, top=%s, topNode=%s, "
+              "base=%s, baseNode=%s, backingName=%s, bandwidth=%llu",
+              device, NULLSTR(jobname), persistjob, NULLSTR(top), NULLSTR(topNode),
+              NULLSTR(base), NULLSTR(baseNode), NULLSTR(backingName), bandwidth);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONBlockCommit(mon, device, top, base,
-                                         backingName, bandwidth);
+    return qemuMonitorJSONBlockCommit(mon, device, jobname, persistjob, top,
+                                      topNode, base, baseNode, backingName,
+                                      bandwidth);
 }
 
 
@@ -3313,7 +3299,7 @@ qemuMonitorBlockCommit(qemuMonitorPtr mon, const char *device,
 bool
 qemuMonitorSupportsActiveCommit(qemuMonitorPtr mon)
 {
-    if (!mon || !mon->json)
+    if (!mon)
         return false;
 
     return qemuMonitorJSONSupportsActiveCommit(mon);
@@ -3402,16 +3388,28 @@ qemuMonitorScreendump(qemuMonitorPtr mon,
 int
 qemuMonitorBlockStream(qemuMonitorPtr mon,
                        const char *device,
+                       const char *jobname,
+                       bool persistjob,
                        const char *base,
+                       const char *baseNode,
                        const char *backingName,
                        unsigned long long bandwidth)
 {
-    VIR_DEBUG("device=%s, base=%s, backingName=%s, bandwidth=%lluB",
-              device, NULLSTR(base), NULLSTR(backingName), bandwidth);
+    VIR_DEBUG("device=%s, jobname=%s, persistjob=%d, base=%s, baseNode=%s, "
+              "backingName=%s, bandwidth=%lluB",
+              device, NULLSTR(jobname), persistjob, NULLSTR(base),
+              NULLSTR(baseNode), NULLSTR(backingName), bandwidth);
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONBlockStream(mon, device, base, backingName, bandwidth);
+    if (base && baseNode) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("'base' and 'baseNode' can't be used together"));
+        return -1;
+    }
+
+    return qemuMonitorJSONBlockStream(mon, device, jobname, persistjob, base,
+                                      baseNode, backingName, bandwidth);
 }
 
 
@@ -3441,10 +3439,11 @@ qemuMonitorBlockJobSetSpeed(qemuMonitorPtr mon,
 
 
 virHashTablePtr
-qemuMonitorGetAllBlockJobInfo(qemuMonitorPtr mon)
+qemuMonitorGetAllBlockJobInfo(qemuMonitorPtr mon,
+                              bool rawjobname)
 {
     QEMU_CHECK_MONITOR_NULL(mon);
-    return qemuMonitorJSONGetAllBlockJobInfo(mon);
+    return qemuMonitorJSONGetAllBlockJobInfo(mon, rawjobname);
 }
 
 
@@ -3464,7 +3463,7 @@ qemuMonitorGetBlockJobInfo(qemuMonitorPtr mon,
 
     VIR_DEBUG("alias=%s, info=%p", alias, info);
 
-    if (!(all = qemuMonitorGetAllBlockJobInfo(mon)))
+    if (!(all = qemuMonitorGetAllBlockJobInfo(mon, true)))
         return -1;
 
     if ((data = virHashLookup(all, alias))) {
@@ -3474,6 +3473,43 @@ qemuMonitorGetBlockJobInfo(qemuMonitorPtr mon,
 
     virHashFree(all);
     return ret;
+}
+
+
+int
+qemuMonitorJobDismiss(qemuMonitorPtr mon,
+                      const char *jobname)
+{
+    VIR_DEBUG("jobname=%s", jobname);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONJobDismiss(mon, jobname);
+}
+
+
+int
+qemuMonitorJobCancel(qemuMonitorPtr mon,
+                     const char *jobname,
+                     bool quiet)
+{
+    VIR_DEBUG("jobname='%s' quiet=%d", jobname, quiet);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONJobCancel(mon, jobname, quiet);
+}
+
+
+int
+qemuMonitorJobComplete(qemuMonitorPtr mon,
+                       const char *jobname)
+{
+    VIR_DEBUG("jobname=%s", jobname);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONJobComplete(mon, jobname);
 }
 
 
@@ -3863,10 +3899,6 @@ qemuMonitorGetMigrationCapabilities(qemuMonitorPtr mon,
 {
     QEMU_CHECK_MONITOR(mon);
 
-    /* No capability is supported without JSON monitor */
-    if (!mon->json)
-        return 0;
-
     return qemuMonitorJSONGetMigrationCapabilities(mon, capabilities);
 }
 
@@ -3924,28 +3956,37 @@ qemuMonitorGetSEVCapabilities(qemuMonitorPtr mon,
 
 int
 qemuMonitorNBDServerStart(qemuMonitorPtr mon,
-                          const char *host,
-                          unsigned int port,
+                          const virStorageNetHostDef *server,
                           const char *tls_alias)
 {
-    VIR_DEBUG("host=%s port=%u tls_alias=%s", host, port, NULLSTR(tls_alias));
+    /* Peek inside the struct for nicer logging */
+    if (server->transport == VIR_STORAGE_NET_HOST_TRANS_TCP)
+        VIR_DEBUG("server={tcp host=%s port=%u} tls_alias=%s",
+                  NULLSTR(server->name), server->port, NULLSTR(tls_alias));
+    else
+        VIR_DEBUG("server={unix socket=%s} tls_alias=%s",
+                  NULLSTR(server->socket), NULLSTR(tls_alias));
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONNBDServerStart(mon, host, port, tls_alias);
+    return qemuMonitorJSONNBDServerStart(mon, server, tls_alias);
 }
 
 
 int
 qemuMonitorNBDServerAdd(qemuMonitorPtr mon,
                         const char *deviceID,
-                        bool writable)
+                        const char *export,
+                        bool writable,
+                        const char *bitmap)
 {
-    VIR_DEBUG("deviceID=%s", deviceID);
+    VIR_DEBUG("deviceID=%s, export=%s, bitmap=%s", deviceID, NULLSTR(export),
+              NULLSTR(bitmap));
 
     QEMU_CHECK_MONITOR(mon);
 
-    return qemuMonitorJSONNBDServerAdd(mon, deviceID, writable);
+    return qemuMonitorJSONNBDServerAdd(mon, deviceID, export, writable,
+                                       bitmap);
 }
 
 
@@ -4069,9 +4110,8 @@ qemuMonitorSetDomainLog(qemuMonitorPtr mon,
 
 
 /**
- * qemuMonitorJSONGetGuestCPU:
+ * qemuMonitorJSONGetGuestCPUx86:
  * @mon: Pointer to the monitor
- * @arch: arch of the guest
  * @data: returns the cpu data
  * @disabled: returns the CPU data for features which were disabled by QEMU
  *
@@ -4081,13 +4121,11 @@ qemuMonitorSetDomainLog(qemuMonitorPtr mon,
  * -1 on other errors.
  */
 int
-qemuMonitorGetGuestCPU(qemuMonitorPtr mon,
-                       virArch arch,
-                       virCPUDataPtr *data,
-                       virCPUDataPtr *disabled)
+qemuMonitorGetGuestCPUx86(qemuMonitorPtr mon,
+                          virCPUDataPtr *data,
+                          virCPUDataPtr *disabled)
 {
-    VIR_DEBUG("arch=%s data=%p disabled=%p",
-              virArchToString(arch), data, disabled);
+    VIR_DEBUG("data=%p disabled=%p", data, disabled);
 
     QEMU_CHECK_MONITOR(mon);
 
@@ -4095,7 +4133,43 @@ qemuMonitorGetGuestCPU(qemuMonitorPtr mon,
     if (disabled)
         *disabled = NULL;
 
-    return qemuMonitorJSONGetGuestCPU(mon, arch, data, disabled);
+    return qemuMonitorJSONGetGuestCPUx86(mon, data, disabled);
+}
+
+
+/**
+ * qemuMonitorGetGuestCPU:
+ * @mon: Pointer to the monitor
+ * @arch: CPU architecture
+ * @translate: callback for translating CPU feature names from QEMU to libvirt
+ * @opaque: data for @translate callback
+ * @enabled: returns the CPU data for all enabled features
+ * @disabled: returns the CPU data for features which we asked for
+ *      (either explicitly or via a named CPU model) but QEMU disabled them
+ *
+ * Retrieve the definition of the guest CPU from a running QEMU instance.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+qemuMonitorGetGuestCPU(qemuMonitorPtr mon,
+                       virArch arch,
+                       qemuMonitorCPUFeatureTranslationCallback translate,
+                       void *opaque,
+                       virCPUDataPtr *enabled,
+                       virCPUDataPtr *disabled)
+{
+    VIR_DEBUG("arch=%s translate=%p opaque=%p enabled=%p disabled=%p",
+              virArchToString(arch), translate, opaque, enabled, disabled);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    *enabled = NULL;
+    if (disabled)
+        *disabled = NULL;
+
+    return qemuMonitorJSONGetGuestCPU(mon, arch, translate, opaque,
+                                      enabled, disabled);
 }
 
 
@@ -4138,12 +4212,6 @@ qemuMonitorGetIOThreads(qemuMonitorPtr mon,
     VIR_DEBUG("iothreads=%p", iothreads);
 
     QEMU_CHECK_MONITOR(mon);
-
-    /* Requires JSON to make the query */
-    if (!mon->json) {
-        *iothreads = NULL;
-        return 0;
-    }
 
     return qemuMonitorJSONGetIOThreads(mon, iothreads);
 }
@@ -4190,9 +4258,6 @@ qemuMonitorGetMemoryDeviceInfo(qemuMonitorPtr mon,
     *info = NULL;
 
     QEMU_CHECK_MONITOR(mon);
-
-    if (!mon->json)
-        return -2;
 
     if (!(*info = virHashCreate(10, virHashValueFree)))
         return -1;
@@ -4355,6 +4420,36 @@ qemuMonitorSetWatchdogAction(qemuMonitorPtr mon,
 
 
 /**
+ * qemuMonitorBlockdevCreate:
+ * @mon: monitor object
+ * @jobname: name of the job
+ * @props: JSON object describing the blockdev to add
+ *
+ * Instructs qemu to create/format a new stroage or format layer. Note that
+ * the job does not add the created/formatted image into qemu and
+ * qemuMonitorBlockdevAdd needs to be called separately with corresponding
+ * arguments. Note that the arguments for creating and adding are different.
+ *
+ * Note that @props is always consumed by this function and should not be
+ * accessed after calling this function.
+ */
+int
+qemuMonitorBlockdevCreate(qemuMonitorPtr mon,
+                          const char *jobname,
+                          virJSONValuePtr props)
+{
+    VIR_DEBUG("jobname=%s props=%p", jobname, props);
+
+    QEMU_CHECK_MONITOR_GOTO(mon, error);
+
+    return qemuMonitorJSONBlockdevCreate(mon, jobname, props);
+
+ error:
+    virJSONValueFree(props);
+    return -1;
+}
+
+/**
  * qemuMonitorBlockdevAdd:
  * @mon: monitor object
  * @props: JSON object describing the blockdev to add
@@ -4481,4 +4576,78 @@ qemuMonitorGetCurrentMachineInfo(qemuMonitorPtr mon,
     QEMU_CHECK_MONITOR(mon);
 
     return qemuMonitorJSONGetCurrentMachineInfo(mon, info);
+}
+
+
+int
+qemuMonitorAddBitmap(qemuMonitorPtr mon,
+                     const char *node,
+                     const char *bitmap,
+                     bool persistent)
+{
+    VIR_DEBUG("node=%s bitmap=%s persistent=%d", node, bitmap, persistent);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONAddBitmap(mon, node, bitmap, persistent);
+}
+
+int
+qemuMonitorEnableBitmap(qemuMonitorPtr mon,
+                        const char *node,
+                        const char *bitmap)
+{
+    VIR_DEBUG("node=%s bitmap=%s", node, bitmap);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONEnableBitmap(mon, node, bitmap);
+}
+
+int
+qemuMonitorMergeBitmaps(qemuMonitorPtr mon,
+                        const char *node,
+                        const char *dst,
+                        virJSONValuePtr *src)
+{
+    VIR_DEBUG("node=%s dst=%s", node, dst);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONMergeBitmaps(mon, node, dst, src);
+}
+
+int
+qemuMonitorDeleteBitmap(qemuMonitorPtr mon,
+                        const char *node,
+                        const char *bitmap)
+{
+    VIR_DEBUG("node=%s bitmap=%s", node, bitmap);
+
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONDeleteBitmap(mon, node, bitmap);
+}
+
+
+void
+qemuMonitorJobInfoFree(qemuMonitorJobInfoPtr job)
+{
+    if (!job)
+        return;
+
+    VIR_FREE(job->id);
+    VIR_FREE(job->error);
+    VIR_FREE(job);
+}
+
+
+int
+qemuMonitorGetJobInfo(qemuMonitorPtr mon,
+                      qemuMonitorJobInfoPtr **jobs,
+                      size_t *njobs)
+{
+    QEMU_CHECK_MONITOR(mon);
+
+    return qemuMonitorJSONGetJobInfo(mon, jobs, njobs);
 }

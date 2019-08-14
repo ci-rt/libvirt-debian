@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>libvirt-interface: APIs for management of interfaces</title>
+    <meta name="generator" content="Libvirt devhelp stylesheet"/>
+    <link rel="start" href="index.html" title="libvirt Reference Manual"/>
+    <link rel="up" href="general.html" title="API"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="chapter" href="general.html" title="API"/>
+  </head>
+  <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+    <table class="navigation" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+      <tr valign="middle">
+        <td>
+          <a accesskey="p" href="libvirt-libvirt-host.html">
+            <img src="left.png" width="24" height="24" border="0" alt="Prev"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="u" href="general.html">
+            <img src="up.png" width="24" height="24" border="0" alt="Up"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="h" href="index.html">
+            <img src="home.png" width="24" height="24" border="0" alt="Home"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="n" href="libvirt-libvirt-network.html">
+            <img src="right.png" width="24" height="24" border="0" alt="Next"/>
+          </a>
+        </td>
+        <th width="100%" align="center">libvirt Reference Manual</th>
+      </tr>
+    </table>
+    <h2>
+      <span class="refentrytitle">libvirt-interface</span>
+    </h2>
+    <p>libvirt-interface - APIs for management of interfaces</p>
+    <p>Provides APIs for the management of interfaces  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <div class="refsynopsisdiv">
+      <h2>Synopsis</h2>
+      <pre class="synopsis">typedef enum <a href="#virConnectListAllInterfacesFlags">virConnectListAllInterfacesFlags</a>;
+typedef struct _virInterface <a href="#virInterface">virInterface</a>;
+typedef <a href="libvirt-libvirt-interface.html#virInterface">virInterface</a> * <a href="#virInterfacePtr">virInterfacePtr</a>;
+typedef enum <a href="#virInterfaceXMLFlags">virInterfaceXMLFlags</a>;
+int	<a href="#virConnectListAllInterfaces">virConnectListAllInterfaces</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> ** ifaces, <br/>					 unsigned int flags);
+int	<a href="#virConnectListDefinedInterfaces">virConnectListDefinedInterfaces</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
+int	<a href="#virConnectListInterfaces">virConnectListInterfaces</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
+int	<a href="#virConnectNumOfDefinedInterfaces">virConnectNumOfDefinedInterfaces</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectNumOfInterfaces">virConnectNumOfInterfaces</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virInterfaceChangeBegin">virInterfaceChangeBegin</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags);
+int	<a href="#virInterfaceChangeCommit">virInterfaceChangeCommit</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags);
+int	<a href="#virInterfaceChangeRollback">virInterfaceChangeRollback</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags);
+int	<a href="#virInterfaceCreate">virInterfaceCreate</a>		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface, <br/>					 unsigned int flags);
+<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a>	<a href="#virInterfaceDefineXML">virInterfaceDefineXML</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml, <br/>					 unsigned int flags);
+int	<a href="#virInterfaceDestroy">virInterfaceDestroy</a>		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface, <br/>					 unsigned int flags);
+int	<a href="#virInterfaceFree">virInterfaceFree</a>		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface);
+<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	<a href="#virInterfaceGetConnect">virInterfaceGetConnect</a>	(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface);
+const char *	<a href="#virInterfaceGetMACString">virInterfaceGetMACString</a>	(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface);
+const char *	<a href="#virInterfaceGetName">virInterfaceGetName</a>	(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface);
+char *	<a href="#virInterfaceGetXMLDesc">virInterfaceGetXMLDesc</a>		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface, <br/>					 unsigned int flags);
+int	<a href="#virInterfaceIsActive">virInterfaceIsActive</a>		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface);
+<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a>	<a href="#virInterfaceLookupByMACString">virInterfaceLookupByMACString</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * macstr);
+<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a>	<a href="#virInterfaceLookupByName">virInterfaceLookupByName</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * name);
+int	<a href="#virInterfaceRef">virInterfaceRef</a>			(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface);
+int	<a href="#virInterfaceUndefine">virInterfaceUndefine</a>		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface);
+</pre>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Description</h2>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Details</h2>
+      <div class="refsect2" lang="en">
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllInterfacesFlags">Enum </a>virConnectListAllInterfacesFlags</h3><pre class="programlisting">enum <a href="#virConnectListAllInterfacesFlags">virConnectListAllInterfacesFlags</a> {
+    <a name="VIR_CONNECT_LIST_INTERFACES_INACTIVE">VIR_CONNECT_LIST_INTERFACES_INACTIVE</a> = 1
+    <a name="VIR_CONNECT_LIST_INTERFACES_ACTIVE">VIR_CONNECT_LIST_INTERFACES_ACTIVE</a> = 2
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterface">Structure </a>virInterface</h3><pre class="programlisting">struct _virInterface {
+The content of this structure is not made public by the API.
+} virInterface;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfacePtr">Typedef </a>virInterfacePtr</h3><pre class="programlisting"><a href="libvirt-libvirt-interface.html#virInterface">virInterface</a> * virInterfacePtr;
+</pre><p>a <a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> is pointer to a <a href="libvirt-libvirt-interface.html#virInterface">virInterface</a> private structure, this is the type used to reference a virtual interface in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceXMLFlags">Enum </a>virInterfaceXMLFlags</h3><pre class="programlisting">enum <a href="#virInterfaceXMLFlags">virInterfaceXMLFlags</a> {
+    <a name="VIR_INTERFACE_XML_INACTIVE">VIR_INTERFACE_XML_INACTIVE</a> = 1 /* dump inactive interface information */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllInterfaces"/>virConnectListAllInterfaces ()</h3><pre class="programlisting">int	virConnectListAllInterfaces	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> ** ifaces, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect the list of interfaces, and allocate an array to store those
+objects. This API solves the race inherent between virConnectListInterfaces
+and virConnectListDefinedInterfaces.
+
+Normally, all interfaces are returned; however, @flags can be used to
+filter the results for a smaller list of targeted interfaces. The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a interface, and where all bits
+within a group describe all possible interfaces.
+
+The only group of @flags is <a href="libvirt-libvirt-interface.html#VIR_CONNECT_LIST_INTERFACES_ACTIVE">VIR_CONNECT_LIST_INTERFACES_ACTIVE</a> (up) and
+VIR_CONNECT_LIST_INTERFACES_INACTIVE (down) to filter the interfaces by state.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>ifaces</tt></i>:</span></td><td>Pointer to a variable to store the array containing the interface objects or NULL if the list is not required (just returns number of interfaces).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of virConnectListAllInterfacesFlags.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of interfaces found or -1 and sets @ifaces to NULL in case of error. On success, the array stored into @ifaces is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virStorageInterfaceFree() on each array element, then calling free() on @ifaces.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListDefinedInterfaces"/>virConnectListDefinedInterfaces ()</h3><pre class="programlisting">int	virConnectListDefinedInterfaces	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
+</pre><p>Collect the list of defined (inactive) physical host interfaces,
+and store their names in @names.
+
+For more control over the results, see virConnectListAllInterfaces().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of interfaces</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of names provided in the array or -1 in case of error. Note that this command is inherently racy; a interface can be defined between a call to virConnectNumOfDefinedInterfaces() and this call; you are only guaranteed that all currently defined interfaces were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListInterfaces"/>virConnectListInterfaces ()</h3><pre class="programlisting">int	virConnectListInterfaces	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
+</pre><p>Collect the list of active physical host interfaces,
+and store their names in @names
+
+For more control over the results, see virConnectListAllInterfaces().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of interfaces</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of interfaces found or -1 in case of error. Note that this command is inherently racy; a interface can be started between a call to virConnectNumOfInterfaces() and this call; you are only guaranteed that all currently active interfaces were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNumOfDefinedInterfaces"/>virConnectNumOfDefinedInterfaces ()</h3><pre class="programlisting">int	virConnectNumOfDefinedInterfaces	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Provides the number of defined (inactive) interfaces on the physical host.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of defined interface found or -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNumOfInterfaces"/>virConnectNumOfInterfaces ()</h3><pre class="programlisting">int	virConnectNumOfInterfaces	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Provides the number of active interfaces on the physical host.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of active interfaces found or -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceChangeBegin"/>virInterfaceChangeBegin ()</h3><pre class="programlisting">int	virInterfaceChangeBegin		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags)<br/>
+</pre><p>This function creates a restore point to which one can return
+later by calling virInterfaceChangeRollback(). This function should
+be called before any transaction with interface configuration.
+Once it is known that a new configuration works, it can be committed via
+virInterfaceChangeCommit(), which frees the restore point.
+
+If virInterfaceChangeBegin() is called when a transaction is
+already opened, this function will fail, and a
+VIR_ERR_INVALID_OPERATION will be logged.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceChangeCommit"/>virInterfaceChangeCommit ()</h3><pre class="programlisting">int	virInterfaceChangeCommit	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags)<br/>
+</pre><p>This commits the changes made to interfaces and frees the restore point
+created by virInterfaceChangeBegin().
+
+If virInterfaceChangeCommit() is called when a transaction is not
+opened, this function will fail, and a VIR_ERR_INVALID_OPERATION
+will be logged.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceChangeRollback"/>virInterfaceChangeRollback ()</h3><pre class="programlisting">int	virInterfaceChangeRollback	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags)<br/>
+</pre><p>This cancels changes made to interfaces settings by restoring previous
+state created by virInterfaceChangeBegin().
+
+If virInterfaceChangeRollback() is called when a transaction is not
+opened, this function will fail, and a VIR_ERR_INVALID_OPERATION
+will be logged.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceCreate"/>virInterfaceCreate ()</h3><pre class="programlisting">int	virInterfaceCreate		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface, <br/>					 unsigned int flags)<br/>
+</pre><p>Activate an interface (i.e. call "ifup").
+
+If there was an open network config transaction at the time this
+interface was defined (that is, if virInterfaceChangeBegin() had
+been called), the interface will be brought back down (and then
+undefined) if virInterfaceChangeRollback() is called.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>pointer to a defined interface</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceDefineXML"/>virInterfaceDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a>	virInterfaceDefineXML	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml, <br/>					 unsigned int flags)<br/>
+</pre><p>Define an inactive persistent physical host interface or modify an existing
+persistent one from the XML description.
+
+Normally this change in the interface configuration is immediately
+permanent/persistent, but if virInterfaceChangeBegin() has been
+previously called (i.e. if an interface config transaction is
+open), the new interface definition will only become permanent if
+virInterfaceChangeCommit() is called prior to the next reboot of
+the system running libvirtd. Prior to that time, it can be
+explicitly removed using virInterfaceChangeRollback(), or will be
+automatically removed during the next reboot of the system running
+libvirtd.
+
+virInterfaceFree should be used to free the resources after the
+interface object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>the XML description for the interface, preferably in UTF-8</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, a pointer to the interface otherwise</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceDestroy"/>virInterfaceDestroy ()</h3><pre class="programlisting">int	virInterfaceDestroy		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface, <br/>					 unsigned int flags)<br/>
+</pre><p>deactivate an interface (ie call "ifdown")
+This does not remove the interface from the config, and
+does not free the associated <a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> object.
+
+If there is an open network config transaction at the time this
+interface is destroyed (that is, if virInterfaceChangeBegin() had
+been called), and if the interface is later undefined and then
+virInterfaceChangeRollback() is called, the restoral of the
+interface definition will also bring the interface back up.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>an interface object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceFree"/>virInterfaceFree ()</h3><pre class="programlisting">int	virInterfaceFree		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface)<br/>
+</pre><p>Free the interface object. The interface itself is unaltered.
+The data structure is freed and should not be used thereafter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>an interface object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceGetConnect"/>virInterfaceGetConnect ()</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	virInterfaceGetConnect	(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface)<br/>
+</pre><p>Provides the connection pointer associated with an interface. The
+reference counter on the connection is not increased by this
+call.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>pointer to an interface</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the <a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> or NULL in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceGetMACString"/>virInterfaceGetMACString ()</h3><pre class="programlisting">const char *	virInterfaceGetMACString	(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface)<br/>
+</pre><p>Get the MAC for an interface as string. For more information about
+MAC see RFC4122.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>an interface object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the MAC address (in null-terminated ASCII format) or NULL, the string need not be deallocated its lifetime will be the same as the interface object.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceGetName"/>virInterfaceGetName ()</h3><pre class="programlisting">const char *	virInterfaceGetName	(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface)<br/>
+</pre><p>Get the public name for that interface</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>an interface object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the name or NULL, the string need not be deallocated its lifetime will be the same as the interface object.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceGetXMLDesc"/>virInterfaceGetXMLDesc ()</h3><pre class="programlisting">char *	virInterfaceGetXMLDesc		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface, <br/>					 unsigned int flags)<br/>
+</pre><p><a href="libvirt-libvirt-interface.html#VIR_INTERFACE_XML_INACTIVE">VIR_INTERFACE_XML_INACTIVE</a> - return the static configuration,
+ suitable for use redefining the
+ interface via virInterfaceDefineXML()
+
+Provide an XML description of the interface. If
+VIR_INTERFACE_XML_INACTIVE is set, the description may be reused
+later to redefine the interface with virInterfaceDefineXML(). If it
+is not set, the ip address and netmask will be the current live
+setting of the interface, not the settings from the config files.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>an interface object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of extraction flags. Current valid bits:</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. The caller must free() the returned value.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceIsActive"/>virInterfaceIsActive ()</h3><pre class="programlisting">int	virInterfaceIsActive		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface)<br/>
+</pre><p>Determine if the interface is currently running</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>pointer to the interface object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if running, 0 if inactive, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceLookupByMACString"/>virInterfaceLookupByMACString ()</h3><pre class="programlisting"><a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a>	virInterfaceLookupByMACString	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * macstr)<br/>
+</pre><p>Try to lookup an interface on the given hypervisor based on its MAC.
+
+virInterfaceFree should be used to free the resources after the
+interface object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>macstr</tt></i>:</span></td><td>the MAC for the interface (null-terminated ASCII format)</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new interface object or NULL in case of failure. If the interface cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_INTERFACE">VIR_ERR_NO_INTERFACE</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceLookupByName"/>virInterfaceLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a>	virInterfaceLookupByName	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * name)<br/>
+</pre><p>Try to lookup an interface on the given hypervisor based on its name.
+
+virInterfaceFree should be used to free the resources after the
+interface object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the interface</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new interface object or NULL in case of failure. If the interface cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_INTERFACE">VIR_ERR_NO_INTERFACE</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceRef"/>virInterfaceRef ()</h3><pre class="programlisting">int	virInterfaceRef			(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface)<br/>
+</pre><p>Increment the reference count on the interface. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt-interface.html#virInterfaceFree">virInterfaceFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection remain open until all threads have finished using
+it. ie, each new thread using an interface would increment
+the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>the interface to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virInterfaceUndefine"/>virInterfaceUndefine ()</h3><pre class="programlisting">int	virInterfaceUndefine		(<a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> iface)<br/>
+</pre><p>Undefine an interface, ie remove it from the config.
+This does not free the associated <a href="libvirt-libvirt-interface.html#virInterfacePtr">virInterfacePtr</a> object.
+
+Normally this change in the interface configuration is
+permanent/persistent, but if virInterfaceChangeBegin() has been
+previously called (i.e. if an interface config transaction is
+open), the removal of the interface definition will only become
+permanent if virInterfaceChangeCommit() is called prior to the next
+reboot of the system running libvirtd. Prior to that time, the
+definition can be explicitly restored using
+virInterfaceChangeRollback(), or will be automatically restored
+during the next reboot of the system running libvirtd.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>iface</tt></i>:</span></td><td>pointer to a defined interface</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+      </div>
+    </div>
+  </body>
+</html>

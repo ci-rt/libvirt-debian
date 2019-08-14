@@ -131,9 +131,6 @@ virHostdevManagerDispose(void *obj)
 {
     virHostdevManagerPtr hostdevMgr = obj;
 
-    if (!hostdevMgr)
-        return;
-
     virObjectUnref(hostdevMgr->activePCIHostdevs);
     virObjectUnref(hostdevMgr->inactivePCIHostdevs);
     virObjectUnref(hostdevMgr->activeUSBHostdevs);
@@ -146,49 +143,49 @@ virHostdevManagerDispose(void *obj)
 static virHostdevManagerPtr
 virHostdevManagerNew(void)
 {
-    virHostdevManagerPtr hostdevMgr;
+    VIR_AUTOUNREF(virHostdevManagerPtr) hostdevMgr = NULL;
     bool privileged = geteuid() == 0;
 
     if (!(hostdevMgr = virObjectNew(virHostdevManagerClass)))
         return NULL;
 
     if (!(hostdevMgr->activePCIHostdevs = virPCIDeviceListNew()))
-        goto error;
+        return NULL;
 
     if (!(hostdevMgr->activeUSBHostdevs = virUSBDeviceListNew()))
-        goto error;
+        return NULL;
 
     if (!(hostdevMgr->inactivePCIHostdevs = virPCIDeviceListNew()))
-        goto error;
+        return NULL;
 
     if (!(hostdevMgr->activeSCSIHostdevs = virSCSIDeviceListNew()))
-        goto error;
+        return NULL;
 
     if (!(hostdevMgr->activeSCSIVHostHostdevs = virSCSIVHostDeviceListNew()))
-        goto error;
+        return NULL;
 
     if (!(hostdevMgr->activeMediatedHostdevs = virMediatedDeviceListNew()))
-        goto error;
+        return NULL;
 
     if (privileged) {
         if (VIR_STRDUP(hostdevMgr->stateDir, HOSTDEV_STATE_DIR) < 0)
-            goto error;
+            return NULL;
 
         if (virFileMakePath(hostdevMgr->stateDir) < 0) {
             virReportError(VIR_ERR_OPERATION_FAILED,
                            _("Failed to create state dir '%s'"),
                            hostdevMgr->stateDir);
-            goto error;
+            return NULL;
         }
     } else {
         VIR_AUTOFREE(char *) rundir = NULL;
         mode_t old_umask;
 
         if (!(rundir = virGetUserRuntimeDirectory()))
-            goto error;
+            return NULL;
 
         if (virAsprintf(&hostdevMgr->stateDir, "%s/hostdevmgr", rundir) < 0)
-            goto error;
+            return NULL;
 
         old_umask = umask(077);
 
@@ -197,16 +194,12 @@ virHostdevManagerNew(void)
             virReportError(VIR_ERR_OPERATION_FAILED,
                            _("Failed to create state dir '%s'"),
                            hostdevMgr->stateDir);
-            goto error;
+            return NULL;
         }
         umask(old_umask);
     }
 
-    return hostdevMgr;
-
- error:
-    virObjectUnref(hostdevMgr);
-    return NULL;
+    VIR_RETURN_PTR(hostdevMgr);
 }
 
 virHostdevManagerPtr
@@ -221,7 +214,7 @@ virHostdevManagerGetDefault(void)
 static virPCIDeviceListPtr
 virHostdevGetPCIHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
 {
-    virPCIDeviceListPtr pcidevs;
+    VIR_AUTOUNREF(virPCIDeviceListPtr) pcidevs = NULL;
     size_t i;
 
     if (!(pcidevs = virPCIDeviceListNew()))
@@ -230,7 +223,7 @@ virHostdevGetPCIHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
         virDomainHostdevSubsysPCIPtr pcisrc = &hostdev->source.subsys.u.pci;
-        virPCIDevicePtr pci;
+        VIR_AUTOPTR(virPCIDevice) pci = NULL;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
@@ -239,15 +232,8 @@ virHostdevGetPCIHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
 
         pci = virPCIDeviceNew(pcisrc->addr.domain, pcisrc->addr.bus,
                               pcisrc->addr.slot, pcisrc->addr.function);
-        if (!pci) {
-            virObjectUnref(pcidevs);
+        if (!pci)
             return NULL;
-        }
-        if (virPCIDeviceListAdd(pcidevs, pci) < 0) {
-            virPCIDeviceFree(pci);
-            virObjectUnref(pcidevs);
-            return NULL;
-        }
 
         virPCIDeviceSetManaged(pci, hostdev->managed);
 
@@ -257,9 +243,13 @@ virHostdevGetPCIHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
             virPCIDeviceSetStubDriver(pci, VIR_PCI_STUB_DRIVER_XEN);
         else
             virPCIDeviceSetStubDriver(pci, VIR_PCI_STUB_DRIVER_KVM);
+
+        if (virPCIDeviceListAdd(pcidevs, pci) < 0)
+            return NULL;
+        pci = NULL;
     }
 
-    return pcidevs;
+    VIR_RETURN_PTR(pcidevs);
 }
 
 
@@ -632,7 +622,7 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr mgr,
                             int nhostdevs,
                             unsigned int flags)
 {
-    virPCIDeviceListPtr pcidevs = NULL;
+    VIR_AUTOUNREF(virPCIDeviceListPtr) pcidevs = NULL;
     int last_processed_hostdev_vf = -1;
     size_t i;
     int ret = -1;
@@ -641,11 +631,11 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr mgr,
     if (!nhostdevs)
         return 0;
 
+    if (!(pcidevs = virHostdevGetPCIHostDeviceList(hostdevs, nhostdevs)))
+        return -1;
+
     virObjectLock(mgr->activePCIHostdevs);
     virObjectLock(mgr->inactivePCIHostdevs);
-
-    if (!(pcidevs = virHostdevGetPCIHostDeviceList(hostdevs, nhostdevs)))
-        goto cleanup;
 
     /* Detaching devices from the host involves several steps; each
      * of them is described at length below.
@@ -914,7 +904,6 @@ virHostdevPreparePCIDevices(virHostdevManagerPtr mgr,
     }
 
  cleanup:
-    virObjectUnref(pcidevs);
     virObjectUnlock(mgr->activePCIHostdevs);
     virObjectUnlock(mgr->inactivePCIHostdevs);
 
@@ -959,21 +948,21 @@ virHostdevReAttachPCIDevices(virHostdevManagerPtr mgr,
                              int nhostdevs,
                              const char *oldStateDir)
 {
-    virPCIDeviceListPtr pcidevs;
+    VIR_AUTOUNREF(virPCIDeviceListPtr) pcidevs = NULL;
     size_t i;
 
     if (!nhostdevs)
         return;
 
-    virObjectLock(mgr->activePCIHostdevs);
-    virObjectLock(mgr->inactivePCIHostdevs);
-
     if (!(pcidevs = virHostdevGetPCIHostDeviceList(hostdevs, nhostdevs))) {
         VIR_ERROR(_("Failed to allocate PCI device list: %s"),
                   virGetLastErrorMessage());
         virResetLastError();
-        goto cleanup;
+        return;
     }
+
+    virObjectLock(mgr->activePCIHostdevs);
+    virObjectLock(mgr->inactivePCIHostdevs);
 
     /* Reattaching devices to the host involves several steps; each
      * of them is described at length below */
@@ -1090,10 +1079,9 @@ virHostdevReAttachPCIDevices(virHostdevManagerPtr mgr,
                       virPCIDeviceGetName(actual));
     }
 
- cleanup:
-    virObjectUnref(pcidevs);
     virObjectUnlock(mgr->activePCIHostdevs);
     virObjectUnlock(mgr->inactivePCIHostdevs);
+    virObjectUnref(pcidevs);
 }
 
 int
@@ -1174,7 +1162,7 @@ virHostdevUpdateActiveUSBDevices(virHostdevManagerPtr mgr,
     virObjectLock(mgr->activeUSBHostdevs);
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevSubsysUSBPtr usbsrc;
-        virUSBDevicePtr usb = NULL;
+        VIR_AUTOPTR(virUSBDevice) usb = NULL;
         hostdev = hostdevs[i];
         usbsrc = &hostdev->source.subsys.u.usb;
 
@@ -1191,10 +1179,9 @@ virHostdevUpdateActiveUSBDevices(virHostdevManagerPtr mgr,
 
         virUSBDeviceSetUsedBy(usb, drv_name, dom_name);
 
-        if (virUSBDeviceListAdd(mgr->activeUSBHostdevs, &usb) < 0) {
-            virUSBDeviceFree(usb);
+        if (virUSBDeviceListAdd(mgr->activeUSBHostdevs, &usb) < 0)
             goto cleanup;
-        }
+        usb = NULL;
     }
     ret = 0;
  cleanup:
@@ -1210,7 +1197,7 @@ virHostdevUpdateActiveSCSIHostDevices(virHostdevManagerPtr mgr,
                                       const char *dom_name)
 {
     virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
-    virSCSIDevicePtr scsi = NULL;
+    VIR_AUTOPTR(virSCSIDevice) scsi = NULL;
     virSCSIDevicePtr tmp = NULL;
 
     if (!(scsi = virSCSIDeviceNew(NULL,
@@ -1220,17 +1207,13 @@ virHostdevUpdateActiveSCSIHostDevices(virHostdevManagerPtr mgr,
         return -1;
 
     if ((tmp = virSCSIDeviceListFind(mgr->activeSCSIHostdevs, scsi))) {
-        if (virSCSIDeviceSetUsedBy(tmp, drv_name, dom_name) < 0) {
-            virSCSIDeviceFree(scsi);
+        if (virSCSIDeviceSetUsedBy(tmp, drv_name, dom_name) < 0)
             return -1;
-        }
-        virSCSIDeviceFree(scsi);
     } else {
         if (virSCSIDeviceSetUsedBy(scsi, drv_name, dom_name) < 0 ||
-            virSCSIDeviceListAdd(mgr->activeSCSIHostdevs, scsi) < 0) {
-            virSCSIDeviceFree(scsi);
+            virSCSIDeviceListAdd(mgr->activeSCSIHostdevs, scsi) < 0)
             return -1;
-        }
+        scsi = NULL;
     }
     return 0;
 }
@@ -1409,19 +1392,12 @@ virHostdevFindUSBDevice(virDomainHostdevDefPtr hostdev,
      * automatically found before.
      */
     if (vendor) {
-        virUSBDeviceListPtr devs;
+        VIR_AUTOUNREF(virUSBDeviceListPtr) devs = NULL;
 
         rc = virUSBDeviceFindByVendor(vendor, product, NULL, mandatory, &devs);
-        if (rc < 0)
+        if (rc < 0) {
             return -1;
-
-        if (rc == 1) {
-            *usb = virUSBDeviceListGet(devs, 0);
-            virUSBDeviceListSteal(devs, *usb);
-        }
-        virObjectUnref(devs);
-
-        if (rc == 0) {
+        } else if (rc == 0) {
             goto out;
         } else if (rc > 1) {
             if (autoAddress) {
@@ -1437,6 +1413,9 @@ virHostdevFindUSBDevice(virDomainHostdevDefPtr hostdev,
             }
             return -1;
         }
+
+        *usb = virUSBDeviceListGet(devs, 0);
+        virUSBDeviceListSteal(devs, *usb);
 
         usbsrc->bus = virUSBDeviceGetBus(*usb);
         usbsrc->device = virUSBDeviceGetDevno(*usb);
@@ -1469,8 +1448,7 @@ virHostdevPrepareUSBDevices(virHostdevManagerPtr mgr,
                             unsigned int flags)
 {
     size_t i;
-    int ret = -1;
-    virUSBDeviceListPtr list;
+    VIR_AUTOUNREF(virUSBDeviceListPtr) list = NULL;
     virUSBDevicePtr tmp;
     bool coldBoot = !!(flags & VIR_HOSTDEV_COLD_BOOT);
 
@@ -1483,14 +1461,14 @@ virHostdevPrepareUSBDevices(virHostdevManagerPtr mgr,
      * loop. See virHostdevPreparePCIDevices()
      */
     if (!(list = virUSBDeviceListNew()))
-        goto cleanup;
+        return -1;
 
     /* Loop 1: build temporary list
      */
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
         bool required = true;
-        virUSBDevicePtr usb;
+        VIR_AUTOPTR(virUSBDevice) usb = NULL;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
@@ -1503,12 +1481,11 @@ virHostdevPrepareUSBDevices(virHostdevManagerPtr mgr,
             required = false;
 
         if (virHostdevFindUSBDevice(hostdev, required, &usb) < 0)
-            goto cleanup;
+            return -1;
 
-        if (usb && virUSBDeviceListAdd(list, &usb) < 0) {
-            virUSBDeviceFree(usb);
-            goto cleanup;
-        }
+        if (usb && virUSBDeviceListAdd(list, &usb) < 0)
+            return -1;
+        usb = NULL;
     }
 
     /* Mark devices in temporary list as used by @dom_name
@@ -1516,7 +1493,7 @@ virHostdevPrepareUSBDevices(virHostdevManagerPtr mgr,
      * wrong, perform rollback.
      */
     if (virHostdevMarkUSBDevices(mgr, drv_name, dom_name, list) < 0)
-        goto cleanup;
+        return -1;
 
     /* Loop 2: Temporary list was successfully merged with
      * driver list, so steal all items to avoid freeing them
@@ -1527,11 +1504,7 @@ virHostdevPrepareUSBDevices(virHostdevManagerPtr mgr,
         virUSBDeviceListSteal(list, tmp);
     }
 
-    ret = 0;
-
- cleanup:
-    virObjectUnref(list);
-    return ret;
+    return 0;
 }
 
 static int
@@ -1540,7 +1513,7 @@ virHostdevPrepareSCSIHostDevices(virDomainHostdevDefPtr hostdev,
                                  virSCSIDeviceListPtr list)
 {
     virDomainHostdevSubsysSCSIHostPtr scsihostsrc = &scsisrc->u.host;
-    virSCSIDevicePtr scsi;
+    VIR_AUTOPTR(virSCSIDevice) scsi = NULL;
 
     if (hostdev->managed) {
         virReportError(VIR_ERR_XML_ERROR, "%s",
@@ -1554,10 +1527,9 @@ virHostdevPrepareSCSIHostDevices(virDomainHostdevDefPtr hostdev,
                                   hostdev->readonly, hostdev->shareable)))
         return -1;
 
-    if (virSCSIDeviceListAdd(list, scsi) < 0) {
-        virSCSIDeviceFree(scsi);
+    if (virSCSIDeviceListAdd(list, scsi) < 0)
         return -1;
-    }
+    scsi = NULL;
 
     return 0;
 }
@@ -1571,7 +1543,7 @@ virHostdevPrepareSCSIDevices(virHostdevManagerPtr mgr,
 {
     size_t i, j;
     int count;
-    virSCSIDeviceListPtr list;
+    VIR_AUTOUNREF(virSCSIDeviceListPtr) list = NULL;
     virSCSIDevicePtr tmp;
 
     if (!nhostdevs)
@@ -1583,7 +1555,7 @@ virHostdevPrepareSCSIDevices(virHostdevManagerPtr mgr,
      * loop. See virHostdevPreparePCIDevices()
      */
     if (!(list = virSCSIDeviceListNew()))
-        goto cleanup;
+        return -1;
 
     /* Loop 1: build temporary list */
     for (i = 0; i < nhostdevs; i++) {
@@ -1597,7 +1569,7 @@ virHostdevPrepareSCSIDevices(virHostdevManagerPtr mgr,
             continue;  /* Not supported for iSCSI */
         } else {
             if (virHostdevPrepareSCSIHostDevices(hostdev, scsisrc, list) < 0)
-                goto cleanup;
+                return -1;
         }
     }
 
@@ -1648,7 +1620,6 @@ virHostdevPrepareSCSIDevices(virHostdevManagerPtr mgr,
         virSCSIDeviceListSteal(list, tmp);
     }
 
-    virObjectUnref(list);
     return 0;
 
  error:
@@ -1657,8 +1628,6 @@ virHostdevPrepareSCSIDevices(virHostdevManagerPtr mgr,
         virSCSIDeviceListSteal(mgr->activeSCSIHostdevs, tmp);
     }
     virObjectUnlock(mgr->activeSCSIHostdevs);
- cleanup:
-    virObjectUnref(list);
     return -1;
 }
 
@@ -1669,10 +1638,9 @@ virHostdevPrepareSCSIVHostDevices(virHostdevManagerPtr mgr,
                                   virDomainHostdevDefPtr *hostdevs,
                                   int nhostdevs)
 {
+    VIR_AUTOUNREF(virSCSIVHostDeviceListPtr) list = NULL;
+    virSCSIVHostDevicePtr tmp;
     size_t i, j;
-    int count;
-    virSCSIVHostDeviceListPtr list;
-    virSCSIVHostDevicePtr host, tmp;
 
     if (!nhostdevs)
         return 0;
@@ -1683,12 +1651,13 @@ virHostdevPrepareSCSIVHostDevices(virHostdevManagerPtr mgr,
      * loop. See virHostdevPreparePCIDevices()
      */
     if (!(list = virSCSIVHostDeviceListNew()))
-        goto cleanup;
+        return -1;
 
     /* Loop 1: build temporary list */
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
         virDomainHostdevSubsysSCSIVHostPtr hostsrc = &hostdev->source.subsys.u.scsi_host;
+        VIR_AUTOPTR(virSCSIVHostDevice) host = NULL;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
             hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_SCSI_HOST)
@@ -1698,12 +1667,14 @@ virHostdevPrepareSCSIVHostDevices(virHostdevManagerPtr mgr,
             continue;  /* Not supported */
 
         if (!(host = virSCSIVHostDeviceNew(hostsrc->wwpn)))
-            goto cleanup;
+            return -1;
 
-        if (virSCSIVHostDeviceListAdd(list, host) < 0) {
-            virSCSIVHostDeviceFree(host);
-            goto cleanup;
-        }
+        if (virSCSIVHostDeviceSetUsedBy(host, drv_name, dom_name) < 0)
+            return -1;
+
+        if (virSCSIVHostDeviceListAdd(list, host) < 0)
+            return -1;
+        host = NULL;
     }
 
     /* Loop 2: Mark devices in temporary list as used by @name
@@ -1711,27 +1682,15 @@ virHostdevPrepareSCSIVHostDevices(virHostdevManagerPtr mgr,
      * wrong, perform rollback.
      */
     virObjectLock(mgr->activeSCSIVHostHostdevs);
-    count = virSCSIVHostDeviceListCount(list);
 
-    for (i = 0; i < count; i++) {
-        host = virSCSIVHostDeviceListGet(list, i);
-        if ((tmp = virSCSIVHostDeviceListFind(mgr->activeSCSIVHostHostdevs,
-                                              host))) {
-            virReportError(VIR_ERR_OPERATION_INVALID,
-                           _("SCSI_host device %s is already in use by "
-                             "another domain"),
-                           virSCSIVHostDeviceGetName(tmp));
-            goto error;
-        } else {
-            if (virSCSIVHostDeviceSetUsedBy(host, drv_name, dom_name) < 0)
-                goto error;
+    for (i = 0; i < virSCSIVHostDeviceListCount(list); i++) {
+        tmp = virSCSIVHostDeviceListGet(list, i);
 
-            VIR_DEBUG("Adding %s to activeSCSIVHostHostdevs",
-                      virSCSIVHostDeviceGetName(host));
+        VIR_DEBUG("Adding %s to activeSCSIVHostHostdevs",
+                  virSCSIVHostDeviceGetName(tmp));
 
-            if (virSCSIVHostDeviceListAdd(mgr->activeSCSIVHostHostdevs, host) < 0)
-                goto error;
-        }
+        if (virSCSIVHostDeviceListAdd(mgr->activeSCSIVHostHostdevs, tmp) < 0)
+            goto rollback;
     }
 
     virObjectUnlock(mgr->activeSCSIVHostHostdevs);
@@ -1745,16 +1704,14 @@ virHostdevPrepareSCSIVHostDevices(virHostdevManagerPtr mgr,
         virSCSIVHostDeviceListSteal(list, tmp);
     }
 
-    virObjectUnref(list);
     return 0;
- error:
+
+ rollback:
     for (j = 0; j < i; j++) {
         tmp = virSCSIVHostDeviceListGet(list, i);
         virSCSIVHostDeviceListSteal(mgr->activeSCSIVHostHostdevs, tmp);
     }
     virObjectUnlock(mgr->activeSCSIVHostHostdevs);
- cleanup:
-    virObjectUnref(list);
     return -1;
 }
 
@@ -1767,8 +1724,7 @@ virHostdevPrepareMediatedDevices(virHostdevManagerPtr mgr,
                                  int nhostdevs)
 {
     size_t i;
-    int ret = -1;
-    virMediatedDeviceListPtr list;
+    VIR_AUTOUNREF(virMediatedDeviceListPtr) list = NULL;
 
     if (!nhostdevs)
         return 0;
@@ -1778,24 +1734,23 @@ virHostdevPrepareMediatedDevices(virHostdevManagerPtr mgr,
      * A device is appended to the driver list after a series of preparations.
      */
     if (!(list = virMediatedDeviceListNew()))
-        goto cleanup;
+        return -1;
 
     /* Loop 1: Build a temporary list of ALL mediated devices. */
     for (i = 0; i < nhostdevs; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
         virDomainHostdevSubsysMediatedDevPtr src = &hostdev->source.subsys.u.mdev;
-        virMediatedDevicePtr mdev;
+        VIR_AUTOPTR(virMediatedDevice) mdev = NULL;
 
         if (!virHostdevIsMdevDevice(hostdev))
             continue;
 
         if (!(mdev = virMediatedDeviceNew(src->uuidstr, src->model)))
-            goto cleanup;
+            return -1;
 
-        if (virMediatedDeviceListAdd(list, &mdev) < 0) {
-            virMediatedDeviceFree(mdev);
-            goto cleanup;
-        }
+        if (virMediatedDeviceListAdd(list, &mdev) < 0)
+            return -1;
+        mdev = NULL;
     }
 
     /* Mark the devices in the list as used by @drv_name-@dom_name and copy the
@@ -1803,7 +1758,7 @@ virHostdevPrepareMediatedDevices(virHostdevManagerPtr mgr,
      */
     if (virMediatedDeviceListMarkDevices(mgr->activeMediatedHostdevs,
                                          list, drv_name, dom_name) < 0)
-        goto cleanup;
+        return -1;
 
     /* Loop 2: Temporary list was successfully merged with
      * driver list, so steal all items to avoid freeing them
@@ -1814,10 +1769,7 @@ virHostdevPrepareMediatedDevices(virHostdevManagerPtr mgr,
         virMediatedDeviceListSteal(list, tmp);
     }
 
-    ret = 0;
- cleanup:
-    virObjectUnref(list);
-    return ret;
+    return 0;
 }
 
 void

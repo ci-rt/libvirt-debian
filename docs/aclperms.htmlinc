@@ -87,6 +87,10 @@
       <td>Write domain block</td>
     </tr>
     <tr>
+      <td><a name="perm_domain_checkpoint">checkpoint</a></td>
+      <td>Checkpoint domain</td>
+    </tr>
+    <tr>
       <td><a name="perm_domain_core_dump">core-dump</a></td>
       <td>Dump domain</td>
     </tr>
@@ -265,6 +269,10 @@
       <td>Save network</td>
     </tr>
     <tr>
+      <td><a name="perm_network_search_ports">search-ports</a></td>
+      <td>List network ports</td>
+    </tr>
+    <tr>
       <td><a name="perm_network_start">start</a></td>
       <td>Start network</td>
     </tr>
@@ -275,6 +283,37 @@
     <tr>
       <td><a name="perm_network_write">write</a></td>
       <td>Write network</td>
+    </tr>
+  </tbody>
+</table>
+<h3><a name="object_network_port">virNetworkPortPtr</a></h3>
+<table class="acl">
+  <thead>
+    <tr>
+      <th>Permission</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a name="perm_network_port_create">create</a></td>
+      <td>Create network port</td>
+    </tr>
+    <tr>
+      <td><a name="perm_network_port_delete">delete</a></td>
+      <td>Delete network port</td>
+    </tr>
+    <tr>
+      <td><a name="perm_network_port_getattr">getattr</a></td>
+      <td>Access network port</td>
+    </tr>
+    <tr>
+      <td><a name="perm_network_port_read">read</a></td>
+      <td>Read network port</td>
+    </tr>
+    <tr>
+      <td><a name="perm_network_port_write">write</a></td>
+      <td>Read network port</td>
     </tr>
   </tbody>
 </table>
@@ -323,22 +362,6 @@
   </thead>
   <tbody>
     <tr>
-      <td><a name="perm_nwfilter_binding_create">binding-create</a></td>
-      <td>Create network filter binding</td>
-    </tr>
-    <tr>
-      <td><a name="perm_nwfilter_binding_delete">binding-delete</a></td>
-      <td>Delete network filter binding</td>
-    </tr>
-    <tr>
-      <td><a name="perm_nwfilter_binding_getattr">binding-getattr</a></td>
-      <td>Access network filter</td>
-    </tr>
-    <tr>
-      <td><a name="perm_nwfilter_binding_read">binding-read</a></td>
-      <td>Read network filter binding</td>
-    </tr>
-    <tr>
       <td><a name="perm_nwfilter_delete">delete</a></td>
       <td>Delete network filter</td>
     </tr>
@@ -357,6 +380,33 @@
     <tr>
       <td><a name="perm_nwfilter_write">write</a></td>
       <td>Write network filter</td>
+    </tr>
+  </tbody>
+</table>
+<h3><a name="object_nwfilter_binding">virNWFilterBindingPtr</a></h3>
+<table class="acl">
+  <thead>
+    <tr>
+      <th>Permission</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a name="perm_nwfilter_binding_create">create</a></td>
+      <td>Create network filter binding</td>
+    </tr>
+    <tr>
+      <td><a name="perm_nwfilter_binding_delete">delete</a></td>
+      <td>Delete network filter binding</td>
+    </tr>
+    <tr>
+      <td><a name="perm_nwfilter_binding_getattr">getattr</a></td>
+      <td>Access network filter</td>
+    </tr>
+    <tr>
+      <td><a name="perm_nwfilter_binding_read">read</a></td>
+      <td>Read network filter binding</td>
     </tr>
   </tbody>
 </table>

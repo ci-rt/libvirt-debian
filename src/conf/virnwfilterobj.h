@@ -17,13 +17,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRNWFILTEROBJ_H
-# define LIBVIRT_VIRNWFILTEROBJ_H
+#pragma once
 
-# include "internal.h"
+#include "internal.h"
 
-# include "nwfilter_conf.h"
-# include "virnwfilterbindingobjlist.h"
+#include "nwfilter_conf.h"
+#include "virnwfilterbindingobjlist.h"
 
 typedef struct _virNWFilterObj virNWFilterObj;
 typedef virNWFilterObj *virNWFilterObjPtr;
@@ -37,10 +36,14 @@ struct _virNWFilterDriverState {
     virMutex lock;
     bool privileged;
 
+    /* pid file FD, ensures two copies of the driver can't use the same root */
+    int lockFD;
+
     virNWFilterObjListPtr nwfilters;
 
     virNWFilterBindingObjListPtr bindings;
 
+    char *stateDir;
     char *configDir;
     char *bindingDir;
 };
@@ -114,5 +117,3 @@ virNWFilterObjLock(virNWFilterObjPtr obj);
 
 void
 virNWFilterObjUnlock(virNWFilterObjPtr obj);
-
-#endif /* LIBVIRT_VIRNWFILTEROBJ_H */

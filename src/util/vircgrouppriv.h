@@ -58,6 +58,12 @@ struct _virCgroup {
     virCgroupV2Controller unified;
 };
 
+int virCgroupSetValueRaw(const char *path,
+                         const char *value);
+
+int virCgroupGetValueRaw(const char *path,
+                         char **value);
+
 int virCgroupSetValueStr(virCgroupPtr group,
                          int controller,
                          const char *key,
@@ -92,10 +98,8 @@ int virCgroupPartitionEscape(char **path);
 
 char *virCgroupGetBlockDevString(const char *path);
 
-int virCgroupGetValueForBlkDev(virCgroupPtr group,
-                               int controller,
-                               const char *key,
-                               const char *path,
+int virCgroupGetValueForBlkDev(const char *str,
+                               const char *devPath,
                                char **value);
 
 int virCgroupNew(pid_t pid,

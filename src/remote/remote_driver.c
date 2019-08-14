@@ -138,6 +138,7 @@ static int remoteAuthPolkit(virConnectPtr conn, struct private_data *priv,
 
 static virDomainPtr get_nonnull_domain(virConnectPtr conn, remote_nonnull_domain domain);
 static virNetworkPtr get_nonnull_network(virConnectPtr conn, remote_nonnull_network network);
+static virNetworkPortPtr get_nonnull_network_port(virConnectPtr conn, remote_nonnull_network_port port);
 static virNWFilterPtr get_nonnull_nwfilter(virConnectPtr conn, remote_nonnull_nwfilter nwfilter);
 static virNWFilterBindingPtr get_nonnull_nwfilter_binding(virConnectPtr conn, remote_nonnull_nwfilter_binding binding);
 static virInterfacePtr get_nonnull_interface(virConnectPtr conn, remote_nonnull_interface iface);
@@ -145,9 +146,11 @@ static virStoragePoolPtr get_nonnull_storage_pool(virConnectPtr conn, remote_non
 static virStorageVolPtr get_nonnull_storage_vol(virConnectPtr conn, remote_nonnull_storage_vol vol);
 static virNodeDevicePtr get_nonnull_node_device(virConnectPtr conn, remote_nonnull_node_device dev);
 static virSecretPtr get_nonnull_secret(virConnectPtr conn, remote_nonnull_secret secret);
+static virDomainCheckpointPtr get_nonnull_domain_checkpoint(virDomainPtr domain, remote_nonnull_domain_checkpoint checkpoint);
 static virDomainSnapshotPtr get_nonnull_domain_snapshot(virDomainPtr domain, remote_nonnull_domain_snapshot snapshot);
 static void make_nonnull_domain(remote_nonnull_domain *dom_dst, virDomainPtr dom_src);
 static void make_nonnull_network(remote_nonnull_network *net_dst, virNetworkPtr net_src);
+static void make_nonnull_network_port(remote_nonnull_network_port *port_dst, virNetworkPortPtr port_src);
 static void make_nonnull_interface(remote_nonnull_interface *interface_dst, virInterfacePtr interface_src);
 static void make_nonnull_storage_pool(remote_nonnull_storage_pool *pool_dst, virStoragePoolPtr vol_src);
 static void make_nonnull_storage_vol(remote_nonnull_storage_vol *vol_dst, virStorageVolPtr vol_src);
@@ -156,6 +159,7 @@ make_nonnull_node_device(remote_nonnull_node_device *dev_dst, virNodeDevicePtr d
 static void make_nonnull_secret(remote_nonnull_secret *secret_dst, virSecretPtr secret_src);
 static void make_nonnull_nwfilter(remote_nonnull_nwfilter *nwfilter_dst, virNWFilterPtr nwfilter_src);
 static void make_nonnull_nwfilter_binding(remote_nonnull_nwfilter_binding *binding_dst, virNWFilterBindingPtr binding_src);
+static void make_nonnull_domain_checkpoint(remote_nonnull_domain_checkpoint *checkpoint_dst, virDomainCheckpointPtr checkpoint_src);
 static void make_nonnull_domain_snapshot(remote_nonnull_domain_snapshot *snapshot_dst, virDomainSnapshotPtr snapshot_src);
 
 /*----------------------------------------------------------------------*/
@@ -784,9 +788,26 @@ doRemoteOpen(virConnectPtr conn,
         trans_libssh,
     } transport;
 #ifndef WIN32
-    char *daemonPath = NULL;
+    VIR_AUTOFREE(char *) daemonPath = NULL;
 #endif
-    char *tls_priority = NULL;
+    VIR_AUTOFREE(char *) tls_priority = NULL;
+    VIR_AUTOFREE(char *) name = NULL;
+    VIR_AUTOFREE(char *) command = NULL;
+    VIR_AUTOFREE(char *) sockname = NULL;
+    VIR_AUTOFREE(char *) netcat = NULL;
+    VIR_AUTOFREE(char *) port = NULL;
+    VIR_AUTOFREE(char *) authtype = NULL;
+    VIR_AUTOFREE(char *) username = NULL;
+    VIR_AUTOFREE(char *) pkipath = NULL;
+    VIR_AUTOFREE(char *) keyfile = NULL;
+    VIR_AUTOFREE(char *) sshauth = NULL;
+    VIR_AUTOFREE(char *) knownHostsVerify = NULL;
+    VIR_AUTOFREE(char *) knownHosts = NULL;
+    bool sanity = true;
+    bool verify = true;
+#ifndef WIN32
+    bool tty = true;
+#endif
 
     /* We handle *ALL* URIs here. The caller has rejected any
      * URIs we don't care about */
@@ -823,7 +844,7 @@ doRemoteOpen(virConnectPtr conn,
             } else {
                 virReportError(VIR_ERR_INVALID_ARG, "%s",
                                _("remote_open: transport in URL not recognised "
-                                 "(should be tls|unix|ssh|ext|tcp|libssh2)"));
+                                 "(should be tls|unix|ssh|ext|tcp|libssh2|libssh)"));
                 return VIR_DRV_OPEN_ERROR;
             }
         }
@@ -846,18 +867,6 @@ doRemoteOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_ERROR;
     }
 
-    /* Local variables which we will initialize. These can
-     * get freed in the failed: path.
-     */
-    char *name = NULL, *command = NULL, *sockname = NULL, *netcat = NULL;
-    char *port = NULL, *authtype = NULL, *username = NULL;
-    bool sanity = true, verify = true, tty ATTRIBUTE_UNUSED = true;
-    char *pkipath = NULL, *keyfile = NULL, *sshauth = NULL;
-
-    char *knownHostsVerify = NULL,  *knownHosts = NULL;
-
-    /* Return code from this function, and the private data. */
-    int retcode = VIR_DRV_OPEN_ERROR;
 
     /* Remote server defaults to "localhost" if not specified. */
     if (conn->uri && conn->uri->port != 0) {
@@ -903,7 +912,9 @@ doRemoteOpen(virConnectPtr conn,
 
             EXTRACT_URI_ARG_BOOL("no_sanity", sanity);
             EXTRACT_URI_ARG_BOOL("no_verify", verify);
+#ifndef WIN32
             EXTRACT_URI_ARG_BOOL("no_tty", tty);
+#endif
 
             if (STRCASEEQ(var->name, "authfile")) {
                 /* Strip this param, used by virauth.c */
@@ -998,7 +1009,7 @@ doRemoteOpen(virConnectPtr conn,
     case trans_libssh2:
         if (!sockname) {
             /* Right now we don't support default session connections */
-            if (STREQ_NULLABLE(conn->uri->path, "/session")) {
+            if (flags & VIR_DRV_OPEN_REMOTE_USER) {
                 virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                                _("Connecting to session instance without "
                                  "socket path is not supported by the libssh2 "
@@ -1033,7 +1044,7 @@ doRemoteOpen(virConnectPtr conn,
     case trans_libssh:
         if (!sockname) {
             /* Right now we don't support default session connections */
-            if (STREQ_NULLABLE(conn->uri->path, "/session")) {
+            if (flags & VIR_DRV_OPEN_REMOTE_USER) {
                 virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                                _("Connecting to session instance without "
                                  "socket path is not supported by the libssh "
@@ -1098,7 +1109,7 @@ doRemoteOpen(virConnectPtr conn,
 
         if (!sockname) {
             /* Right now we don't support default session connections */
-            if (STREQ_NULLABLE(conn->uri->path, "/session")) {
+            if (flags & VIR_DRV_OPEN_REMOTE_USER) {
                 virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
                                _("Connecting to session instance without "
                                  "socket path is not supported by the ssh "
@@ -1251,29 +1262,7 @@ doRemoteOpen(virConnectPtr conn,
                  "by the remote side.");
     }
 
-    /* Successful. */
-    retcode = VIR_DRV_OPEN_SUCCESS;
-
- cleanup:
-    /* Free up the URL and strings. */
-    VIR_FREE(name);
-    VIR_FREE(command);
-    VIR_FREE(sockname);
-    VIR_FREE(authtype);
-    VIR_FREE(netcat);
-    VIR_FREE(sshauth);
-    VIR_FREE(keyfile);
-    VIR_FREE(username);
-    VIR_FREE(port);
-    VIR_FREE(pkipath);
-    VIR_FREE(tls_priority);
-    VIR_FREE(knownHostsVerify);
-    VIR_FREE(knownHosts);
-#ifndef WIN32
-    VIR_FREE(daemonPath);
-#endif
-
-    return retcode;
+    return VIR_DRV_OPEN_SUCCESS;
 
  failed:
     virObjectUnref(priv->remoteProgram);
@@ -1290,7 +1279,7 @@ doRemoteOpen(virConnectPtr conn,
 #endif
 
     VIR_FREE(priv->hostname);
-    goto cleanup;
+    return VIR_DRV_OPEN_ERROR;
 }
 #undef EXTRACT_URI_ARG_STR
 #undef EXTRACT_URI_ARG_BOOL
@@ -1343,25 +1332,35 @@ remoteConnectOpen(virConnectPtr conn,
         rflags |= VIR_DRV_OPEN_REMOTE_RO;
 
     /*
-     * If no servername is given, and no +XXX
-     * transport is listed, or transport is unix,
-     * and path is /session, and uid is unprivileged
-     * then auto-spawn a daemon.
+     * User session daemon is used for
+     *
+     *  - Any URI with /session suffix
+     *  - Test driver, if a protocol is given
+     *
+     * provided we are running non-root
      */
     if (conn->uri &&
-        !conn->uri->server &&
         conn->uri->path &&
         conn->uri->scheme &&
-        (transport == NULL || STREQ(transport, "unix")) &&
         (STREQ(conn->uri->path, "/session") ||
          STRPREFIX(conn->uri->scheme, "test+")) &&
         geteuid() > 0) {
-        VIR_DEBUG("Auto-spawn user daemon instance");
+        VIR_DEBUG("User session daemon required");
         rflags |= VIR_DRV_OPEN_REMOTE_USER;
+
+        /*
+         * Furthermore if no servername is given, and no +XXX
+         * transport is listed, or transport is unix,
+         * and uid is unprivileged then auto-spawn a daemon.
+         */
         if (!virIsSUID() &&
+            !conn->uri->server &&
+            (transport == NULL || STREQ(transport, "unix")) &&
             (!autostart ||
-             STRNEQ(autostart, "0")))
+             STRNEQ(autostart, "0"))) {
+            VIR_DEBUG("Try daemon autostart");
             rflags |= VIR_DRV_OPEN_REMOTE_AUTOSTART;
+        }
     }
 
     /*
@@ -8132,6 +8131,45 @@ remoteStorageVolGetInfoFlags(virStorageVolPtr vol,
 }
 
 
+static int
+remoteNetworkPortGetParameters(virNetworkPortPtr port,
+                               virTypedParameterPtr *params,
+                               int *nparams,
+                               unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = port->net->conn->privateData;
+    remote_network_port_get_parameters_args args;
+    remote_network_port_get_parameters_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_network_port(&args.port, port);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+    if (call(port->net->conn, priv, 0, REMOTE_PROC_NETWORK_PORT_GET_PARAMETERS,
+             (xdrproc_t) xdr_remote_network_port_get_parameters_args, (char *) &args,
+             (xdrproc_t) xdr_remote_network_port_get_parameters_ret, (char *) &ret) == -1)
+        goto done;
+
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) ret.params.params_val,
+                                  ret.params.params_len,
+                                  REMOTE_NETWORK_PORT_PARAMETERS_MAX,
+                                  params,
+                                  nparams) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+ cleanup:
+    xdr_free((xdrproc_t) xdr_remote_network_port_get_parameters_ret, (char *) &ret);
+ done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
  * (name, uuid) pair into virDomainPtr or virNetworkPtr object.
  * These can return NULL if underlying memory allocations fail,
@@ -8147,6 +8185,19 @@ static virNetworkPtr
 get_nonnull_network(virConnectPtr conn, remote_nonnull_network network)
 {
     return virGetNetwork(conn, network.name, BAD_CAST network.uuid);
+}
+
+static virNetworkPortPtr
+get_nonnull_network_port(virConnectPtr conn, remote_nonnull_network_port port)
+{
+    virNetworkPortPtr ret;
+    virNetworkPtr net;
+    net = virGetNetwork(conn, port.net.name, BAD_CAST port.net.uuid);
+    if (!net)
+        return NULL;
+    ret = virGetNetworkPort(net, BAD_CAST port.uuid);
+    virObjectUnref(net);
+    return ret;
 }
 
 static virInterfacePtr
@@ -8193,6 +8244,12 @@ get_nonnull_nwfilter_binding(virConnectPtr conn, remote_nonnull_nwfilter_binding
     return virGetNWFilterBinding(conn, binding.portdev, binding.filtername);
 }
 
+static virDomainCheckpointPtr
+get_nonnull_domain_checkpoint(virDomainPtr domain, remote_nonnull_domain_checkpoint checkpoint)
+{
+    return virGetDomainCheckpoint(domain, checkpoint.name);
+}
+
 static virDomainSnapshotPtr
 get_nonnull_domain_snapshot(virDomainPtr domain, remote_nonnull_domain_snapshot snapshot)
 {
@@ -8214,6 +8271,14 @@ make_nonnull_network(remote_nonnull_network *net_dst, virNetworkPtr net_src)
 {
     net_dst->name = net_src->name;
     memcpy(net_dst->uuid, net_src->uuid, VIR_UUID_BUFLEN);
+}
+
+static void
+make_nonnull_network_port(remote_nonnull_network_port *port_dst, virNetworkPortPtr port_src)
+{
+    port_dst->net.name = port_src->net->name;
+    memcpy(port_dst->net.uuid, port_src->net->uuid, VIR_UUID_BUFLEN);
+    memcpy(port_dst->uuid, port_src->uuid, VIR_UUID_BUFLEN);
 }
 
 static void
@@ -8265,6 +8330,13 @@ make_nonnull_nwfilter_binding(remote_nonnull_nwfilter_binding *binding_dst, virN
 {
     binding_dst->portdev = binding_src->portdev;
     binding_dst->filtername = binding_src->filtername;
+}
+
+static void
+make_nonnull_domain_checkpoint(remote_nonnull_domain_checkpoint *checkpoint_dst, virDomainCheckpointPtr checkpoint_src)
+{
+    checkpoint_dst->name = checkpoint_src->name;
+    make_nonnull_domain(&checkpoint_dst->dom, checkpoint_src->domain);
 }
 
 static void
@@ -8516,7 +8588,14 @@ static virHypervisorDriver hypervisor_driver = {
     .connectCompareHypervisorCPU = remoteConnectCompareHypervisorCPU, /* 4.4.0 */
     .connectBaselineHypervisorCPU = remoteConnectBaselineHypervisorCPU, /* 4.4.0 */
     .nodeGetSEVInfo = remoteNodeGetSEVInfo, /* 4.5.0 */
-    .domainGetLaunchSecurityInfo = remoteDomainGetLaunchSecurityInfo /* 4.5.0 */
+    .domainGetLaunchSecurityInfo = remoteDomainGetLaunchSecurityInfo, /* 4.5.0 */
+    .domainCheckpointCreateXML = remoteDomainCheckpointCreateXML, /* 5.6.0 */
+    .domainCheckpointGetXMLDesc = remoteDomainCheckpointGetXMLDesc, /* 5.6.0 */
+    .domainListAllCheckpoints = remoteDomainListAllCheckpoints, /* 5.6.0 */
+    .domainCheckpointListAllChildren = remoteDomainCheckpointListAllChildren, /* 5.6.0 */
+    .domainCheckpointLookupByName = remoteDomainCheckpointLookupByName, /* 5.6.0 */
+    .domainCheckpointGetParent = remoteDomainCheckpointGetParent, /* 5.6.0 */
+    .domainCheckpointDelete = remoteDomainCheckpointDelete, /* 5.6.0 */
 };
 
 static virNetworkDriver network_driver = {
@@ -8542,6 +8621,13 @@ static virNetworkDriver network_driver = {
     .networkIsActive = remoteNetworkIsActive, /* 0.7.3 */
     .networkIsPersistent = remoteNetworkIsPersistent, /* 0.7.3 */
     .networkGetDHCPLeases = remoteNetworkGetDHCPLeases, /* 1.2.6 */
+    .networkListAllPorts = remoteNetworkListAllPorts, /* 5.5.0 */
+    .networkPortLookupByUUID = remoteNetworkPortLookupByUUID, /* 5.5.0 */
+    .networkPortCreateXML = remoteNetworkPortCreateXML, /* 5.5.0 */
+    .networkPortGetXMLDesc = remoteNetworkPortGetXMLDesc, /* 5.5.0 */
+    .networkPortSetParameters = remoteNetworkPortSetParameters, /* 5.5.0 */
+    .networkPortGetParameters = remoteNetworkPortGetParameters, /* 5.5.0 */
+    .networkPortDelete = remoteNetworkPortDelete, /* 5.5.0 */
 };
 
 static virInterfaceDriver interface_driver = {

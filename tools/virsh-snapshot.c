@@ -50,6 +50,13 @@ virshSnapshotCreate(vshControl *ctl, virDomainPtr dom, const char *buffer,
 
     snapshot = virDomainSnapshotCreateXML(dom, buffer, flags);
 
+    /* If no source file but validate was not recognized, try again without
+     * that flag. */
+    if (!snapshot && last_error->code == VIR_ERR_NO_SUPPORT && !from) {
+        flags &= ~VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE;
+        snapshot = virDomainSnapshotCreateXML(dom, buffer, flags);
+    }
+
     /* Emulate --halt on older servers.  */
     if (!snapshot && last_error->code == VIR_ERR_INVALID_ARG &&
         (flags & VIR_DOMAIN_SNAPSHOT_CREATE_HALT)) {
@@ -147,6 +154,10 @@ static const vshCmdOptDef opts_snapshot_create[] = {
      .help = N_("require atomic operation")
     },
     VIRSH_COMMON_OPT_LIVE(N_("take a live snapshot")),
+    {.name = "validate",
+     .type = VSH_OT_BOOL,
+     .help = N_("validate the XML against the schema"),
+    },
     {.name = NULL}
 };
 
@@ -177,6 +188,8 @@ cmdSnapshotCreate(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC;
     if (vshCommandOptBool(cmd, "live"))
         flags |= VIR_DOMAIN_SNAPSHOT_CREATE_LIVE;
+    if (vshCommandOptBool(cmd, "validate"))
+        flags |= VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE;
 
     if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
         goto cleanup;
@@ -251,10 +264,12 @@ virshParseSnapshotDiskspec(vshControl *ctl, virBufferPtr buf, const char *str)
     const char *name = NULL;
     const char *snapshot = NULL;
     const char *driver = NULL;
+    const char *stype = NULL;
     const char *file = NULL;
     char **array = NULL;
     int narray;
     size_t i;
+    bool isFile = true;
 
     narray = vshStringToArray(str, &array);
     if (narray <= 0)
@@ -266,6 +281,8 @@ virshParseSnapshotDiskspec(vshControl *ctl, virBufferPtr buf, const char *str)
             snapshot = array[i] + strlen("snapshot=");
         else if (!driver && STRPREFIX(array[i], "driver="))
             driver = array[i] + strlen("driver=");
+        else if (!stype && STRPREFIX(array[i], "stype="))
+            stype = array[i] + strlen("stype=");
         else if (!file && STRPREFIX(array[i], "file="))
             file = array[i] + strlen("file=");
         else
@@ -275,13 +292,26 @@ virshParseSnapshotDiskspec(vshControl *ctl, virBufferPtr buf, const char *str)
     virBufferEscapeString(buf, "<disk name='%s'", name);
     if (snapshot)
         virBufferAsprintf(buf, " snapshot='%s'", snapshot);
+    if (stype) {
+        if (STREQ(stype, "block")) {
+            isFile = false;
+        } else if (STRNEQ(stype, "file")) {
+            vshError(ctl, _("Unknown storage type: '%s'"), stype);
+            goto cleanup;
+        }
+        virBufferAsprintf(buf, " type='%s'", stype);
+    }
     if (driver || file) {
         virBufferAddLit(buf, ">\n");
         virBufferAdjustIndent(buf, 2);
         if (driver)
             virBufferAsprintf(buf, "<driver type='%s'/>\n", driver);
-        if (file)
-            virBufferEscapeString(buf, "<source file='%s'/>\n", file);
+        if (file) {
+            if (isFile)
+                virBufferEscapeString(buf, "<source file='%s'/>\n", file);
+            else
+                virBufferEscapeString(buf, "<source dev='%s'/>\n", file);
+        }
         virBufferAdjustIndent(buf, -2);
         virBufferAddLit(buf, "</disk>\n");
     } else {
@@ -351,7 +381,7 @@ static const vshCmdOptDef opts_snapshot_create_as[] = {
     },
     {.name = "diskspec",
      .type = VSH_OT_ARGV,
-     .help = N_("disk attributes: disk[,snapshot=type][,driver=type][,file=name]")
+     .help = N_("disk attributes: disk[,snapshot=type][,driver=type][,stype=type][,file=name]")
     },
     {.name = NULL}
 };
@@ -366,17 +396,11 @@ cmdSnapshotCreateAs(vshControl *ctl, const vshCmd *cmd)
     const char *desc = NULL;
     const char *memspec = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    unsigned int flags = 0;
+    unsigned int flags = VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE;
     const vshCmdOpt *opt = NULL;
 
-    if (vshCommandOptBool(cmd, "no-metadata")) {
-        if (vshCommandOptBool(cmd, "print-xml")) {
-            vshError(ctl, "%s",
-                     _("--print-xml is incompatible with --no-metadata"));
-            return false;
-        }
+    if (vshCommandOptBool(cmd, "no-metadata"))
         flags |= VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA;
-    }
     if (vshCommandOptBool(cmd, "halt"))
         flags |= VIR_DOMAIN_SNAPSHOT_CREATE_HALT;
     if (vshCommandOptBool(cmd, "disk-only"))

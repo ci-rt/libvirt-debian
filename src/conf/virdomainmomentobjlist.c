@@ -31,8 +31,8 @@
 #include "viralloc.h"
 
 /* FIXME: using virObject would allow us to not need this */
-#include "snapshot_conf.h"
 #include "virdomainsnapshotobjlist.h"
+#include "virdomaincheckpointobjlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
@@ -151,7 +151,7 @@ virDomainMomentDropChildren(virDomainMomentObjPtr moment)
 
 
 /* Add @moment to @parent's list of children. */
-void
+static void
 virDomainMomentSetParent(virDomainMomentObjPtr moment,
                          virDomainMomentObjPtr parent)
 {
@@ -159,6 +159,27 @@ virDomainMomentSetParent(virDomainMomentObjPtr moment,
     parent->nchildren++;
     moment->sibling = parent->first_child;
     parent->first_child = moment;
+}
+
+
+/* Add @moment to the appropriate parent's list of children. The
+ * caller must ensure that moment->def->parent_name is either NULL
+ * (for a new root) or set to an existing moment already in the
+ * list. */
+void
+virDomainMomentLinkParent(virDomainMomentObjListPtr moments,
+                          virDomainMomentObjPtr moment)
+{
+    virDomainMomentObjPtr parent;
+
+    parent = virDomainMomentFindByName(moments, moment->def->parent_name);
+    if (!parent) {
+        parent = &moments->metaroot;
+        if (moment->def->parent_name)
+            VIR_WARN("moment %s lacks parent %s", moment->def->name,
+                     moment->def->parent_name);
+    }
+    virDomainMomentSetParent(moment, parent);
 }
 
 
@@ -208,8 +229,7 @@ virDomainMomentObjFree(virDomainMomentObjPtr moment)
 
     VIR_DEBUG("obj=%p", moment);
 
-    /* FIXME: Make this polymorphic by inheriting from virObject */
-    virDomainSnapshotDefFree(virDomainSnapshotObjGetDef(moment));
+    virObjectUnref(moment->def);
     VIR_FREE(moment);
 }
 
@@ -222,8 +242,8 @@ virDomainMomentAssignDef(virDomainMomentObjListPtr moments,
     virDomainMomentObjPtr moment;
 
     if (virHashLookup(moments->objs, def->name) != NULL) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unexpected domain moment %s already exists"),
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("domain moment %s already exists"),
                        def->name);
         return NULL;
     }
@@ -391,7 +411,9 @@ virDomainMomentObjPtr
 virDomainMomentFindByName(virDomainMomentObjListPtr moments,
                           const char *name)
 {
-    return name ? virHashLookup(moments->objs, name) : &moments->metaroot;
+    if (name)
+        return virHashLookup(moments->objs, name);
+    return NULL;
 }
 
 
@@ -464,7 +486,7 @@ virDomainMomentForEach(virDomainMomentObjListPtr moments,
 
 
 /* Struct and callback function used as a hash table callback; each call
- * inspects the pre-existing moment->def->parent field, and adjusts
+ * inspects the pre-existing moment->def->parent_name field, and adjusts
  * the moment->parent field as well as the parent's child fields to
  * wire up the hierarchical relations for the given moment.  The error
  * indicator gets set if a parent is missing or a requested parent would
@@ -483,11 +505,14 @@ virDomainMomentSetRelations(void *payload,
     virDomainMomentObjPtr tmp;
     virDomainMomentObjPtr parent;
 
-    parent = virDomainMomentFindByName(curr->moments, obj->def->parent);
+    parent = virDomainMomentFindByName(curr->moments, obj->def->parent_name);
     if (!parent) {
-        curr->err = -1;
         parent = &curr->moments->metaroot;
-        VIR_WARN("moment %s lacks parent", obj->def->name);
+        if (obj->def->parent_name) {
+            curr->err = -1;
+            VIR_WARN("moment %s lacks parent %s", obj->def->name,
+                     obj->def->parent_name);
+        }
     } else {
         tmp = parent;
         while (tmp && tmp->def) {
@@ -519,4 +544,63 @@ virDomainMomentUpdateRelations(virDomainMomentObjListPtr moments)
     if (act.err)
         moments->current = NULL;
     return act.err;
+}
+
+
+/* Check that inserting def into list would not create any impossible
+ * parent-child relationships (cycles or missing parents).  Return 0
+ * on success, or report an error on behalf of domname before
+ * returning -1. */
+int
+virDomainMomentCheckCycles(virDomainMomentObjListPtr list,
+                           virDomainMomentDefPtr def,
+                           const char *domname)
+{
+    virDomainMomentObjPtr other;
+
+    if (def->parent_name) {
+        if (STREQ(def->name, def->parent_name)) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("cannot set moment %s as its own parent"),
+                           def->name);
+            return -1;
+        }
+        other = virDomainMomentFindByName(list, def->parent_name);
+        if (!other) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("parent %s for moment %s not found"),
+                           def->parent_name, def->name);
+            return -1;
+        }
+        while (other->def->parent_name) {
+            if (STREQ(other->def->parent_name, def->name)) {
+                virReportError(VIR_ERR_INVALID_ARG,
+                               _("parent %s would create cycle to %s"),
+                               other->def->name, def->name);
+                return -1;
+            }
+            other = virDomainMomentFindByName(list, other->def->parent_name);
+            if (!other) {
+                VIR_WARN("moments are inconsistent for domain %s",
+                         domname);
+                break;
+            }
+        }
+    }
+    return 0;
+}
+
+/* If there is exactly one leaf node, return that node. */
+virDomainMomentObjPtr
+virDomainMomentFindLeaf(virDomainMomentObjListPtr list)
+{
+    virDomainMomentObjPtr moment = &list->metaroot;
+
+    if (moment->nchildren != 1)
+        return NULL;
+    while (moment->nchildren == 1)
+        moment = moment->first_child;
+    if (moment->nchildren == 0)
+        return moment;
+    return NULL;
 }

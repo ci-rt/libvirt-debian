@@ -156,9 +156,6 @@ virStorageVolObjDispose(void *opaque)
 {
     virStorageVolObjPtr obj = opaque;
 
-    if (!obj)
-        return;
-
     virStorageVolDefFree(obj->voldef);
 }
 
@@ -189,9 +186,6 @@ static void
 virStorageVolObjListDispose(void *opaque)
 {
     virStorageVolObjListPtr vols = opaque;
-
-    if (!vols)
-        return;
 
     virHashFree(vols->objsKey);
     virHashFree(vols->objsName);
@@ -361,9 +355,6 @@ void
 virStoragePoolObjDispose(void *opaque)
 {
     virStoragePoolObjPtr obj = opaque;
-
-    if (!obj)
-        return;
 
     virStoragePoolObjClearVols(obj);
     virObjectUnref(obj->volumes);
@@ -619,6 +610,9 @@ virStoragePoolSourceFindDuplicateDevices(virStoragePoolObjPtr obj,
 void
 virStoragePoolObjClearVols(virStoragePoolObjPtr obj)
 {
+    if (!obj->volumes)
+        return;
+
     virHashRemoveAll(obj->volumes->objsKey);
     virHashRemoveAll(obj->volumes->objsName);
     virHashRemoveAll(obj->volumes->objsPath);
@@ -1973,7 +1967,9 @@ virStoragePoolObjMatch(virStoragePoolObjPtr obj,
               (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_ZFS) &&
                (obj->def->type == VIR_STORAGE_POOL_ZFS))     ||
               (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE) &&
-               (obj->def->type == VIR_STORAGE_POOL_VSTORAGE))))
+               (obj->def->type == VIR_STORAGE_POOL_VSTORAGE)) ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI_DIRECT) &&
+               (obj->def->type == VIR_STORAGE_POOL_ISCSI_DIRECT))))
             return false;
     }
 

@@ -712,29 +712,51 @@ mymain(void)
                      ARG_CAPS_VER, ver, \
                      __VA_ARGS__)
 
-# define DO_TEST_CAPS_ARCH_VER(name, arch, ver) \
-    DO_TEST_CAPS_INTERNAL(name, arch, ver, ARG_END)
-
-# define DO_TEST_CAPS_VER(name, ver) \
-    DO_TEST_CAPS_ARCH_VER(name, "x86_64", ver)
-
 # define DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ...) \
     DO_TEST_CAPS_INTERNAL(name, arch, "latest", __VA_ARGS__)
+
+# define DO_TEST_CAPS_ARCH_VER_FULL(name, arch, ver, ...) \
+    DO_TEST_CAPS_INTERNAL(name, arch, ver, __VA_ARGS__)
 
 # define DO_TEST_CAPS_ARCH_LATEST(name, arch) \
     DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ARG_END)
 
+# define DO_TEST_CAPS_ARCH_VER(name, arch, ver) \
+    DO_TEST_CAPS_ARCH_VER_FULL(name, arch, ver, ARG_END)
+
 # define DO_TEST_CAPS_LATEST(name) \
     DO_TEST_CAPS_ARCH_LATEST(name, "x86_64")
 
-# define DO_TEST_CAPS_LATEST_FAILURE(name) \
-    DO_TEST_CAPS_ARCH_LATEST_FULL(name, "x86_64", \
+# define DO_TEST_CAPS_VER(name, ver) \
+    DO_TEST_CAPS_ARCH_VER(name, "x86_64", ver)
+
+# define DO_TEST_CAPS_ARCH_LATEST_FAILURE(name, arch) \
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, \
                                   ARG_FLAGS, FLAG_EXPECT_FAILURE)
 
-# define DO_TEST_CAPS_LATEST_PARSE_ERROR(name) \
-    DO_TEST_CAPS_ARCH_LATEST_FULL(name, "x86_64", \
+# define DO_TEST_CAPS_ARCH_VER_FAILURE(name, arch, ver) \
+    DO_TEST_CAPS_ARCH_VER_FULL(name, arch, ver, \
+                               ARG_FLAGS, FLAG_EXPECT_FAILURE)
+
+# define DO_TEST_CAPS_LATEST_FAILURE(name) \
+    DO_TEST_CAPS_ARCH_LATEST_FAILURE(name, "x86_64")
+
+# define DO_TEST_CAPS_VER_FAILURE(name, ver) \
+    DO_TEST_CAPS_ARCH_VER_FAILURE(name, "x86_64", ver)
+
+# define DO_TEST_CAPS_ARCH_LATEST_PARSE_ERROR(name, arch) \
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, \
                                   ARG_FLAGS, FLAG_EXPECT_PARSE_ERROR)
 
+# define DO_TEST_CAPS_ARCH_VER_PARSE_ERROR(name, arch, ver) \
+    DO_TEST_CAPS_ARCH_VER_FULL(name, arch, ver, \
+                               ARG_FLAGS, FLAG_EXPECT_PARSE_ERROR)
+
+# define DO_TEST_CAPS_LATEST_PARSE_ERROR(name) \
+    DO_TEST_CAPS_ARCH_LATEST_PARSE_ERROR(name, "x86_64")
+
+# define DO_TEST_CAPS_VER_PARSE_ERROR(name, ver) \
+    DO_TEST_CAPS_ARCH_VER_PARSE_ERROR(name, "x86_64", ver)
 
 # define DO_TEST_FULL(name, ...) \
     DO_TEST_INTERNAL(name, "", \
@@ -873,11 +895,21 @@ mymain(void)
             QEMU_CAPS_USB_HUB,
             QEMU_CAPS_DEVICE_ISA_SERIAL,
             QEMU_CAPS_DEVICE_CIRRUS_VGA);
-    DO_TEST("eoi-disabled", NONE);
-    DO_TEST("eoi-enabled", NONE);
-    DO_TEST("pv-spinlock-disabled", NONE);
-    DO_TEST("pv-spinlock-enabled", NONE);
-    DO_TEST("kvmclock+eoi-disabled", NONE);
+    DO_TEST_CAPS_VER("eoi-disabled", "2.7.0");
+    DO_TEST_CAPS_VER("eoi-disabled", "4.0.0");
+    DO_TEST_CAPS_LATEST("eoi-disabled");
+    DO_TEST_CAPS_VER("eoi-enabled", "2.7.0");
+    DO_TEST_CAPS_VER("eoi-enabled", "4.0.0");
+    DO_TEST_CAPS_LATEST("eoi-enabled");
+    DO_TEST_CAPS_VER("pv-spinlock-disabled", "2.7.0");
+    DO_TEST_CAPS_VER("pv-spinlock-disabled", "4.0.0");
+    DO_TEST_CAPS_LATEST("pv-spinlock-disabled");
+    DO_TEST_CAPS_VER("pv-spinlock-enabled", "2.7.0");
+    DO_TEST_CAPS_VER("pv-spinlock-enabled", "4.0.0");
+    DO_TEST_CAPS_LATEST("pv-spinlock-enabled");
+    DO_TEST_CAPS_VER("kvmclock+eoi-disabled", "2.7.0");
+    DO_TEST_CAPS_VER("kvmclock+eoi-disabled", "4.0.0");
+    DO_TEST_CAPS_LATEST("kvmclock+eoi-disabled");
 
     DO_TEST("hyperv", NONE);
     DO_TEST("hyperv-off", NONE);
@@ -1536,8 +1568,10 @@ mymain(void)
             QEMU_CAPS_DEVICE_ICH9_INTEL_HDA,
             QEMU_CAPS_OBJECT_USB_AUDIO);
     DO_TEST("fs9p", NONE);
+    DO_TEST_CAPS_LATEST("fs9p");
     DO_TEST("fs9p-ccw",
             QEMU_CAPS_CCW, QEMU_CAPS_VIRTIO_S390);
+    DO_TEST_CAPS_ARCH_LATEST("fs9p-ccw", "s390x");
 
     DO_TEST("hostdev-usb-address", NONE);
     DO_TEST("hostdev-usb-address-device", NONE);
@@ -1622,7 +1656,8 @@ mymain(void)
                  QEMU_CAPS_NUMA,
                  QEMU_CAPS_OBJECT_MEMORY_RAM);
 
-    DO_TEST("qemu-ns", NONE);
+    DO_TEST_CAPS_VER("qemu-ns", "4.0.0");
+    DO_TEST_CAPS_LATEST("qemu-ns");
     DO_TEST("qemu-ns-no-env", NONE);
     DO_TEST("qemu-ns-alt", NONE);
 
@@ -1649,6 +1684,7 @@ mymain(void)
     DO_TEST("cpu-fallback", QEMU_CAPS_KVM);
     DO_TEST_FAILURE("cpu-nofallback", QEMU_CAPS_KVM);
     DO_TEST("cpu-strict1", QEMU_CAPS_KVM);
+    DO_TEST("cpu-no-removed-features", QEMU_CAPS_KVM);
     DO_TEST("cpu-numa1", NONE);
     DO_TEST("cpu-numa2", NONE);
     DO_TEST("cpu-numa-no-memory-element", NONE);
@@ -1682,6 +1718,8 @@ mymain(void)
     DO_TEST("cpu-Haswell-noTSX", QEMU_CAPS_KVM);
     DO_TEST("cpu-host-model-cmt", NONE);
     DO_TEST("cpu-tsc-frequency", QEMU_CAPS_KVM);
+    DO_TEST_CAPS_VER("cpu-translation", "4.0.0");
+    DO_TEST_CAPS_LATEST("cpu-translation");
     qemuTestSetHostCPU(driver.caps, NULL);
 
     DO_TEST("encrypted-disk", QEMU_CAPS_QCOW2_LUKS, QEMU_CAPS_OBJECT_SECRET);
@@ -1897,6 +1935,7 @@ mymain(void)
     DO_TEST("pseries-console-virtio",
             QEMU_CAPS_DEVICE_SPAPR_PCI_HOST_BRIDGE);
     DO_TEST_PARSE_ERROR("pseries-serial-invalid-machine", NONE);
+    DO_TEST_PARSE_ERROR("pseries-spaprvio-invalid", "ppc64");
 
     DO_TEST("mach-virt-serial-native",
             QEMU_CAPS_DEVICE_PL011);
@@ -1991,6 +2030,7 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIRTIO_VGA,
             QEMU_CAPS_DEVICE_VIDEO_PRIMARY,
             QEMU_CAPS_VIRTIO_GPU_MAX_OUTPUTS);
+    DO_TEST_CAPS_LATEST("video-bochs-display-device");
     DO_TEST("video-none-device",
             QEMU_CAPS_VNC);
     DO_TEST_PARSE_ERROR("video-invalid-multiple-devices", NONE);
@@ -2067,6 +2107,7 @@ mymain(void)
                         QEMU_CAPS_DEVICE_TPM_PASSTHROUGH, QEMU_CAPS_DEVICE_TPM_TIS);
     DO_TEST_CAPS_LATEST("tpm-emulator");
     DO_TEST_CAPS_LATEST("tpm-emulator-tpm2");
+    DO_TEST_CAPS_LATEST("tpm-emulator-tpm2-enc");
 
     DO_TEST_PARSE_ERROR("pci-domain-invalid", NONE);
     DO_TEST_PARSE_ERROR("pci-bus-invalid", NONE);
@@ -2805,33 +2846,14 @@ mymain(void)
                         QEMU_CAPS_USB_HUB);
 
     DO_TEST("acpi-table", NONE);
-    DO_TEST("intel-iommu",
-            QEMU_CAPS_DEVICE_INTEL_IOMMU);
-    DO_TEST("intel-iommu-machine",
-            QEMU_CAPS_MACHINE_IOMMU);
-    DO_TEST("intel-iommu-caching-mode",
-            QEMU_CAPS_MACHINE_KERNEL_IRQCHIP,
-            QEMU_CAPS_MACHINE_KERNEL_IRQCHIP_SPLIT,
-            QEMU_CAPS_DEVICE_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_IOH3420,
-            QEMU_CAPS_ICH9_AHCI,
-            QEMU_CAPS_ICH9_USB_EHCI1,
-            QEMU_CAPS_DEVICE_INTEL_IOMMU,
-            QEMU_CAPS_INTEL_IOMMU_INTREMAP,
-            QEMU_CAPS_INTEL_IOMMU_CACHING_MODE);
-    DO_TEST("intel-iommu-eim",
-            QEMU_CAPS_MACHINE_KERNEL_IRQCHIP,
-            QEMU_CAPS_MACHINE_KERNEL_IRQCHIP_SPLIT,
-            QEMU_CAPS_INTEL_IOMMU_INTREMAP,
-            QEMU_CAPS_INTEL_IOMMU_EIM,
-            QEMU_CAPS_DEVICE_INTEL_IOMMU);
-    DO_TEST("intel-iommu-device-iotlb",
-            QEMU_CAPS_MACHINE_KERNEL_IRQCHIP,
-            QEMU_CAPS_MACHINE_KERNEL_IRQCHIP_SPLIT,
-            QEMU_CAPS_INTEL_IOMMU_INTREMAP,
-            QEMU_CAPS_INTEL_IOMMU_DEVICE_IOTLB,
-            QEMU_CAPS_DEVICE_INTEL_IOMMU);
+
+    DO_TEST_CAPS_LATEST("intel-iommu");
+    DO_TEST_CAPS_VER("intel-iommu", "2.6.0");
+    DO_TEST_CAPS_LATEST("intel-iommu-caching-mode");
+    DO_TEST_CAPS_LATEST("intel-iommu-eim");
+    DO_TEST_CAPS_LATEST("intel-iommu-device-iotlb");
+    DO_TEST_CAPS_LATEST_PARSE_ERROR("intel-iommu-wrong-machine");
+    DO_TEST_CAPS_ARCH_LATEST("iommu-smmuv3", "aarch64");
 
     DO_TEST("cpu-hotplug-startup", QEMU_CAPS_QUERY_HOTPLUGGABLE_CPUS);
     DO_TEST_PARSE_ERROR("cpu-hotplug-granularity",
@@ -2896,29 +2918,9 @@ mymain(void)
     DO_TEST_CAPS_LATEST("disk-virtio-scsi-reservations");
 
     DO_TEST_CAPS_LATEST("tseg-explicit-size");
-    DO_TEST_PARSE_ERROR("tseg-i440fx",
-                        QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
-                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
-                        QEMU_CAPS_DEVICE_IOH3420,
-                        QEMU_CAPS_ICH9_AHCI,
-                        QEMU_CAPS_MACHINE_SMM_OPT,
-                        QEMU_CAPS_VIRTIO_SCSI,
-                        QEMU_CAPS_MCH_EXTENDED_TSEG_MBYTES);
-    DO_TEST_PARSE_ERROR("tseg-explicit-size",
-                        QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
-                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
-                        QEMU_CAPS_DEVICE_IOH3420,
-                        QEMU_CAPS_ICH9_AHCI,
-                        QEMU_CAPS_MACHINE_SMM_OPT,
-                        QEMU_CAPS_VIRTIO_SCSI);
-    DO_TEST_PARSE_ERROR("tseg-invalid-size",
-                        QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
-                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
-                        QEMU_CAPS_DEVICE_IOH3420,
-                        QEMU_CAPS_ICH9_AHCI,
-                        QEMU_CAPS_MACHINE_SMM_OPT,
-                        QEMU_CAPS_VIRTIO_SCSI,
-                        QEMU_CAPS_MCH_EXTENDED_TSEG_MBYTES);
+    DO_TEST_CAPS_LATEST_PARSE_ERROR("tseg-i440fx");
+    DO_TEST_CAPS_VER_PARSE_ERROR("tseg-explicit-size", "2.10.0");
+    DO_TEST_CAPS_LATEST_PARSE_ERROR("tseg-invalid-size");
 
     DO_TEST("video-virtio-gpu-ccw", QEMU_CAPS_CCW,
             QEMU_CAPS_DEVICE_VIRTIO_GPU,
@@ -2952,10 +2954,7 @@ mymain(void)
     DO_TEST_CAPS_VER("virtio-non-transitional", "3.1.0");
     DO_TEST_CAPS_LATEST("virtio-transitional");
     DO_TEST_CAPS_LATEST("virtio-non-transitional");
-    DO_TEST_PARSE_ERROR("virtio-transitional-not-supported",
-                        QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
-                        QEMU_CAPS_DEVICE_PCI_BRIDGE,
-                        QEMU_CAPS_DEVICE_IOH3420);
+    DO_TEST_CAPS_LATEST_PARSE_ERROR("virtio-transitional-not-supported");
 
     /* Simple headless guests for various architectures */
     DO_TEST_CAPS_ARCH_LATEST("aarch64-virt-headless", "aarch64");
@@ -2968,6 +2967,7 @@ mymain(void)
     /* Simple guests with graphics for various architectures */
     DO_TEST_CAPS_ARCH_LATEST("aarch64-virt-graphics", "aarch64");
     DO_TEST_CAPS_ARCH_LATEST("ppc64-pseries-graphics", "ppc64");
+    DO_TEST_CAPS_ARCH_LATEST("riscv64-virt-graphics", "riscv64");
     DO_TEST_CAPS_ARCH_LATEST("s390x-ccw-graphics", "s390x");
     DO_TEST_CAPS_ARCH_LATEST("x86_64-pc-graphics", "x86_64");
     DO_TEST_CAPS_ARCH_LATEST("x86_64-q35-graphics", "x86_64");

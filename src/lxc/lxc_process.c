@@ -1646,12 +1646,41 @@ virLXCProcessAutostartAll(virLXCDriverPtr driver)
     virObjectUnref(conn);
 }
 
+
+static void
+virLXCProcessReconnectNotifyNets(virDomainDefPtr def)
+{
+    size_t i;
+    virConnectPtr conn = NULL;
+
+    for (i = 0; i < def->nnets; i++) {
+        virDomainNetDefPtr net = def->nets[i];
+        /* keep others from trying to use the macvtap device name, but
+         * don't return error if this happens, since that causes the
+         * domain to be unceremoniously killed, which would be *very*
+         * impolite.
+         */
+        if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_DIRECT)
+           ignore_value(virNetDevMacVLanReserveName(net->ifname, false));
+
+        if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            if (!conn && !(conn = virGetConnectNetwork()))
+                continue;
+            virDomainNetNotifyActualDevice(conn, def, net);
+        }
+    }
+
+    virObjectUnref(conn);
+}
+
+
 static int
 virLXCProcessReconnectDomain(virDomainObjPtr vm,
                              void *opaque)
 {
     virLXCDriverPtr driver = opaque;
     virLXCDomainObjPrivatePtr priv;
+    virLXCDriverConfigPtr cfg = virLXCDriverGetConfig(driver);
     int ret = -1;
 
     virObjectLock(vm);
@@ -1692,6 +1721,11 @@ virLXCProcessReconnectDomain(virDomainObjPtr vm,
                                            vm->def, vm->pid) < 0)
             goto error;
 
+        virLXCProcessReconnectNotifyNets(vm->def);
+
+        if (virDomainSaveStatus(driver->xmlopt, cfg->stateDir, vm, driver->caps) < 0)
+            VIR_WARN("Cannot update XML for running LXC guest %s", vm->def->name);
+
         /* now that we know it's reconnected call the hook if present */
         if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
             char *xml = virDomainDefFormat(vm->def, driver->caps, 0);
@@ -1712,6 +1746,7 @@ virLXCProcessReconnectDomain(virDomainObjPtr vm,
 
     ret = 0;
  cleanup:
+    virObjectUnref(cfg);
     virObjectUnlock(vm);
     return ret;
 

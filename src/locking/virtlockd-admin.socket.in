@@ -1,10 +1,13 @@
 [Unit]
 Description=Virtual machine lock manager admin socket
 Before=libvirtd.service
+BindsTo=virtlockd.socket
+After=virtlockd.socket
 
 [Socket]
 ListenStream=@localstatedir@/run/libvirt/virtlockd-admin-sock
 Service=virtlockd.service
+SocketMode=0600
 
 [Install]
 WantedBy=sockets.target

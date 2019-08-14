@@ -25,12 +25,14 @@
 #include "internal.h"
 #include "datatypes.h"
 #include "virdomainobjlist.h"
+#include "checkpoint_conf.h"
 #include "snapshot_conf.h"
 #include "viralloc.h"
 #include "virfile.h"
 #include "virlog.h"
 #include "virstring.h"
 #include "virdomainsnapshotobjlist.h"
+#include "virdomaincheckpointobjlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
@@ -332,7 +334,7 @@ virDomainObjListAddLocked(virDomainObjListPtr doms,
         }
 
         if (!(vm = virDomainObjNew(xmlopt)))
-            goto cleanup;
+            goto error;
         vm->def = def;
 
         if (virDomainObjListAddObjLocked(doms, vm) < 0) {
@@ -340,7 +342,7 @@ virDomainObjListAddLocked(virDomainObjListPtr doms,
             goto error;
         }
     }
- cleanup:
+
     return vm;
 
  error:
@@ -884,6 +886,15 @@ virDomainObjMatchFilter(virDomainObjPtr vm,
         int nsnap = virDomainSnapshotObjListNum(vm->snapshots, NULL, 0);
         if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT) && nsnap > 0) ||
               (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT) && nsnap <= 0)))
+            return false;
+    }
+
+    /* filter by checkpoint existence */
+    if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_CHECKPOINT)) {
+        int nchk = virDomainListCheckpoints(vm->checkpoints, NULL, NULL,
+                                            NULL, 0);
+        if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_HAS_CHECKPOINT) && nchk > 0) ||
+              (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_CHECKPOINT) && nchk <= 0)))
             return false;
     }
 

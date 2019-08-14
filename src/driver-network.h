@@ -18,12 +18,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_DRIVER_NETWORK_H
-# define LIBVIRT_DRIVER_NETWORK_H
+#pragma once
 
-# ifndef __VIR_DRIVER_H_INCLUDES___
-#  error "Don't include this file directly, only use driver.h"
-# endif
+#ifndef __VIR_DRIVER_H_INCLUDES___
+# error "Don't include this file directly, only use driver.h"
+#endif
 
 typedef int
 (*virDrvConnectNumOfNetworks)(virConnectPtr conn);
@@ -118,6 +117,40 @@ typedef int
                               virNetworkDHCPLeasePtr **leases,
                               unsigned int flags);
 
+typedef virNetworkPortPtr
+(*virDrvNetworkPortLookupByUUID)(virNetworkPtr net,
+                                 const unsigned char *uuid);
+
+typedef virNetworkPortPtr
+(*virDrvNetworkPortCreateXML)(virNetworkPtr net,
+                              const char *xmldesc,
+                              unsigned int flags);
+
+typedef int
+(*virDrvNetworkPortSetParameters)(virNetworkPortPtr port,
+                                  virTypedParameterPtr params,
+                                  int nparams,
+                                  unsigned int flags);
+
+typedef int
+(*virDrvNetworkPortGetParameters)(virNetworkPortPtr port,
+                                  virTypedParameterPtr *params,
+                                  int *nparams,
+                                  unsigned int flags);
+
+typedef char *
+(*virDrvNetworkPortGetXMLDesc)(virNetworkPortPtr port,
+                               unsigned int flags);
+
+typedef int
+(*virDrvNetworkPortDelete)(virNetworkPortPtr port,
+                           unsigned int flags);
+
+typedef int
+(*virDrvNetworkListAllPorts)(virNetworkPtr network,
+                             virNetworkPortPtr **ports,
+                             unsigned int flags);
+
 typedef struct _virNetworkDriver virNetworkDriver;
 typedef virNetworkDriver *virNetworkDriverPtr;
 
@@ -151,7 +184,11 @@ struct _virNetworkDriver {
     virDrvNetworkIsActive networkIsActive;
     virDrvNetworkIsPersistent networkIsPersistent;
     virDrvNetworkGetDHCPLeases networkGetDHCPLeases;
+    virDrvNetworkPortLookupByUUID networkPortLookupByUUID;
+    virDrvNetworkPortCreateXML networkPortCreateXML;
+    virDrvNetworkPortGetXMLDesc networkPortGetXMLDesc;
+    virDrvNetworkPortSetParameters networkPortSetParameters;
+    virDrvNetworkPortGetParameters networkPortGetParameters;
+    virDrvNetworkPortDelete networkPortDelete;
+    virDrvNetworkListAllPorts networkListAllPorts;
 };
-
-
-#endif /* LIBVIRT_DRIVER_NETWORK_H */

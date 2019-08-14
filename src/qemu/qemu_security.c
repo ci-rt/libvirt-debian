@@ -163,6 +163,25 @@ qemuSecurityRestoreImageLabel(virQEMUDriverPtr driver,
 
 
 int
+qemuSecurityMoveImageMetadata(virQEMUDriverPtr driver,
+                              virDomainObjPtr vm,
+                              virStorageSourcePtr src,
+                              virStorageSourcePtr dst)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    pid_t pid = -1;
+
+    if (!priv->rememberOwner)
+        return 0;
+
+    if (qemuDomainNamespaceEnabled(vm, QEMU_DOMAIN_NS_MOUNT))
+        pid = vm->pid;
+
+    return virSecurityManagerMoveImageMetadata(driver->securityManager, pid, src, dst);
+}
+
+
+int
 qemuSecuritySetHostdevLabel(virQEMUDriverPtr driver,
                             virDomainObjPtr vm,
                             virDomainHostdevDefPtr hostdev)
@@ -457,7 +476,7 @@ qemuSecurityStartTPMEmulator(virQEMUDriverPtr driver,
 
     if (virSecurityManagerTransactionCommit(driver->securityManager,
                                             -1, priv->rememberOwner) < 0)
-        goto cleanup;
+        goto cleanup_abort;
     transactionStarted = false;
 
     if (virSecurityManagerSetChildProcessLabel(driver->securityManager,
@@ -493,6 +512,7 @@ qemuSecurityStartTPMEmulator(virQEMUDriverPtr driver,
                                             -1, priv->rememberOwner) < 0)
         VIR_WARN("Unable to run security manager transaction");
 
+ cleanup_abort:
     virSecurityManagerTransactionAbort(driver->securityManager);
     return ret;
 }

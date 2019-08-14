@@ -19,15 +19,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_QEMU_MONITOR_JSON_H
-# define LIBVIRT_QEMU_MONITOR_JSON_H
+#pragma once
 
-# include "internal.h"
+#include "internal.h"
 
-# include "qemu_monitor.h"
-# include "virbitmap.h"
-# include "cpu/cpu.h"
-# include "util/virgic.h"
+#include "qemu_monitor.h"
+#include "virbitmap.h"
+#include "cpu/cpu.h"
+#include "util/virgic.h"
 
 int qemuMonitorJSONTransactionAdd(virJSONValuePtr actions,
                                   const char *cmdname,
@@ -250,17 +249,19 @@ int qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
                                unsigned long long speed,
                                unsigned int granularity,
                                unsigned long long buf_size,
-                               unsigned int flags)
+                               bool shallow,
+                               bool reuse)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 int qemuMonitorJSONBlockdevMirror(qemuMonitorPtr mon,
                                   const char *jobname,
+                                  bool persistjob,
                                   const char *device,
                                   const char *target,
                                   unsigned long long speed,
                                   unsigned int granularity,
                                   unsigned long long buf_size,
-                                  unsigned int flags)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
+                                  bool shallow)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5);
 int qemuMonitorJSONDrivePivot(qemuMonitorPtr mon,
                               const char *jobname)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
@@ -270,8 +271,12 @@ bool qemuMonitorJSONSupportsActiveCommit(qemuMonitorPtr mon)
 
 int qemuMonitorJSONBlockCommit(qemuMonitorPtr mon,
                                const char *device,
+                               const char *jobname,
+                               bool persistjob,
                                const char *top,
+                               const char *topNode,
                                const char *base,
+                               const char *baseNode,
                                const char *backingName,
                                unsigned long long bandwidth)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
@@ -302,7 +307,10 @@ int qemuMonitorJSONScreendump(qemuMonitorPtr mon,
 
 int qemuMonitorJSONBlockStream(qemuMonitorPtr mon,
                                const char *device,
+                               const char *jobname,
+                               bool persistjob,
                                const char *base,
+                               const char *baseNode,
                                const char *backingName,
                                unsigned long long speed)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
@@ -311,13 +319,33 @@ int qemuMonitorJSONBlockJobCancel(qemuMonitorPtr mon,
                                   const char *jobname)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
+int
+qemuMonitorJSONGetJobInfo(qemuMonitorPtr mon,
+                          qemuMonitorJobInfoPtr **jobs,
+                          size_t *njobs);
+
+
 int qemuMonitorJSONBlockJobSetSpeed(qemuMonitorPtr mon,
                                     const char *jobname,
                                     unsigned long long speed)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
-virHashTablePtr qemuMonitorJSONGetAllBlockJobInfo(qemuMonitorPtr mon)
+virHashTablePtr qemuMonitorJSONGetAllBlockJobInfo(qemuMonitorPtr mon,
+                                                  bool rawjobname)
     ATTRIBUTE_NONNULL(1);
+
+int qemuMonitorJSONJobDismiss(qemuMonitorPtr mon,
+                              const char *jobname)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONJobCancel(qemuMonitorPtr mon,
+                             const char *jobname,
+                             bool quiet)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONJobComplete(qemuMonitorPtr mon,
+                               const char *jobname)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorJSONSetLink(qemuMonitorPtr mon,
                            const char *name,
@@ -458,12 +486,13 @@ int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
 char *qemuMonitorJSONGetTargetArch(qemuMonitorPtr mon);
 
 int qemuMonitorJSONNBDServerStart(qemuMonitorPtr mon,
-                                  const char *host,
-                                  unsigned int port,
+                                  const virStorageNetHostDef *server,
                                   const char *tls_alias);
 int qemuMonitorJSONNBDServerAdd(qemuMonitorPtr mon,
                                 const char *deviceID,
-                                bool writable);
+                                const char *export,
+                                bool writable,
+                                const char *bitmap);
 int qemuMonitorJSONNBDServerStop(qemuMonitorPtr mon);
 int qemuMonitorJSONGetTPMModels(qemuMonitorPtr mon,
                                 char ***tpmmodels)
@@ -486,9 +515,15 @@ int qemuMonitorJSONGetCPUx86Data(qemuMonitorPtr mon,
                                  const char *property,
                                  virCPUDataPtr *cpudata);
 
+int qemuMonitorJSONGetGuestCPUx86(qemuMonitorPtr mon,
+                                  virCPUDataPtr *data,
+                                  virCPUDataPtr *disabled);
+
 int qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
                                virArch arch,
-                               virCPUDataPtr *data,
+                               qemuMonitorCPUFeatureTranslationCallback translate,
+                               void *opaque,
+                               virCPUDataPtr *enabled,
                                virCPUDataPtr *disabled);
 
 int qemuMonitorJSONRTCResetReinjection(qemuMonitorPtr mon);
@@ -546,6 +581,11 @@ int qemuMonitorJSONSetWatchdogAction(qemuMonitorPtr mon,
                                      const char *action)
     ATTRIBUTE_NONNULL(1);
 
+int qemuMonitorJSONBlockdevCreate(qemuMonitorPtr mon,
+                                  const char *jobname,
+                                  virJSONValuePtr props)
+    ATTRIBUTE_NONNULL(1);
+
 int qemuMonitorJSONBlockdevAdd(qemuMonitorPtr mon,
                                virJSONValuePtr props)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
@@ -580,5 +620,20 @@ int
 qemuMonitorJSONGetCurrentMachineInfo(qemuMonitorPtr mon,
                                      qemuMonitorCurrentMachineInfoPtr info)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+int qemuMonitorJSONAddBitmap(qemuMonitorPtr mon,
+                             const char *node,
+                             const char *bitmap,
+                             bool persistent);
 
-#endif /* LIBVIRT_QEMU_MONITOR_JSON_H */
+int qemuMonitorJSONEnableBitmap(qemuMonitorPtr mon,
+                                const char *node,
+                                const char *bitmap);
+
+int qemuMonitorJSONMergeBitmaps(qemuMonitorPtr mon,
+                                const char *node,
+                                const char *dst,
+                                virJSONValuePtr *src);
+
+int qemuMonitorJSONDeleteBitmap(qemuMonitorPtr mon,
+                                const char *node,
+                                const char *bitmap);

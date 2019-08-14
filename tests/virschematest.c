@@ -215,18 +215,21 @@ mymain(void)
     } while (0)
 
     DO_TEST_DIR("capability.rng", "capabilityschemadata", "vircaps2xmldata");
-    DO_TEST_DIR("domain.rng", "domainschemadata", "qemuargv2xmldata",
-                "qemuxml2argvdata", "sexpr2xmldata", "xmconfigdata",
-                "xml2sexprdata", "qemuxml2xmloutdata", "lxcxml2xmldata",
+    DO_TEST_DIR("domain.rng", "domainschemadata",
+                "qemuxml2argvdata", "xmconfigdata",
+                "qemuxml2xmloutdata", "lxcxml2xmldata",
                 "lxcxml2xmloutdata", "bhyvexml2argvdata", "genericxml2xmlindata",
                 "genericxml2xmloutdata", "xlconfigdata", "libxlxml2domconfigdata",
                 "qemuhotplugtestdomains");
     DO_TEST_DIR("domaincaps.rng", "domaincapsschemadata");
-    DO_TEST_DIR("domainsnapshot.rng", "domainsnapshotxml2xmlin",
-                "domainsnapshotxml2xmlout");
+    DO_TEST_DIR("domaincheckpoint.rng", "qemudomaincheckpointxml2xmlin",
+                "qemudomaincheckpointxml2xmlout");
+    DO_TEST_DIR("domainsnapshot.rng", "qemudomainsnapshotxml2xmlin",
+                "qemudomainsnapshotxml2xmlout");
     DO_TEST_DIR("interface.rng", "interfaceschemadata");
     DO_TEST_DIR("network.rng", "../src/network", "networkxml2xmlin",
                 "networkxml2xmlout", "networkxml2confdata");
+    DO_TEST_DIR("networkport.rng", "virnetworkportxml2xmldata");
     DO_TEST_DIR("nodedev.rng", "nodedevschemadata");
     DO_TEST_DIR("nwfilter.rng", "nwfilterxml2xmlout", "../examples/xml/nwfilter");
     DO_TEST_DIR("nwfilterbinding.rng", "virnwfilterbindingxml2xmldata");

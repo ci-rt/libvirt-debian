@@ -207,7 +207,29 @@ mymain(void)
         testQemuInfoClear(&info); \
     } while (0)
 
-# define NONE QEMU_CAPS_LAST
+# define DO_TEST_CAPS_INTERNAL(name, arch, ver, ...) \
+    DO_TEST_INTERNAL(name, "." arch "-" ver, WHEN_BOTH, \
+                     ARG_CAPS_ARCH, arch, \
+                     ARG_CAPS_VER, ver, \
+                     __VA_ARGS__)
+
+# define DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ...) \
+    DO_TEST_CAPS_INTERNAL(name, arch, "latest", __VA_ARGS__)
+
+# define DO_TEST_CAPS_ARCH_VER_FULL(name, arch, ver, ...) \
+    DO_TEST_CAPS_INTERNAL(name, arch, ver, __VA_ARGS__)
+
+# define DO_TEST_CAPS_ARCH_LATEST(name, arch) \
+    DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ARG_END)
+
+# define DO_TEST_CAPS_ARCH_VER(name, arch, ver) \
+    DO_TEST_CAPS_ARCH_VER_FULL(name, arch, ver, ARG_END)
+
+# define DO_TEST_CAPS_LATEST(name) \
+    DO_TEST_CAPS_ARCH_LATEST(name, "x86_64")
+
+# define DO_TEST_CAPS_VER(name, ver) \
+    DO_TEST_CAPS_ARCH_VER(name, "x86_64", ver)
 
 # define DO_TEST_FULL(name, when, ...) \
     DO_TEST_INTERNAL(name, "", when, __VA_ARGS__)
@@ -216,27 +238,7 @@ mymain(void)
     DO_TEST_FULL(name, WHEN_BOTH, \
                  ARG_QEMU_CAPS, __VA_ARGS__, QEMU_CAPS_LAST)
 
-# define DO_TEST_CAPS_INTERNAL(name, arch, ver, ...) \
-    DO_TEST_INTERNAL(name, "." arch "-" ver, WHEN_BOTH, \
-                     ARG_CAPS_ARCH, arch, \
-                     ARG_CAPS_VER, ver, \
-                     __VA_ARGS__)
-
-# define DO_TEST_CAPS_ARCH_VER(name, arch, ver) \
-    DO_TEST_CAPS_INTERNAL(name, arch, ver, ARG_END)
-
-# define DO_TEST_CAPS_VER(name, ver) \
-    DO_TEST_CAPS_ARCH_VER(name, "x86_64", ver)
-
-# define DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ...) \
-    DO_TEST_CAPS_INTERNAL(name, arch, "latest", __VA_ARGS__)
-
-# define DO_TEST_CAPS_ARCH_LATEST(name, arch) \
-    DO_TEST_CAPS_ARCH_LATEST_FULL(name, arch, ARG_END)
-
-# define DO_TEST_CAPS_LATEST(name) \
-    DO_TEST_CAPS_ARCH_LATEST(name, "x86_64")
-
+# define NONE QEMU_CAPS_LAST
 
     /* Unset or set all envvars here that are copied in qemudBuildCommandLine
      * using ADD_ENV_COPY, otherwise these tests may fail due to unexpected
@@ -653,6 +655,8 @@ mymain(void)
     DO_TEST("tpm-passthrough", NONE);
     DO_TEST("tpm-passthrough-crb", NONE);
     DO_TEST("tpm-emulator", NONE);
+    DO_TEST("tpm-emulator-tpm2", NONE);
+    DO_TEST("tpm-emulator-tpm2-enc", NONE);
 
     DO_TEST("metadata", NONE);
     DO_TEST("metadata-duplicate", NONE);
@@ -1202,16 +1206,12 @@ mymain(void)
             QEMU_CAPS_DEVICE_VIRTIO_GPU_CCW);
     DO_TEST("video-none-device", NONE);
 
-    DO_TEST("intel-iommu",
-            QEMU_CAPS_DEVICE_INTEL_IOMMU);
-    DO_TEST("intel-iommu-machine",
-            QEMU_CAPS_MACHINE_IOMMU);
-    DO_TEST("intel-iommu-caching-mode",
-            QEMU_CAPS_DEVICE_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_DMI_TO_PCI_BRIDGE,
-            QEMU_CAPS_DEVICE_IOH3420);
-    DO_TEST("intel-iommu-eim", NONE);
-    DO_TEST("intel-iommu-device-iotlb", NONE);
+    DO_TEST_CAPS_LATEST("intel-iommu");
+    DO_TEST_CAPS_VER("intel-iommu", "2.6.0");
+    DO_TEST_CAPS_LATEST("intel-iommu-caching-mode");
+    DO_TEST_CAPS_LATEST("intel-iommu-eim");
+    DO_TEST_CAPS_LATEST("intel-iommu-device-iotlb");
+    DO_TEST_CAPS_ARCH_LATEST("iommu-smmuv3", "aarch64");
 
     DO_TEST("cpu-check-none", NONE);
     DO_TEST("cpu-check-partial", NONE);
@@ -1286,6 +1286,8 @@ mymain(void)
     DO_TEST_STATUS("migration-out-nbd-tls");
     DO_TEST_STATUS("disk-secinfo-upgrade");
 
+    DO_TEST_STATUS("blockjob-blockdev");
+
     DO_TEST("vhost-vsock", QEMU_CAPS_DEVICE_VHOST_VSOCK);
     DO_TEST("vhost-vsock-auto", QEMU_CAPS_DEVICE_VHOST_VSOCK);
     DO_TEST("vhost-vsock-ccw", QEMU_CAPS_DEVICE_VHOST_VSOCK,
@@ -1300,6 +1302,22 @@ mymain(void)
 
     DO_TEST_CAPS_LATEST("virtio-transitional");
     DO_TEST_CAPS_LATEST("virtio-non-transitional");
+
+    /* Simple headless guests for various architectures */
+    DO_TEST_CAPS_ARCH_LATEST("aarch64-virt-headless", "aarch64");
+    DO_TEST_CAPS_ARCH_LATEST("ppc64-pseries-headless", "ppc64");
+    DO_TEST_CAPS_ARCH_LATEST("riscv64-virt-headless", "riscv64");
+    DO_TEST_CAPS_ARCH_LATEST("s390x-ccw-headless", "s390x");
+    DO_TEST_CAPS_ARCH_LATEST("x86_64-pc-headless", "x86_64");
+    DO_TEST_CAPS_ARCH_LATEST("x86_64-q35-headless", "x86_64");
+
+    /* Simple guests with graphics for various architectures */
+    DO_TEST_CAPS_ARCH_LATEST("aarch64-virt-graphics", "aarch64");
+    DO_TEST_CAPS_ARCH_LATEST("ppc64-pseries-graphics", "ppc64");
+    DO_TEST_CAPS_ARCH_LATEST("riscv64-virt-graphics", "riscv64");
+    DO_TEST_CAPS_ARCH_LATEST("s390x-ccw-graphics", "s390x");
+    DO_TEST_CAPS_ARCH_LATEST("x86_64-pc-graphics", "x86_64");
+    DO_TEST_CAPS_ARCH_LATEST("x86_64-q35-graphics", "x86_64");
 
     if (getenv("LIBVIRT_SKIP_CLEANUP") == NULL)
         virFileDeleteTree(fakerootdir);

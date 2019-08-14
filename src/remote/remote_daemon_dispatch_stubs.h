@@ -4340,6 +4340,421 @@ static int remoteDispatchDomainBlockStatsFlagsHelper(
 
 
 
+static int remoteDispatchDomainCheckpointCreateXML(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_create_xml_args *args,
+    remote_domain_checkpoint_create_xml_ret *ret);
+static int remoteDispatchDomainCheckpointCreateXMLHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainCheckpointCreateXML");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainCheckpointCreateXML(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainCheckpointCreateXML(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_create_xml_args *args,
+    remote_domain_checkpoint_create_xml_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainCheckpointPtr checkpoint = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((checkpoint = virDomainCheckpointCreateXML(dom, args->xml_desc, args->flags)) == NULL)
+        goto cleanup;
+
+    if (make_nonnull_domain_checkpoint(&ret->checkpoint, checkpoint) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    virObjectUnref(checkpoint);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainCheckpointDelete(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_delete_args *args);
+static int remoteDispatchDomainCheckpointDeleteHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainCheckpointDelete");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainCheckpointDelete(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainCheckpointDelete(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_delete_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainCheckpointPtr checkpoint = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->checkpoint.dom)))
+        goto cleanup;
+
+    if (!(checkpoint = get_nonnull_domain_checkpoint(dom, args->checkpoint)))
+        goto cleanup;
+
+    if (virDomainCheckpointDelete(checkpoint, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(checkpoint);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainCheckpointGetParent(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_get_parent_args *args,
+    remote_domain_checkpoint_get_parent_ret *ret);
+static int remoteDispatchDomainCheckpointGetParentHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainCheckpointGetParent");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainCheckpointGetParent(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainCheckpointGetParent(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_get_parent_args *args,
+    remote_domain_checkpoint_get_parent_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainCheckpointPtr checkpoint = NULL;
+    virDomainCheckpointPtr parent = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->checkpoint.dom)))
+        goto cleanup;
+
+    if (!(checkpoint = get_nonnull_domain_checkpoint(dom, args->checkpoint)))
+        goto cleanup;
+
+    if ((parent = virDomainCheckpointGetParent(checkpoint, args->flags)) == NULL)
+        goto cleanup;
+
+    if (make_nonnull_domain_checkpoint(&ret->parent, parent) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(checkpoint);
+    virObjectUnref(dom);
+    virObjectUnref(parent);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainCheckpointGetXMLDesc(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_get_xml_desc_args *args,
+    remote_domain_checkpoint_get_xml_desc_ret *ret);
+static int remoteDispatchDomainCheckpointGetXMLDescHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainCheckpointGetXMLDesc");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainCheckpointGetXMLDesc(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainCheckpointGetXMLDesc(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_get_xml_desc_args *args,
+    remote_domain_checkpoint_get_xml_desc_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainCheckpointPtr checkpoint = NULL;
+    char *xml;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->checkpoint.dom)))
+        goto cleanup;
+
+    if (!(checkpoint = get_nonnull_domain_checkpoint(dom, args->checkpoint)))
+        goto cleanup;
+
+    if ((xml = virDomainCheckpointGetXMLDesc(checkpoint, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->xml = xml;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(checkpoint);
+    virObjectUnref(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainCheckpointListAllChildren(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_list_all_children_args *args,
+    remote_domain_checkpoint_list_all_children_ret *ret);
+static int remoteDispatchDomainCheckpointListAllChildrenHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainCheckpointListAllChildren");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainCheckpointListAllChildren(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainCheckpointListAllChildren(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_list_all_children_args *args,
+    remote_domain_checkpoint_list_all_children_ret *ret)
+{
+    int rv = -1;
+    ssize_t i;
+    virDomainPtr dom = NULL;
+    virDomainCheckpointPtr checkpoint = NULL;
+    virDomainCheckpointPtr *result = NULL;
+    int nresults = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->checkpoint.dom)))
+        goto cleanup;
+
+    if (!(checkpoint = get_nonnull_domain_checkpoint(dom, args->checkpoint)))
+        goto cleanup;
+
+    if ((nresults = 
+            virDomainCheckpointListAllChildren(checkpoint,
+                                               args->need_results ? &result : NULL,
+                                               args->flags)) < 0)
+        goto cleanup;
+
+    if (nresults > REMOTE_DOMAIN_CHECKPOINT_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Too many domain_checkpoints '%d' for limit '%d'"),
+                       nresults, REMOTE_DOMAIN_CHECKPOINT_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result && nresults) {
+        if (VIR_ALLOC_N(ret->checkpoints.checkpoints_val, nresults) < 0)
+            goto cleanup;
+
+        ret->checkpoints.checkpoints_len = nresults;
+        for (i = 0; i < nresults; i++)
+            if (make_nonnull_domain_checkpoint(ret->checkpoints.checkpoints_val + i, result[i]) < 0)
+                goto cleanup;
+    } else {
+        ret->checkpoints.checkpoints_len = 0;
+        ret->checkpoints.checkpoints_val = NULL;
+    }
+
+    ret->ret = nresults;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(checkpoint);
+    virObjectUnref(dom);
+    if (result) {
+        for (i = 0; i < nresults; i++)
+            virObjectUnref(result[i]);
+    }
+    VIR_FREE(result);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainCheckpointLookupByName(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_lookup_by_name_args *args,
+    remote_domain_checkpoint_lookup_by_name_ret *ret);
+static int remoteDispatchDomainCheckpointLookupByNameHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainCheckpointLookupByName");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainCheckpointLookupByName(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainCheckpointLookupByName(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_checkpoint_lookup_by_name_args *args,
+    remote_domain_checkpoint_lookup_by_name_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainCheckpointPtr checkpoint = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((checkpoint = virDomainCheckpointLookupByName(dom, args->name, args->flags)) == NULL)
+        goto cleanup;
+
+    if (make_nonnull_domain_checkpoint(&ret->checkpoint, checkpoint) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    virObjectUnref(checkpoint);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainCoreDump(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -7191,6 +7606,96 @@ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virObjectUnref(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainListAllCheckpoints(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_list_all_checkpoints_args *args,
+    remote_domain_list_all_checkpoints_ret *ret);
+static int remoteDispatchDomainListAllCheckpointsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchDomainListAllCheckpoints");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchDomainListAllCheckpoints(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchDomainListAllCheckpoints(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_list_all_checkpoints_args *args,
+    remote_domain_list_all_checkpoints_ret *ret)
+{
+    int rv = -1;
+    ssize_t i;
+    virDomainPtr dom = NULL;
+    virDomainCheckpointPtr *result = NULL;
+    int nresults = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((nresults = 
+            virDomainListAllCheckpoints(dom,
+                                        args->need_results ? &result : NULL,
+                                        args->flags)) < 0)
+        goto cleanup;
+
+    if (nresults > REMOTE_DOMAIN_CHECKPOINT_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Too many domain_checkpoints '%d' for limit '%d'"),
+                       nresults, REMOTE_DOMAIN_CHECKPOINT_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result && nresults) {
+        if (VIR_ALLOC_N(ret->checkpoints.checkpoints_val, nresults) < 0)
+            goto cleanup;
+
+        ret->checkpoints.checkpoints_len = nresults;
+        for (i = 0; i < nresults; i++)
+            if (make_nonnull_domain_checkpoint(ret->checkpoints.checkpoints_val + i, result[i]) < 0)
+                goto cleanup;
+    } else {
+        ret->checkpoints.checkpoints_len = 0;
+        ret->checkpoints.checkpoints_val = NULL;
+    }
+
+    ret->ret = nresults;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(dom);
+    if (result) {
+        for (i = 0; i < nresults; i++)
+            virObjectUnref(result[i]);
+    }
+    VIR_FREE(result);
     return rv;
 }
 
@@ -13972,6 +14477,96 @@ cleanup:
 
 
 
+static int remoteDispatchNetworkListAllPorts(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_list_all_ports_args *args,
+    remote_network_list_all_ports_ret *ret);
+static int remoteDispatchNetworkListAllPortsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNetworkListAllPorts");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNetworkListAllPorts(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNetworkListAllPorts(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_network_list_all_ports_args *args,
+    remote_network_list_all_ports_ret *ret)
+{
+    int rv = -1;
+    ssize_t i;
+    virNetworkPtr network = NULL;
+    virNetworkPortPtr *result = NULL;
+    int nresults = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->networkConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(network = get_nonnull_network(priv->networkConn, args->network)))
+        goto cleanup;
+
+    if ((nresults = 
+            virNetworkListAllPorts(network,
+                                   args->need_results ? &result : NULL,
+                                   args->flags)) < 0)
+        goto cleanup;
+
+    if (nresults > REMOTE_NETWORK_PORT_LIST_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Too many network_ports '%d' for limit '%d'"),
+                       nresults, REMOTE_NETWORK_PORT_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result && nresults) {
+        if (VIR_ALLOC_N(ret->ports.ports_val, nresults) < 0)
+            goto cleanup;
+
+        ret->ports.ports_len = nresults;
+        for (i = 0; i < nresults; i++)
+            if (make_nonnull_network_port(ret->ports.ports_val + i, result[i]) < 0)
+                goto cleanup;
+    } else {
+        ret->ports.ports_len = 0;
+        ret->ports.ports_val = NULL;
+    }
+
+    ret->ret = nresults;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(network);
+    if (result) {
+        for (i = 0; i < nresults; i++)
+            virObjectUnref(result[i]);
+    }
+    VIR_FREE(result);
+    return rv;
+}
+
+
+
 static int remoteDispatchNetworkLookupByName(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -14083,6 +14678,341 @@ cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
     virObjectUnref(net);
+    return rv;
+}
+
+
+
+static int remoteDispatchNetworkPortCreateXML(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_create_xml_args *args,
+    remote_network_port_create_xml_ret *ret);
+static int remoteDispatchNetworkPortCreateXMLHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNetworkPortCreateXML");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNetworkPortCreateXML(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNetworkPortCreateXML(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_create_xml_args *args,
+    remote_network_port_create_xml_ret *ret)
+{
+    int rv = -1;
+    virNetworkPtr network = NULL;
+    virNetworkPortPtr port = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->networkConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(network = get_nonnull_network(priv->networkConn, args->network)))
+        goto cleanup;
+
+    if ((port = virNetworkPortCreateXML(network, args->xml, args->flags)) == NULL)
+        goto cleanup;
+
+    if (make_nonnull_network_port(&ret->port, port) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(network);
+    virObjectUnref(port);
+    return rv;
+}
+
+
+
+static int remoteDispatchNetworkPortDelete(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_delete_args *args);
+static int remoteDispatchNetworkPortDeleteHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNetworkPortDelete");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNetworkPortDelete(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNetworkPortDelete(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_delete_args *args)
+{
+    int rv = -1;
+    virNetworkPortPtr port = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->networkConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(port = get_nonnull_network_port(priv->networkConn, args->port)))
+        goto cleanup;
+
+    if (virNetworkPortDelete(port, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(port);
+    return rv;
+}
+
+
+
+static int remoteDispatchNetworkPortGetParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_get_parameters_args *args,
+    remote_network_port_get_parameters_ret *ret);
+static int remoteDispatchNetworkPortGetParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNetworkPortGetParameters");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNetworkPortGetParameters(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+/* remoteDispatchNetworkPortGetParameters body has to be implemented manually */
+
+
+
+static int remoteDispatchNetworkPortGetXMLDesc(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_get_xml_desc_args *args,
+    remote_network_port_get_xml_desc_ret *ret);
+static int remoteDispatchNetworkPortGetXMLDescHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNetworkPortGetXMLDesc");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNetworkPortGetXMLDesc(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNetworkPortGetXMLDesc(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_get_xml_desc_args *args,
+    remote_network_port_get_xml_desc_ret *ret)
+{
+    int rv = -1;
+    virNetworkPortPtr port = NULL;
+    char *xml;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->networkConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(port = get_nonnull_network_port(priv->networkConn, args->port)))
+        goto cleanup;
+
+    if ((xml = virNetworkPortGetXMLDesc(port, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->xml = xml;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(port);
+    return rv;
+}
+
+
+
+static int remoteDispatchNetworkPortLookupByUUID(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_lookup_by_uuid_args *args,
+    remote_network_port_lookup_by_uuid_ret *ret);
+static int remoteDispatchNetworkPortLookupByUUIDHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNetworkPortLookupByUUID");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNetworkPortLookupByUUID(server, client, msg, rerr, args, ret);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNetworkPortLookupByUUID(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_lookup_by_uuid_args *args,
+    remote_network_port_lookup_by_uuid_ret *ret)
+{
+    int rv = -1;
+    virNetworkPtr network = NULL;
+    virNetworkPortPtr port = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->networkConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(network = get_nonnull_network(priv->networkConn, args->network)))
+        goto cleanup;
+
+    if ((port = virNetworkPortLookupByUUID(network, (unsigned char *) args->uuid)) == NULL)
+        goto cleanup;
+
+    if (make_nonnull_network_port(&ret->port, port) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(network);
+    virObjectUnref(port);
+    return rv;
+}
+
+
+
+static int remoteDispatchNetworkPortSetParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_set_parameters_args *args);
+static int remoteDispatchNetworkPortSetParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  int rv;
+  virThreadJobSet("remoteDispatchNetworkPortSetParameters");
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p",
+            server, client, msg, rerr, args, ret);
+  rv = remoteDispatchNetworkPortSetParameters(server, client, msg, rerr, args);
+  virThreadJobClear(rv);
+  return rv;
+}
+static int remoteDispatchNetworkPortSetParameters(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_network_port_set_parameters_args *args)
+{
+    int rv = -1;
+    virNetworkPortPtr port = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->networkConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(port = get_nonnull_network_port(priv->networkConn, args->port)))
+        goto cleanup;
+
+    if (virTypedParamsDeserialize((virTypedParameterRemotePtr) args->params.params_val,
+                                  args->params.params_len,
+                                  REMOTE_NETWORK_PORT_PARAMETERS_MAX,
+                                  &params,
+                                  &nparams) < 0)
+        goto cleanup;
+
+    if (virNetworkPortSetParameters(port, params, nparams, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(port);
+    virTypedParamsFree(params, nparams);
     return rv;
 }
 
@@ -22259,6 +23189,132 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_connect_get_storage_pool_capabilities_args,
    sizeof(remote_connect_get_storage_pool_capabilities_ret),
    (xdrproc_t)xdr_remote_connect_get_storage_pool_capabilities_ret,
+   true,
+   0
+},
+{ /* Method NetworkListAllPorts => 404 */
+   remoteDispatchNetworkListAllPortsHelper,
+   sizeof(remote_network_list_all_ports_args),
+   (xdrproc_t)xdr_remote_network_list_all_ports_args,
+   sizeof(remote_network_list_all_ports_ret),
+   (xdrproc_t)xdr_remote_network_list_all_ports_ret,
+   true,
+   1
+},
+{ /* Method NetworkPortLookupByUUID => 405 */
+   remoteDispatchNetworkPortLookupByUUIDHelper,
+   sizeof(remote_network_port_lookup_by_uuid_args),
+   (xdrproc_t)xdr_remote_network_port_lookup_by_uuid_args,
+   sizeof(remote_network_port_lookup_by_uuid_ret),
+   (xdrproc_t)xdr_remote_network_port_lookup_by_uuid_ret,
+   true,
+   1
+},
+{ /* Method NetworkPortCreateXML => 406 */
+   remoteDispatchNetworkPortCreateXMLHelper,
+   sizeof(remote_network_port_create_xml_args),
+   (xdrproc_t)xdr_remote_network_port_create_xml_args,
+   sizeof(remote_network_port_create_xml_ret),
+   (xdrproc_t)xdr_remote_network_port_create_xml_ret,
+   true,
+   0
+},
+{ /* Method NetworkPortGetParameters => 407 */
+   remoteDispatchNetworkPortGetParametersHelper,
+   sizeof(remote_network_port_get_parameters_args),
+   (xdrproc_t)xdr_remote_network_port_get_parameters_args,
+   sizeof(remote_network_port_get_parameters_ret),
+   (xdrproc_t)xdr_remote_network_port_get_parameters_ret,
+   true,
+   0
+},
+{ /* Method NetworkPortSetParameters => 408 */
+   remoteDispatchNetworkPortSetParametersHelper,
+   sizeof(remote_network_port_set_parameters_args),
+   (xdrproc_t)xdr_remote_network_port_set_parameters_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NetworkPortGetXMLDesc => 409 */
+   remoteDispatchNetworkPortGetXMLDescHelper,
+   sizeof(remote_network_port_get_xml_desc_args),
+   (xdrproc_t)xdr_remote_network_port_get_xml_desc_args,
+   sizeof(remote_network_port_get_xml_desc_ret),
+   (xdrproc_t)xdr_remote_network_port_get_xml_desc_ret,
+   true,
+   0
+},
+{ /* Method NetworkPortDelete => 410 */
+   remoteDispatchNetworkPortDeleteHelper,
+   sizeof(remote_network_port_delete_args),
+   (xdrproc_t)xdr_remote_network_port_delete_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainCheckpointCreateXML => 411 */
+   remoteDispatchDomainCheckpointCreateXMLHelper,
+   sizeof(remote_domain_checkpoint_create_xml_args),
+   (xdrproc_t)xdr_remote_domain_checkpoint_create_xml_args,
+   sizeof(remote_domain_checkpoint_create_xml_ret),
+   (xdrproc_t)xdr_remote_domain_checkpoint_create_xml_ret,
+   true,
+   0
+},
+{ /* Method DomainCheckpointGetXMLDesc => 412 */
+   remoteDispatchDomainCheckpointGetXMLDescHelper,
+   sizeof(remote_domain_checkpoint_get_xml_desc_args),
+   (xdrproc_t)xdr_remote_domain_checkpoint_get_xml_desc_args,
+   sizeof(remote_domain_checkpoint_get_xml_desc_ret),
+   (xdrproc_t)xdr_remote_domain_checkpoint_get_xml_desc_ret,
+   true,
+   0
+},
+{ /* Method DomainListAllCheckpoints => 413 */
+   remoteDispatchDomainListAllCheckpointsHelper,
+   sizeof(remote_domain_list_all_checkpoints_args),
+   (xdrproc_t)xdr_remote_domain_list_all_checkpoints_args,
+   sizeof(remote_domain_list_all_checkpoints_ret),
+   (xdrproc_t)xdr_remote_domain_list_all_checkpoints_ret,
+   true,
+   1
+},
+{ /* Method DomainCheckpointListAllChildren => 414 */
+   remoteDispatchDomainCheckpointListAllChildrenHelper,
+   sizeof(remote_domain_checkpoint_list_all_children_args),
+   (xdrproc_t)xdr_remote_domain_checkpoint_list_all_children_args,
+   sizeof(remote_domain_checkpoint_list_all_children_ret),
+   (xdrproc_t)xdr_remote_domain_checkpoint_list_all_children_ret,
+   true,
+   1
+},
+{ /* Method DomainCheckpointLookupByName => 415 */
+   remoteDispatchDomainCheckpointLookupByNameHelper,
+   sizeof(remote_domain_checkpoint_lookup_by_name_args),
+   (xdrproc_t)xdr_remote_domain_checkpoint_lookup_by_name_args,
+   sizeof(remote_domain_checkpoint_lookup_by_name_ret),
+   (xdrproc_t)xdr_remote_domain_checkpoint_lookup_by_name_ret,
+   true,
+   1
+},
+{ /* Method DomainCheckpointGetParent => 416 */
+   remoteDispatchDomainCheckpointGetParentHelper,
+   sizeof(remote_domain_checkpoint_get_parent_args),
+   (xdrproc_t)xdr_remote_domain_checkpoint_get_parent_args,
+   sizeof(remote_domain_checkpoint_get_parent_ret),
+   (xdrproc_t)xdr_remote_domain_checkpoint_get_parent_ret,
+   true,
+   1
+},
+{ /* Method DomainCheckpointDelete => 417 */
+   remoteDispatchDomainCheckpointDeleteHelper,
+   sizeof(remote_domain_checkpoint_delete_args),
+   (xdrproc_t)xdr_remote_domain_checkpoint_delete_args,
+   0,
+   (xdrproc_t)xdr_void,
    true,
    0
 },

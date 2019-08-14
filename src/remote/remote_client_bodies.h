@@ -2046,6 +2046,209 @@ done:
     return rv;
 }
 
+static virDomainCheckpointPtr
+remoteDomainCheckpointCreateXML(virDomainPtr dom, const char *xml_desc, unsigned int flags)
+{
+    virDomainCheckpointPtr rv = NULL;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_checkpoint_create_xml_args args;
+    remote_domain_checkpoint_create_xml_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.xml_desc = (char *)xml_desc;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_CHECKPOINT_CREATE_XML,
+             (xdrproc_t)xdr_remote_domain_checkpoint_create_xml_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_checkpoint_create_xml_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_domain_checkpoint(dom, ret.checkpoint);
+    xdr_free((xdrproc_t)xdr_remote_domain_checkpoint_create_xml_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainCheckpointDelete(virDomainCheckpointPtr checkpoint, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = checkpoint->domain->conn->privateData;
+    remote_domain_checkpoint_delete_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_checkpoint(&args.checkpoint, checkpoint);
+    args.flags = flags;
+
+    if (call(checkpoint->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_CHECKPOINT_DELETE,
+             (xdrproc_t)xdr_remote_domain_checkpoint_delete_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virDomainCheckpointPtr
+remoteDomainCheckpointGetParent(virDomainCheckpointPtr checkpoint, unsigned int flags)
+{
+    virDomainCheckpointPtr rv = NULL;
+    struct private_data *priv = checkpoint->domain->conn->privateData;
+    remote_domain_checkpoint_get_parent_args args;
+    remote_domain_checkpoint_get_parent_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_checkpoint(&args.checkpoint, checkpoint);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(checkpoint->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_CHECKPOINT_GET_PARENT,
+             (xdrproc_t)xdr_remote_domain_checkpoint_get_parent_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_checkpoint_get_parent_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_domain_checkpoint(checkpoint->domain, ret.parent);
+    xdr_free((xdrproc_t)xdr_remote_domain_checkpoint_get_parent_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
+remoteDomainCheckpointGetXMLDesc(virDomainCheckpointPtr checkpoint, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = checkpoint->domain->conn->privateData;
+    remote_domain_checkpoint_get_xml_desc_args args;
+    remote_domain_checkpoint_get_xml_desc_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_checkpoint(&args.checkpoint, checkpoint);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(checkpoint->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_CHECKPOINT_GET_XML_DESC,
+             (xdrproc_t)xdr_remote_domain_checkpoint_get_xml_desc_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_checkpoint_get_xml_desc_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.xml;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainCheckpointListAllChildren(virDomainCheckpointPtr checkpoint, virDomainCheckpointPtr **result, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = checkpoint->domain->conn->privateData;
+    remote_domain_checkpoint_list_all_children_args args;
+    remote_domain_checkpoint_list_all_children_ret ret;
+    virDomainCheckpointPtr *tmp_results = NULL;
+    size_t i;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_checkpoint(&args.checkpoint, checkpoint);
+    args.flags = flags;
+    args.need_results = !!result;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(checkpoint->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_CHECKPOINT_LIST_ALL_CHILDREN,
+             (xdrproc_t)xdr_remote_domain_checkpoint_list_all_children_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_checkpoint_list_all_children_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.checkpoints.checkpoints_len > REMOTE_DOMAIN_CHECKPOINT_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote domain_checkpoints: %d > %d,"
+                         "in parameter 'checkpoints' for 'virDomainCheckpointListAllChildren'"),
+                       ret.checkpoints.checkpoints_len, REMOTE_DOMAIN_CHECKPOINT_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result) {
+        if (VIR_ALLOC_N(tmp_results, ret.checkpoints.checkpoints_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.checkpoints.checkpoints_len; i++) {
+            tmp_results[i] = get_nonnull_domain_checkpoint(checkpoint->domain, ret.checkpoints.checkpoints_val[i]);
+            if (!tmp_results[i])
+                goto cleanup;
+        }
+        *result = tmp_results;
+        tmp_results = NULL;
+    }
+
+    rv = ret.ret;
+
+cleanup:
+    if (tmp_results) {
+        for (i = 0; i < ret.checkpoints.checkpoints_len; i++)
+            virObjectUnref(tmp_results[i]);
+        VIR_FREE(tmp_results);
+    }
+
+    xdr_free((xdrproc_t)xdr_remote_domain_checkpoint_list_all_children_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virDomainCheckpointPtr
+remoteDomainCheckpointLookupByName(virDomainPtr dom, const char *name, unsigned int flags)
+{
+    virDomainCheckpointPtr rv = NULL;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_checkpoint_lookup_by_name_args args;
+    remote_domain_checkpoint_lookup_by_name_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.name = (char *)name;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_CHECKPOINT_LOOKUP_BY_NAME,
+             (xdrproc_t)xdr_remote_domain_checkpoint_lookup_by_name_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_checkpoint_lookup_by_name_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_domain_checkpoint(dom, ret.checkpoint);
+    xdr_free((xdrproc_t)xdr_remote_domain_checkpoint_lookup_by_name_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static int
 remoteDomainCoreDump(virDomainPtr dom, const char *to, unsigned int flags)
 {
@@ -3140,6 +3343,67 @@ remoteDomainIsUpdated(virDomainPtr dom)
     }
 
     rv = ret.updated;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainListAllCheckpoints(virDomainPtr dom, virDomainCheckpointPtr **result, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_list_all_checkpoints_args args;
+    remote_domain_list_all_checkpoints_ret ret;
+    virDomainCheckpointPtr *tmp_results = NULL;
+    size_t i;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+    args.need_results = !!result;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_LIST_ALL_CHECKPOINTS,
+             (xdrproc_t)xdr_remote_domain_list_all_checkpoints_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_list_all_checkpoints_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.checkpoints.checkpoints_len > REMOTE_DOMAIN_CHECKPOINT_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote domain_checkpoints: %d > %d,"
+                         "in parameter 'checkpoints' for 'virDomainListAllCheckpoints'"),
+                       ret.checkpoints.checkpoints_len, REMOTE_DOMAIN_CHECKPOINT_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result) {
+        if (VIR_ALLOC_N(tmp_results, ret.checkpoints.checkpoints_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.checkpoints.checkpoints_len; i++) {
+            tmp_results[i] = get_nonnull_domain_checkpoint(dom, ret.checkpoints.checkpoints_val[i]);
+            if (!tmp_results[i])
+                goto cleanup;
+        }
+        *result = tmp_results;
+        tmp_results = NULL;
+    }
+
+    rv = ret.ret;
+
+cleanup:
+    if (tmp_results) {
+        for (i = 0; i < ret.checkpoints.checkpoints_len; i++)
+            virObjectUnref(tmp_results[i]);
+        VIR_FREE(tmp_results);
+    }
+
+    xdr_free((xdrproc_t)xdr_remote_domain_list_all_checkpoints_ret, (char *)&ret);
 
 done:
     remoteDriverUnlock(priv);
@@ -6187,6 +6451,67 @@ done:
     return rv;
 }
 
+static int
+remoteNetworkListAllPorts(virNetworkPtr network, virNetworkPortPtr **result, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = network->conn->privateData;
+    remote_network_list_all_ports_args args;
+    remote_network_list_all_ports_ret ret;
+    virNetworkPortPtr *tmp_results = NULL;
+    size_t i;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_network(&args.network, network);
+    args.flags = flags;
+    args.need_results = !!result;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(network->conn, priv, 0, REMOTE_PROC_NETWORK_LIST_ALL_PORTS,
+             (xdrproc_t)xdr_remote_network_list_all_ports_args, (char *)&args,
+             (xdrproc_t)xdr_remote_network_list_all_ports_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.ports.ports_len > REMOTE_NETWORK_PORT_LIST_MAX) {
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote network_ports: %d > %d,"
+                         "in parameter 'ports' for 'virNetworkListAllPorts'"),
+                       ret.ports.ports_len, REMOTE_NETWORK_PORT_LIST_MAX);
+        goto cleanup;
+    }
+
+    if (result) {
+        if (VIR_ALLOC_N(tmp_results, ret.ports.ports_len + 1) < 0)
+            goto cleanup;
+
+        for (i = 0; i < ret.ports.ports_len; i++) {
+            tmp_results[i] = get_nonnull_network_port(network->conn, ret.ports.ports_val[i]);
+            if (!tmp_results[i])
+                goto cleanup;
+        }
+        *result = tmp_results;
+        tmp_results = NULL;
+    }
+
+    rv = ret.ret;
+
+cleanup:
+    if (tmp_results) {
+        for (i = 0; i < ret.ports.ports_len; i++)
+            virObjectUnref(tmp_results[i]);
+        VIR_FREE(tmp_results);
+    }
+
+    xdr_free((xdrproc_t)xdr_remote_network_list_all_ports_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static virNetworkPtr
 remoteNetworkLookupByName(virConnectPtr conn, const char *name)
 {
@@ -6239,6 +6564,153 @@ remoteNetworkLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     xdr_free((xdrproc_t)xdr_remote_network_lookup_by_uuid_ret, (char *)&ret);
 
 done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virNetworkPortPtr
+remoteNetworkPortCreateXML(virNetworkPtr network, const char *xml, unsigned int flags)
+{
+    virNetworkPortPtr rv = NULL;
+    struct private_data *priv = network->conn->privateData;
+    remote_network_port_create_xml_args args;
+    remote_network_port_create_xml_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_network(&args.network, network);
+    args.xml = (char *)xml;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(network->conn, priv, 0, REMOTE_PROC_NETWORK_PORT_CREATE_XML,
+             (xdrproc_t)xdr_remote_network_port_create_xml_args, (char *)&args,
+             (xdrproc_t)xdr_remote_network_port_create_xml_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_network_port(network->conn, ret.port);
+    xdr_free((xdrproc_t)xdr_remote_network_port_create_xml_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNetworkPortDelete(virNetworkPortPtr port, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = port->net->conn->privateData;
+    remote_network_port_delete_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_network_port(&args.port, port);
+    args.flags = flags;
+
+    if (call(port->net->conn, priv, 0, REMOTE_PROC_NETWORK_PORT_DELETE,
+             (xdrproc_t)xdr_remote_network_port_delete_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
+remoteNetworkPortGetXMLDesc(virNetworkPortPtr port, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = port->net->conn->privateData;
+    remote_network_port_get_xml_desc_args args;
+    remote_network_port_get_xml_desc_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_network_port(&args.port, port);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(port->net->conn, priv, 0, REMOTE_PROC_NETWORK_PORT_GET_XML_DESC,
+             (xdrproc_t)xdr_remote_network_port_get_xml_desc_args, (char *)&args,
+             (xdrproc_t)xdr_remote_network_port_get_xml_desc_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.xml;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static virNetworkPortPtr
+remoteNetworkPortLookupByUUID(virNetworkPtr network, const unsigned char *uuid)
+{
+    virNetworkPortPtr rv = NULL;
+    struct private_data *priv = network->conn->privateData;
+    remote_network_port_lookup_by_uuid_args args;
+    remote_network_port_lookup_by_uuid_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_network(&args.network, network);
+    memcpy(args.uuid, uuid, VIR_UUID_BUFLEN);
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(network->conn, priv, 0, REMOTE_PROC_NETWORK_PORT_LOOKUP_BY_UUID,
+             (xdrproc_t)xdr_remote_network_port_lookup_by_uuid_args, (char *)&args,
+             (xdrproc_t)xdr_remote_network_port_lookup_by_uuid_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_network_port(network->conn, ret.port);
+    xdr_free((xdrproc_t)xdr_remote_network_port_lookup_by_uuid_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNetworkPortSetParameters(virNetworkPortPtr port, virTypedParameterPtr params, int nparams, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = port->net->conn->privateData;
+    remote_network_port_set_parameters_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_network_port(&args.port, port);
+    args.flags = flags;
+
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &args.params.params_val,
+                                &args.params.params_len,
+                                VIR_TYPED_PARAM_STRING_OKAY) < 0) {
+        xdr_free((xdrproc_t)xdr_remote_network_port_set_parameters_args, (char *)&args);
+        goto done;
+    }
+
+    if (call(port->net->conn, priv, 0, REMOTE_PROC_NETWORK_PORT_SET_PARAMETERS,
+             (xdrproc_t)xdr_remote_network_port_set_parameters_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    virTypedParamsRemoteFree((virTypedParameterRemotePtr) args.params.params_val,
+                             args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 }

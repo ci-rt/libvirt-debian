@@ -90,10 +90,10 @@
       A pool with a type of <code>dir</code> provides the means to manage
       files within a directory. The files can be fully allocated raw files,
       sparsely allocated raw files, or one of the special disk formats
-      such as <code>qcow</code>,<code>qcow2</code>,<code>vmdk</code>,
-      <code>cow</code>, etc as supported  by the <code>qemu-img</code>
-      program. If the directory does not exist at the time the pool is
-      defined, the <code>build</code> operation can be used to create it.
+      such as <code>qcow2</code>, <code>vmdk</code>, etc as supported
+      by the <code>qemu-img</code> program. If the directory does not exist
+      at the time the pool is defined, the <code>build</code>
+      operation can be used to create it.
     </p>
 
     <h3>Example pool input definition</h3>
@@ -132,9 +132,8 @@
       natively. When creating new volumes, only a subset may be
       available. The <code>raw</code> type is guaranteed always
       available. The <code>qcow2</code> type can be created if
-      either <code>qemu-img</code> or <code>qcow-create</code> tools
-      are present. The others are dependent on support of the
-      <code>qemu-img</code> tool.
+      the <code>qemu-img</code> tool is present. The others are
+      dependent on support of the <code>qemu-img</code> tool.
 
     </p>
 
@@ -309,7 +308,7 @@
       by adding partitions to the disk. Disk pools have constraints
       on the size and placement of volumes. The 'free extents'
       information will detail the regions which are available for creating
-      new volumes. A volume cannot span across 2 different free extents.
+      new volumes. A volume cannot span across two different free extents.
       It will default to using <code>dos</code> as the pool source format.
     </p>
 
@@ -360,7 +359,16 @@
       The formats <code>dos</code> ("msdos" in parted terminology,
       good for BIOS systems) or <code>gpt</code> (good for UEFI
       systems) are recommended for best portability - the latter is
-      needed for disks larger than 2TB.
+      needed for disks larger than 2TB. Note that the <code>lvm2</code>
+      format refers to the physical volume format (i.e. the whole
+      disk is a physical volume - not the usual usage of LVM where
+      physical volumes are partitions). This is not really
+      a partition table and such pool cannot be built by libvirt,
+      only detected.
+    </p>
+    <p>
+      Building a pool of a certain format depends on its availability
+      in <code>parted</code>.
     </p>
 
     <h3>Valid volume format types</h3>
@@ -600,7 +608,7 @@
 
     <h3>Valid volume format types</h3>
     <p>
-      The RBD pool does not use the volume format type element.
+      Only raw volumes are supported.
     </p>
 
     <h2><a id="StorageBackendSheepdog">Sheepdog pool</a></h2>

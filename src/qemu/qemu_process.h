@@ -19,12 +19,11 @@
  *
  */
 
-#ifndef LIBVIRT_QEMU_PROCESS_H
-# define LIBVIRT_QEMU_PROCESS_H
+#pragma once
 
-# include "qemu_conf.h"
-# include "qemu_domain.h"
-# include "virstoragefile.h"
+#include "qemu_conf.h"
+#include "qemu_domain.h"
+#include "virstoragefile.h"
 
 int qemuProcessPrepareMonitorChr(virDomainChrSourceDefPtr monConfig,
                                  const char *domainDir);
@@ -154,14 +153,6 @@ void qemuProcessStop(virQEMUDriverPtr driver,
                      qemuDomainAsyncJob asyncJob,
                      unsigned int flags);
 
-int qemuProcessAttach(virConnectPtr conn,
-                      virQEMUDriverPtr driver,
-                      virDomainObjPtr vm,
-                      pid_t pid,
-                      const char *pidfile,
-                      virDomainChrSourceDefPtr monConfig,
-                      bool monJSON);
-
 typedef enum {
    VIR_QEMU_PROCESS_KILL_FORCE  = 1 << 0,
    VIR_QEMU_PROCESS_KILL_NOWAIT = 1 << 1,
@@ -242,5 +233,3 @@ qemuProcessQMPPtr qemuProcessQMPNew(const char *binary,
 void qemuProcessQMPFree(qemuProcessQMPPtr proc);
 
 int qemuProcessQMPStart(qemuProcessQMPPtr proc);
-
-#endif /* LIBVIRT_QEMU_PROCESS_H */

@@ -39,6 +39,7 @@
 #include "viralloc.h"
 #include "virnetworkobj.h"
 #include "interface_conf.h"
+#include "checkpoint_conf.h"
 #include "domain_conf.h"
 #include "domain_event.h"
 #include "network_event.h"
@@ -63,7 +64,9 @@
 #include "virdomainobjlist.h"
 #include "virinterfaceobj.h"
 #include "virhostcpu.h"
+#include "virdomaincheckpointobjlist.h"
 #include "virdomainsnapshotobjlist.h"
+#include "virkeycode.h"
 
 #define VIR_FROM_THIS VIR_FROM_TEST
 
@@ -436,6 +439,18 @@ static const char *defaultConnXML =
 "  <os>"
 "    <type>hvm</type>"
 "  </os>"
+"  <devices>"
+"    <disk type='file' device='disk'>"
+"      <source file='/guest/diskimage1'/>"
+"      <target dev='vda' bus='virtio'/>"
+"      <address type='pci' domain='0x0000' bus='0x01' slot='0x00' function='0x0'/>"
+"    </disk>"
+"    <interface type='network'>"
+"      <mac address='aa:bb:cc:dd:ee:ff'/>"
+"      <source network='default' bridge='virbr0'/>"
+"      <address type='pci' domain='0x0000' bus='0x00' slot='0x1' function='0x0'/>"
+"    </interface>"
+"  </devices>"
 "</domain>"
 ""
 "<network>"
@@ -562,6 +577,7 @@ static const unsigned long long defaultPoolAlloc;
 
 static int testStoragePoolObjSetDefaults(virStoragePoolObjPtr obj);
 static int testNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info);
+static virNetworkObjPtr testNetworkObjFindByName(testDriverPtr privconn, const char *name);
 
 static virDomainObjPtr
 testDomObjFromDomain(virDomainPtr domain)
@@ -848,7 +864,7 @@ testParseDomainSnapshots(testDriverPtr privconn,
             goto error;
 
         if (!(snap = virDomainSnapshotAssignDef(domobj->snapshots, def))) {
-            virDomainSnapshotDefFree(def);
+            virObjectUnref(def);
             goto error;
         }
 
@@ -957,7 +973,7 @@ testParseNetworks(testDriverPtr privconn,
         if (!node)
             return -1;
 
-        def = virNetworkDefParseNode(ctxt->doc, node);
+        def = virNetworkDefParseNode(ctxt->doc, node, NULL);
         if (!def)
             return -1;
 
@@ -1543,6 +1559,34 @@ testConnectGetType(virConnectPtr conn ATTRIBUTE_UNUSED)
     return "TEST";
 }
 
+
+static int
+testConnectSupportsFeature(virConnectPtr conn ATTRIBUTE_UNUSED,
+                           int feature)
+{
+    switch ((virDrvFeature) feature) {
+    case VIR_DRV_FEATURE_TYPED_PARAM_STRING:
+        return 1;
+    case VIR_DRV_FEATURE_MIGRATION_V2:
+    case VIR_DRV_FEATURE_MIGRATION_V3:
+    case VIR_DRV_FEATURE_MIGRATION_P2P:
+    case VIR_DRV_FEATURE_MIGRATE_CHANGE_PROTECTION:
+    case VIR_DRV_FEATURE_FD_PASSING:
+    case VIR_DRV_FEATURE_XML_MIGRATABLE:
+    case VIR_DRV_FEATURE_MIGRATION_OFFLINE:
+    case VIR_DRV_FEATURE_MIGRATION_PARAMS:
+    case VIR_DRV_FEATURE_MIGRATION_DIRECT:
+    case VIR_DRV_FEATURE_MIGRATION_V1:
+    case VIR_DRV_FEATURE_PROGRAM_KEEPALIVE:
+    case VIR_DRV_FEATURE_REMOTE:
+    case VIR_DRV_FEATURE_REMOTE_CLOSE_CALLBACK:
+    case VIR_DRV_FEATURE_REMOTE_EVENT_CALLBACK:
+    default:
+        return 0;
+    }
+}
+
+
 static int testConnectNumOfDomains(virConnectPtr conn)
 {
     testDriverPtr privconn = conn->privateData;
@@ -1842,13 +1886,19 @@ static int testDomainShutdown(virDomainPtr domain)
 
 /* Similar behaviour as shutdown */
 static int testDomainReboot(virDomainPtr domain,
-                            unsigned int action ATTRIBUTE_UNUSED)
+                            unsigned int flags)
 {
     testDriverPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
     virObjectEventPtr event = NULL;
     int ret = -1;
 
+    virCheckFlags(VIR_DOMAIN_REBOOT_DEFAULT |
+                  VIR_DOMAIN_REBOOT_ACPI_POWER_BTN |
+                  VIR_DOMAIN_REBOOT_GUEST_AGENT |
+                  VIR_DOMAIN_REBOOT_INITCTL |
+                  VIR_DOMAIN_REBOOT_SIGNAL |
+                  VIR_DOMAIN_REBOOT_PARAVIRT, -1);
 
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
@@ -1903,6 +1953,30 @@ static int testDomainReboot(virDomainPtr domain,
     return ret;
 }
 
+
+static char *
+testDomainGetHostname(virDomainPtr domain,
+                      unsigned int flags)
+{
+    char *ret = NULL;
+    virDomainObjPtr vm = NULL;
+
+    virCheckFlags(0, NULL);
+
+    if (!(vm = testDomObjFromDomain(domain)))
+        goto cleanup;
+
+    if (virDomainObjCheckActive(vm) < 0)
+        goto cleanup;
+
+    ignore_value(virAsprintf(&ret, "%shost", domain->name));
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
 static int testDomainGetInfo(virDomainPtr domain,
                              virDomainInfoPtr info)
 {
@@ -1951,27 +2025,201 @@ testDomainGetState(virDomainPtr domain,
     return 0;
 }
 
+static int
+testDomainGetTime(virDomainPtr dom,
+                  long long *seconds,
+                  unsigned int *nseconds,
+                  unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain is not running"));
+        goto cleanup;
+    }
+
+    *seconds = 627319920;
+    *nseconds = 0;
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
 #define TEST_SAVE_MAGIC "TestGuestMagic"
+
+
+/**
+ * testDomainSaveImageWrite:
+ * @driver: test driver data
+ * @def: domain definition whose XML will be stored in the image
+ * @path: path to the saved image
+ *
+ * Returns true on success, else false.
+ */
+static bool
+testDomainSaveImageWrite(testDriverPtr driver,
+                         const char *path,
+                         virDomainDefPtr def)
+{
+    int len;
+    int fd = -1;
+    VIR_AUTOFREE(char *) xml = NULL;
+
+    xml = virDomainDefFormat(def, driver->caps, VIR_DOMAIN_DEF_FORMAT_SECURE);
+
+    if (xml == NULL) {
+        virReportSystemError(errno,
+                             _("saving domain '%s' failed to allocate space for metadata"),
+                             def->name);
+        goto error;
+    }
+
+    if ((fd = open(path, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
+        virReportSystemError(errno,
+                             _("saving domain '%s' to '%s': open failed"),
+                             def->name, path);
+        goto error;
+    }
+
+    if (safewrite(fd, TEST_SAVE_MAGIC, sizeof(TEST_SAVE_MAGIC)) < 0) {
+        virReportSystemError(errno,
+                             _("saving domain '%s' to '%s': write failed"),
+                             def->name, path);
+        goto error;
+    }
+
+    len = strlen(xml);
+    if (safewrite(fd, (char*)&len, sizeof(len)) < 0) {
+        virReportSystemError(errno,
+                             _("saving domain '%s' to '%s': write failed"),
+                             def->name, path);
+        goto error;
+    }
+
+    if (safewrite(fd, xml, len) < 0) {
+        virReportSystemError(errno,
+                             _("saving domain '%s' to '%s': write failed"),
+                             def->name, path);
+        goto error;
+    }
+
+    if (VIR_CLOSE(fd) < 0) {
+        virReportSystemError(errno,
+                             _("saving domain '%s' to '%s': write failed"),
+                             def->name, path);
+        goto error;
+    }
+
+    return true;
+
+ error:
+    /* Don't report failure in close or unlink, because
+     * in either case we're already in a failure scenario
+     * and have reported an earlier error */
+    VIR_FORCE_CLOSE(fd);
+    unlink(path);
+
+    return false;
+}
+
+
+/**
+ * testDomainSaveImageOpen:
+ * @driver: test driver data
+ * @path: path of the saved image
+ * @ret_def: returns domain definition created from the XML stored in the image
+ *
+ * Returns the opened fd of the save image file and fills ret_def on success.
+ * Returns -1, on error.
+ */
+static int ATTRIBUTE_NONNULL(3)
+testDomainSaveImageOpen(testDriverPtr driver,
+                        const char *path,
+                        virDomainDefPtr *ret_def)
+{
+    char magic[15];
+    int fd = -1;
+    int len;
+    virDomainDefPtr def = NULL;
+    VIR_AUTOFREE(char *) xml = NULL;
+
+    if ((fd = open(path, O_RDONLY)) < 0) {
+        virReportSystemError(errno, _("cannot read domain image '%s'"), path);
+        goto error;
+    }
+
+    if (saferead(fd, magic, sizeof(magic)) != sizeof(magic)) {
+        virReportSystemError(errno, _("incomplete save header in '%s'"), path);
+        goto error;
+    }
+
+    if (memcmp(magic, TEST_SAVE_MAGIC, sizeof(magic))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("mismatched header magic"));
+        goto error;
+    }
+
+    if (saferead(fd, (char*)&len, sizeof(len)) != sizeof(len)) {
+        virReportSystemError(errno,
+                             _("failed to read metadata length in '%s'"),
+                             path);
+        goto error;
+    }
+
+    if (len < 1 || len > 8192) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("length of metadata out of range"));
+        goto error;
+    }
+
+    if (VIR_ALLOC_N(xml, len+1) < 0)
+        goto error;
+
+    if (saferead(fd, xml, len) != len) {
+        virReportSystemError(errno, _("incomplete metadata in '%s'"), path);
+        goto error;
+    }
+    xml[len] = '\0';
+
+    if (!(def = virDomainDefParseString(xml, driver->caps, driver->xmlopt, NULL,
+                                        VIR_DOMAIN_DEF_PARSE_INACTIVE |
+                                        VIR_DOMAIN_DEF_PARSE_SKIP_VALIDATE)))
+        goto error;
+
+    VIR_STEAL_PTR(*ret_def, def);
+    return fd;
+
+ error:
+    virDomainDefFree(def);
+    VIR_FORCE_CLOSE(fd);
+    return -1;
+}
+
 
 static int
 testDomainSaveFlags(virDomainPtr domain, const char *path,
                     const char *dxml, unsigned int flags)
 {
     testDriverPtr privconn = domain->conn->privateData;
-    int fd = -1;
-    int len;
     virDomainObjPtr privdom;
     virObjectEventPtr event = NULL;
     int ret = -1;
-    VIR_AUTOFREE(char *) xml = NULL;
 
     virCheckFlags(0, -1);
+
     if (dxml) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("xml modification unsupported"));
         return -1;
     }
-
 
     if (!(privdom = testDomObjFromDomain(domain)))
         goto cleanup;
@@ -1979,49 +2227,8 @@ testDomainSaveFlags(virDomainPtr domain, const char *path,
     if (virDomainObjCheckActive(privdom) < 0)
         goto cleanup;
 
-    xml = virDomainDefFormat(privdom->def, privconn->caps,
-                             VIR_DOMAIN_DEF_FORMAT_SECURE);
-
-    if (xml == NULL) {
-        virReportSystemError(errno,
-                             _("saving domain '%s' failed to allocate space for metadata"),
-                             domain->name);
+    if (!testDomainSaveImageWrite(privconn, path, privdom->def))
         goto cleanup;
-    }
-
-    if ((fd = open(path, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
-        virReportSystemError(errno,
-                             _("saving domain '%s' to '%s': open failed"),
-                             domain->name, path);
-        goto cleanup;
-    }
-    len = strlen(xml);
-    if (safewrite(fd, TEST_SAVE_MAGIC, sizeof(TEST_SAVE_MAGIC)) < 0) {
-        virReportSystemError(errno,
-                             _("saving domain '%s' to '%s': write failed"),
-                             domain->name, path);
-        goto cleanup;
-    }
-    if (safewrite(fd, (char*)&len, sizeof(len)) < 0) {
-        virReportSystemError(errno,
-                             _("saving domain '%s' to '%s': write failed"),
-                             domain->name, path);
-        goto cleanup;
-    }
-    if (safewrite(fd, xml, len) < 0) {
-        virReportSystemError(errno,
-                             _("saving domain '%s' to '%s': write failed"),
-                             domain->name, path);
-        goto cleanup;
-    }
-
-    if (VIR_CLOSE(fd) < 0) {
-        virReportSystemError(errno,
-                             _("saving domain '%s' to '%s': write failed"),
-                             domain->name, path);
-        goto cleanup;
-    }
-    fd = -1;
 
     testDomainShutdownState(domain, privdom, VIR_DOMAIN_SHUTOFF_SAVED);
     event = virDomainEventLifecycleNewFromObj(privdom,
@@ -2033,13 +2240,6 @@ testDomainSaveFlags(virDomainPtr domain, const char *path,
 
     ret = 0;
  cleanup:
-    /* Don't report failure in close or unlink, because
-     * in either case we're already in a failure scenario
-     * and have reported an earlier error */
-    if (ret != 0) {
-        VIR_FORCE_CLOSE(fd);
-        unlink(path);
-    }
     virDomainObjEndAPI(&privdom);
     virObjectEventStateQueue(privconn->eventState, event);
     return ret;
@@ -2059,14 +2259,11 @@ testDomainRestoreFlags(virConnectPtr conn,
                        unsigned int flags)
 {
     testDriverPtr privconn = conn->privateData;
-    char magic[15];
     int fd = -1;
-    int len;
     virDomainDefPtr def = NULL;
     virDomainObjPtr dom = NULL;
     virObjectEventPtr event = NULL;
     int ret = -1;
-    VIR_AUTOFREE(char *) xml = NULL;
 
     virCheckFlags(0, -1);
     if (dxml) {
@@ -2075,46 +2272,7 @@ testDomainRestoreFlags(virConnectPtr conn,
         return -1;
     }
 
-    if ((fd = open(path, O_RDONLY)) < 0) {
-        virReportSystemError(errno,
-                             _("cannot read domain image '%s'"),
-                             path);
-        goto cleanup;
-    }
-    if (saferead(fd, magic, sizeof(magic)) != sizeof(magic)) {
-        virReportSystemError(errno,
-                             _("incomplete save header in '%s'"),
-                             path);
-        goto cleanup;
-    }
-    if (memcmp(magic, TEST_SAVE_MAGIC, sizeof(magic))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("mismatched header magic"));
-        goto cleanup;
-    }
-    if (saferead(fd, (char*)&len, sizeof(len)) != sizeof(len)) {
-        virReportSystemError(errno,
-                             _("failed to read metadata length in '%s'"),
-                             path);
-        goto cleanup;
-    }
-    if (len < 1 || len > 8192) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("length of metadata out of range"));
-        goto cleanup;
-    }
-    if (VIR_ALLOC_N(xml, len+1) < 0)
-        goto cleanup;
-    if (saferead(fd, xml, len) != len) {
-        virReportSystemError(errno,
-                             _("incomplete metadata in '%s'"), path);
-        goto cleanup;
-    }
-    xml[len] = '\0';
-
-    def = virDomainDefParseString(xml, privconn->caps, privconn->xmlopt,
-                                  NULL, VIR_DOMAIN_DEF_PARSE_INACTIVE);
-    if (!def)
+    if ((fd = testDomainSaveImageOpen(privconn, path, &def)) < 0)
         goto cleanup;
 
     if (testDomainGenerateIfnames(def) < 0)
@@ -2153,6 +2311,66 @@ testDomainRestore(virConnectPtr conn,
 {
     return testDomainRestoreFlags(conn, path, NULL, 0);
 }
+
+
+static int
+testDomainSaveImageDefineXML(virConnectPtr conn,
+                             const char *path,
+                             const char *dxml,
+                             unsigned int flags)
+{
+    int ret = -1;
+    int fd = -1;
+    virDomainDefPtr def = NULL;
+    virDomainDefPtr newdef = NULL;
+    testDriverPtr privconn = conn->privateData;
+
+    virCheckFlags(VIR_DOMAIN_SAVE_RUNNING |
+                  VIR_DOMAIN_SAVE_PAUSED, -1);
+
+    if ((fd = testDomainSaveImageOpen(privconn, path, &def)) < 0)
+        goto cleanup;
+    VIR_FORCE_CLOSE(fd);
+
+    if ((newdef = virDomainDefParseString(dxml, privconn->caps, privconn->xmlopt, NULL,
+                                          VIR_DOMAIN_DEF_PARSE_INACTIVE)) == NULL)
+        goto cleanup;
+
+    if (!testDomainSaveImageWrite(privconn, path, newdef))
+        goto cleanup;
+
+    ret = 0;
+
+ cleanup:
+    virDomainDefFree(def);
+    virDomainDefFree(newdef);
+    return ret;
+}
+
+
+static char *
+testDomainSaveImageGetXMLDesc(virConnectPtr conn,
+                              const char *path,
+                              unsigned int flags)
+{
+    int fd = -1;
+    char *ret = NULL;
+    virDomainDefPtr def = NULL;
+    testDriverPtr privconn = conn->privateData;
+
+    virCheckFlags(VIR_DOMAIN_SAVE_IMAGE_XML_SECURE, NULL);
+
+    if ((fd = testDomainSaveImageOpen(privconn, path, &def)) < 0)
+        goto cleanup;
+
+    ret = virDomainDefFormat(def, privconn->caps, VIR_DOMAIN_DEF_FORMAT_SECURE);
+
+ cleanup:
+    virDomainDefFree(def);
+    VIR_FORCE_CLOSE(fd);
+    return ret;
+}
+
 
 static int testDomainCoreDumpWithFormat(virDomainPtr domain,
                                         const char *to,
@@ -2238,6 +2456,19 @@ testDomainGetOSType(virDomainPtr dom ATTRIBUTE_UNUSED)
 }
 
 
+static int
+testDomainGetLaunchSecurityInfo(virDomainPtr domain ATTRIBUTE_UNUSED,
+                                virTypedParameterPtr *params ATTRIBUTE_UNUSED,
+                                int *nparams,
+                                unsigned int flags)
+{
+    virCheckFlags(0, -1);
+
+    *nparams = 0;
+    return 0;
+}
+
+
 static unsigned long long
 testDomainGetMaxMemory(virDomainPtr domain)
 {
@@ -2253,42 +2484,204 @@ testDomainGetMaxMemory(virDomainPtr domain)
     return ret;
 }
 
-static int testDomainSetMaxMemory(virDomainPtr domain,
-                                  unsigned long memory)
-{
-    virDomainObjPtr privdom;
 
-    if (!(privdom = testDomObjFromDomain(domain)))
+
+static int testDomainSetMemoryStatsPeriod(virDomainPtr dom,
+                                          int period,
+                                          unsigned int flags)
+{
+    virDomainObjPtr vm;
+    virDomainDefPtr def;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+    if (!virDomainDefHasMemballoon(def)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("No memory balloon device configured, "
+                         "can not set the collection period"));
+        goto cleanup;
+    }
+
+    def->memballoon->period = period;
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int testDomainSetMemoryFlags(virDomainPtr domain,
+                                    unsigned long memory,
+                                    unsigned int flags)
+{
+    virDomainObjPtr vm;
+    virDomainDefPtr def;
+    int ret = -1;
+    bool live = false;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_DOMAIN_MEM_MAXIMUM, -1);
+
+    if (!(vm = testDomObjFromDomain(domain)))
         return -1;
 
-    /* XXX validate not over host memory wrt to other domains */
-    virDomainDefSetMemoryTotal(privdom->def, memory);
+    if (!(def = virDomainObjGetOneDefState(vm, flags, &live)))
+        goto cleanup;
 
-    virDomainObjEndAPI(&privdom);
-    return 0;
+    if (flags & VIR_DOMAIN_MEM_MAXIMUM) {
+        if (live) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("cannot resize the maximum memory on an "
+                             "active domain"));
+            goto cleanup;
+        }
+
+        if (virDomainNumaGetNodeCount(def->numa) > 0) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("initial memory size of a domain with NUMA "
+                             "nodes cannot be modified with this API"));
+            goto cleanup;
+        }
+
+        if (def->mem.max_memory && def->mem.max_memory < memory) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("cannot set initial memory size greater than "
+                             "the maximum memory size"));
+            goto cleanup;
+        }
+
+        virDomainDefSetMemoryTotal(def, memory);
+
+        if (def->mem.cur_balloon > memory)
+            def->mem.cur_balloon = memory;
+    } else {
+        if (memory > virDomainDefGetMemoryTotal(def)) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("cannot set memory higher than max memory"));
+            goto cleanup;
+        }
+
+        def->mem.cur_balloon = memory;
+    }
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
 }
 
 static int testDomainSetMemory(virDomainPtr domain,
                                unsigned long memory)
 {
-    virDomainObjPtr privdom;
+    return testDomainSetMemoryFlags(domain, memory, VIR_DOMAIN_AFFECT_LIVE);
+}
+
+
+static int testDomainSetMaxMemory(virDomainPtr domain,
+                                  unsigned long memory)
+{
+    return testDomainSetMemoryFlags(domain, memory, VIR_DOMAIN_MEM_MAXIMUM);
+}
+
+
+static int
+testDomainPinEmulator(virDomainPtr dom,
+                      unsigned char *cpumap,
+                      int maplen,
+                      unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    virBitmapPtr pcpumap = NULL;
     int ret = -1;
 
-    if (!(privdom = testDomObjFromDomain(domain)))
-        return -1;
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
 
-    if (memory > virDomainDefGetMemoryTotal(privdom->def)) {
-        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+    if (!(vm = testDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+    if (!(pcpumap = virBitmapNewData(cpumap, maplen)))
+        goto cleanup;
+
+    if (virBitmapIsAllClear(pcpumap)) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("Empty cpu list for pinning"));
         goto cleanup;
     }
 
-    privdom->def->mem.cur_balloon = memory;
-    ret = 0;
+    virBitmapFree(def->cputune.emulatorpin);
+    def->cputune.emulatorpin = NULL;
 
+    if (!(def->cputune.emulatorpin = virBitmapNewCopy(pcpumap)))
+        goto cleanup;
+
+    ret = 0;
  cleanup:
-    virDomainObjEndAPI(&privdom);
+    virBitmapFree(pcpumap);
+    virDomainObjEndAPI(&vm);
     return ret;
 }
+
+
+static int
+testDomainGetEmulatorPinInfo(virDomainPtr dom,
+                             unsigned char *cpumaps,
+                             int maplen,
+                             unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    virBitmapPtr cpumask = NULL;
+    virBitmapPtr bitmap = NULL;
+    int hostcpus;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+    if ((hostcpus = virHostCPUGetCount()) < 0)
+        goto cleanup;
+
+    if (def->cputune.emulatorpin) {
+        cpumask = def->cputune.emulatorpin;
+    } else if (def->cpumask) {
+        cpumask = def->cpumask;
+    } else {
+        if (!(bitmap = virBitmapNew(hostcpus)))
+            goto cleanup;
+        virBitmapSetAll(bitmap);
+        cpumask = bitmap;
+    }
+
+    virBitmapToDataBuf(cpumask, cpumaps, maplen);
+
+    ret = 1;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    virBitmapFree(bitmap);
+    return ret;
+}
+
 
 static int
 testDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
@@ -2392,6 +2785,31 @@ testDomainSetVcpusFlags(virDomainPtr domain, unsigned int nrCpus,
     return ret;
 }
 
+
+static int
+testDomainSetUserPassword(virDomainPtr dom,
+                          const char *user ATTRIBUTE_UNUSED,
+                          const char *password ATTRIBUTE_UNUSED,
+                          unsigned int flags)
+{
+    int ret = -1;
+    virDomainObjPtr vm;
+
+    virCheckFlags(VIR_DOMAIN_PASSWORD_ENCRYPTED, -1);
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (virDomainObjCheckActive(vm) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
 static int
 testDomainSetVcpus(virDomainPtr domain, unsigned int nrCpus)
 {
@@ -2478,15 +2896,18 @@ static int testDomainGetVcpus(virDomainPtr domain,
     return ret;
 }
 
-static int testDomainPinVcpu(virDomainPtr domain,
-                             unsigned int vcpu,
-                             unsigned char *cpumap,
-                             int maplen)
+static int testDomainPinVcpuFlags(virDomainPtr domain,
+                                  unsigned int vcpu,
+                                  unsigned char *cpumap,
+                                  int maplen,
+                                  unsigned int flags)
 {
     virDomainVcpuDefPtr vcpuinfo;
     virDomainObjPtr privdom;
     virDomainDefPtr def;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     if (!(privdom = testDomObjFromDomain(domain)))
         return -1;
@@ -2517,6 +2938,14 @@ static int testDomainPinVcpu(virDomainPtr domain,
  cleanup:
     virDomainObjEndAPI(&privdom);
     return ret;
+}
+
+static int testDomainPinVcpu(virDomainPtr domain,
+                             unsigned int vcpu,
+                             unsigned char *cpumap,
+                             int maplen)
+{
+    return testDomainPinVcpuFlags(domain, vcpu, cpumap, maplen, 0);
 }
 
 static int
@@ -2654,6 +3083,426 @@ static char *testDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     return ret;
 }
 
+
+#define TEST_SET_PARAM(index, name, type, value) \
+    if (index < *nparams && \
+        virTypedParameterAssign(&params[index], name, type, value) < 0) \
+        goto cleanup
+
+
+static int
+testDomainSetMemoryParameters(virDomainPtr dom,
+                              virTypedParameterPtr params,
+                              int nparams,
+                              unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    unsigned long long swap_hard_limit = 0;
+    unsigned long long hard_limit = 0;
+    unsigned long long soft_limit = 0;
+    bool set_swap_hard_limit = false;
+    bool set_hard_limit = false;
+    bool set_soft_limit = false;
+    int rc;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (virTypedParamsValidate(params, nparams,
+                               VIR_DOMAIN_MEMORY_HARD_LIMIT,
+                               VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_MEMORY_SOFT_LIMIT,
+                               VIR_TYPED_PARAM_ULLONG,
+                               VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT,
+                               VIR_TYPED_PARAM_ULLONG,
+                               NULL) < 0)
+        return -1;
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+#define VIR_GET_LIMIT_PARAMETER(PARAM, VALUE) \
+    if ((rc = virTypedParamsGetULLong(params, nparams, PARAM, &VALUE)) < 0) \
+        goto cleanup; \
+ \
+    if (rc == 1) \
+        set_ ## VALUE = true;
+
+    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT, swap_hard_limit)
+    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_HARD_LIMIT, hard_limit)
+    VIR_GET_LIMIT_PARAMETER(VIR_DOMAIN_MEMORY_SOFT_LIMIT, soft_limit)
+
+#undef VIR_GET_LIMIT_PARAMETER
+
+    if (set_swap_hard_limit || set_hard_limit) {
+        unsigned long long mem_limit = vm->def->mem.hard_limit;
+        unsigned long long swap_limit = vm->def->mem.swap_hard_limit;
+
+        if (set_swap_hard_limit)
+            swap_limit = swap_hard_limit;
+
+        if (set_hard_limit)
+            mem_limit = hard_limit;
+
+        if (mem_limit > swap_limit) {
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("memory hard_limit tunable value must be lower "
+                             "than or equal to swap_hard_limit"));
+            goto cleanup;
+        }
+    }
+
+    if (set_soft_limit)
+        def->mem.soft_limit = soft_limit;
+
+    if (set_hard_limit)
+        def->mem.hard_limit = hard_limit;
+
+    if (set_swap_hard_limit)
+        def->mem.swap_hard_limit = swap_hard_limit;
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int
+testDomainGetMemoryParameters(virDomainPtr dom,
+                              virTypedParameterPtr params,
+                              int *nparams,
+                              unsigned int flags)
+{
+    int ret = -1;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    if ((*nparams) == 0) {
+        *nparams = 3;
+        return 0;
+    }
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+    TEST_SET_PARAM(0, VIR_DOMAIN_MEMORY_HARD_LIMIT, VIR_TYPED_PARAM_ULLONG, def->mem.hard_limit);
+    TEST_SET_PARAM(1, VIR_DOMAIN_MEMORY_SOFT_LIMIT, VIR_TYPED_PARAM_ULLONG, def->mem.soft_limit);
+    TEST_SET_PARAM(2, VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT, VIR_TYPED_PARAM_ULLONG, def->mem.swap_hard_limit);
+
+    if (*nparams > 3)
+        *nparams = 3;
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int
+testDomainSetNumaParameters(virDomainPtr dom,
+                            virTypedParameterPtr params,
+                            int nparams,
+                            unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    virBitmapPtr nodeset = NULL;
+    virDomainNumatuneMemMode config_mode;
+    bool live;
+    size_t i;
+    int mode = -1;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (virTypedParamsValidate(params, nparams,
+                               VIR_DOMAIN_NUMA_MODE,
+                               VIR_TYPED_PARAM_INT,
+                               VIR_DOMAIN_NUMA_NODESET,
+                               VIR_TYPED_PARAM_STRING,
+                               NULL) < 0)
+        return -1;
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (!(def = virDomainObjGetOneDefState(vm, flags, &live)))
+        goto cleanup;
+
+    for (i = 0; i < nparams; i++) {
+        virTypedParameterPtr param = &params[i];
+
+        if (STREQ(param->field, VIR_DOMAIN_NUMA_MODE)) {
+            mode = param->value.i;
+
+            if (mode < 0 || mode >= VIR_DOMAIN_NUMATUNE_MEM_LAST) {
+                virReportError(VIR_ERR_INVALID_ARG,
+                               _("unsupported numatune mode: '%d'"), mode);
+                goto cleanup;
+            }
+
+        } else if (STREQ(param->field, VIR_DOMAIN_NUMA_NODESET)) {
+            if (virBitmapParse(param->value.s, &nodeset,
+                               VIR_DOMAIN_CPUMASK_LEN) < 0)
+                goto cleanup;
+
+            if (virBitmapIsAllClear(nodeset)) {
+                virReportError(VIR_ERR_OPERATION_INVALID,
+                               _("Invalid nodeset of 'numatune': %s"),
+                               param->value.s);
+                goto cleanup;
+            }
+        }
+    }
+
+    if (live &&
+        mode != -1 &&
+        virDomainNumatuneGetMode(def->numa, -1, &config_mode) == 0 &&
+        config_mode != mode) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("can't change numatune mode for running domain"));
+        goto cleanup;
+    }
+
+    if (virDomainNumatuneSet(def->numa,
+                             def->placement_mode ==
+                             VIR_DOMAIN_CPU_PLACEMENT_MODE_STATIC,
+                             -1, mode, nodeset) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virBitmapFree(nodeset);
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int
+testDomainGetNumaParameters(virDomainPtr dom,
+                            virTypedParameterPtr params,
+                            int *nparams,
+                            unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    virDomainNumatuneMemMode mode = VIR_DOMAIN_NUMATUNE_MEM_STRICT;
+    VIR_AUTOFREE(char *) nodeset = NULL;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    if ((*nparams) == 0) {
+        *nparams = 2;
+        return 0;
+    }
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+    ignore_value(virDomainNumatuneGetMode(def->numa, -1, &mode));
+    nodeset = virDomainNumatuneFormatNodeset(def->numa, NULL, -1);
+
+    TEST_SET_PARAM(0, VIR_DOMAIN_NUMA_MODE, VIR_TYPED_PARAM_INT, mode);
+    TEST_SET_PARAM(1, VIR_DOMAIN_NUMA_NODESET, VIR_TYPED_PARAM_STRING, nodeset);
+
+    nodeset = NULL;
+
+    if (*nparams > 2)
+        *nparams = 2;
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int
+testDomainSetInterfaceParameters(virDomainPtr dom,
+                                 const char *device,
+                                 virTypedParameterPtr params,
+                                 int nparams,
+                                 unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def;
+    virDomainNetDefPtr net = NULL;
+    virNetDevBandwidthPtr bandwidth = NULL;
+    bool inboundSpecified = false;
+    bool outboundSpecified = false;
+    size_t i;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (virTypedParamsValidate(params, nparams,
+                               VIR_DOMAIN_BANDWIDTH_IN_AVERAGE,
+                               VIR_TYPED_PARAM_UINT,
+                               VIR_DOMAIN_BANDWIDTH_IN_PEAK,
+                               VIR_TYPED_PARAM_UINT,
+                               VIR_DOMAIN_BANDWIDTH_IN_BURST,
+                               VIR_TYPED_PARAM_UINT,
+                               VIR_DOMAIN_BANDWIDTH_IN_FLOOR,
+                               VIR_TYPED_PARAM_UINT,
+                               VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE,
+                               VIR_TYPED_PARAM_UINT,
+                               VIR_DOMAIN_BANDWIDTH_OUT_PEAK,
+                               VIR_TYPED_PARAM_UINT,
+                               VIR_DOMAIN_BANDWIDTH_OUT_BURST,
+                               VIR_TYPED_PARAM_UINT,
+                               NULL) < 0)
+        return -1;
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+    if (!(net = virDomainNetFind(def, device)))
+        goto cleanup;
+
+    if ((VIR_ALLOC(bandwidth) < 0) ||
+        (VIR_ALLOC(bandwidth->in) < 0) ||
+        (VIR_ALLOC(bandwidth->out) < 0))
+        goto cleanup;
+
+    for (i = 0; i < nparams; i++) {
+        virTypedParameterPtr param = &params[i];
+
+        if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_AVERAGE)) {
+            bandwidth->in->average = param->value.ui;
+            inboundSpecified = true;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_PEAK)) {
+            bandwidth->in->peak = param->value.ui;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_BURST)) {
+            bandwidth->in->burst = param->value.ui;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_FLOOR)) {
+            bandwidth->in->floor = param->value.ui;
+            inboundSpecified = true;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE)) {
+            bandwidth->out->average = param->value.ui;
+            outboundSpecified = true;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_PEAK)) {
+            bandwidth->out->peak = param->value.ui;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_BURST)) {
+            bandwidth->out->burst = param->value.ui;
+        }
+    }
+
+    /* average or floor are mandatory, peak and burst are optional */
+    if (!bandwidth->in->average && !bandwidth->in->floor)
+        VIR_FREE(bandwidth->in);
+    if (!bandwidth->out->average)
+        VIR_FREE(bandwidth->out);
+
+    if (!net->bandwidth) {
+        VIR_STEAL_PTR(net->bandwidth, bandwidth);
+    } else {
+        if (bandwidth->in) {
+            VIR_FREE(net->bandwidth->in);
+            VIR_STEAL_PTR(net->bandwidth->in, bandwidth->in);
+        } else if (inboundSpecified) {
+            /* if we got here it means user requested @inbound to be cleared */
+            VIR_FREE(net->bandwidth->in);
+        }
+        if (bandwidth->out) {
+            VIR_FREE(net->bandwidth->out);
+            VIR_STEAL_PTR(net->bandwidth->out, bandwidth->out);
+        } else if (outboundSpecified) {
+            /* if we got here it means user requested @outbound to be cleared */
+            VIR_FREE(net->bandwidth->out);
+        }
+    }
+
+    ret = 0;
+ cleanup:
+    virNetDevBandwidthFree(bandwidth);
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int
+testDomainGetInterfaceParameters(virDomainPtr dom,
+                                 const char *device,
+                                 virTypedParameterPtr params,
+                                 int *nparams,
+                                 unsigned int flags)
+{
+    virNetDevBandwidthRate in = {0};
+    virNetDevBandwidthRate out = {0};
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    virDomainNetDefPtr net = NULL;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    if ((*nparams) == 0) {
+        *nparams = 7;
+        return 0;
+    }
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+    if (!(net = virDomainNetFind(def, device)))
+        goto cleanup;
+
+    if (net->bandwidth) {
+        if (net->bandwidth->in)
+            in = *net->bandwidth->in;
+        if (net->bandwidth->out)
+            out = *net->bandwidth->out;
+    }
+
+    TEST_SET_PARAM(0, VIR_DOMAIN_BANDWIDTH_IN_AVERAGE, VIR_TYPED_PARAM_UINT, in.average);
+    TEST_SET_PARAM(1, VIR_DOMAIN_BANDWIDTH_IN_PEAK, VIR_TYPED_PARAM_UINT, in.peak);
+    TEST_SET_PARAM(2, VIR_DOMAIN_BANDWIDTH_IN_BURST, VIR_TYPED_PARAM_UINT, in.burst);
+    TEST_SET_PARAM(3, VIR_DOMAIN_BANDWIDTH_IN_FLOOR, VIR_TYPED_PARAM_UINT, in.floor);
+    TEST_SET_PARAM(4, VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE, VIR_TYPED_PARAM_UINT, out.average);
+    TEST_SET_PARAM(5, VIR_DOMAIN_BANDWIDTH_OUT_PEAK, VIR_TYPED_PARAM_UINT, out.peak);
+    TEST_SET_PARAM(6, VIR_DOMAIN_BANDWIDTH_OUT_BURST, VIR_TYPED_PARAM_UINT, out.burst);
+
+    if (*nparams > 7)
+        *nparams = 7;
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+#undef TEST_SET_PARAM
+
+
 static int testConnectNumOfDefinedDomains(virConnectPtr conn)
 {
     testDriverPtr privconn = conn->privateData;
@@ -2780,6 +3629,167 @@ static int testDomainSetMetadata(virDomainPtr dom,
     return ret;
 }
 
+#define TEST_TOTAL_CPUTIME 48772617035LL
+
+static int
+testDomainGetDomainTotalCpuStats(virTypedParameterPtr params,
+                                 int nparams)
+{
+    if (nparams == 0) /* return supported number of params */
+        return 3;
+
+    if (virTypedParameterAssign(&params[0], VIR_DOMAIN_CPU_STATS_CPUTIME,
+                                VIR_TYPED_PARAM_ULLONG, TEST_TOTAL_CPUTIME) < 0)
+        return -1;
+
+    if (nparams > 1 &&
+        virTypedParameterAssign(&params[1],
+                                VIR_DOMAIN_CPU_STATS_USERTIME,
+                                VIR_TYPED_PARAM_ULLONG, 5540000000) < 0)
+        return -1;
+
+    if (nparams > 2 &&
+        virTypedParameterAssign(&params[2],
+                                VIR_DOMAIN_CPU_STATS_SYSTEMTIME,
+                                VIR_TYPED_PARAM_ULLONG, 6460000000) < 0)
+        return -1;
+
+    if (nparams > 3)
+        nparams = 3;
+
+    return nparams;
+}
+
+
+static int
+testDomainGetPercpuStats(virTypedParameterPtr params,
+                         unsigned int nparams,
+                         int start_cpu,
+                         unsigned int ncpus,
+                         int total_cpus)
+{
+    size_t i;
+    int need_cpus;
+    int param_idx;
+    unsigned long long percpu_time = (TEST_TOTAL_CPUTIME / total_cpus);
+
+    /* return the number of supported params */
+    if (nparams == 0 && ncpus != 0)
+        return 2;
+
+    /* return total number of cpus */
+    if (ncpus == 0)
+        return total_cpus;
+
+    if (start_cpu >= total_cpus) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("start_cpu %d larger than maximum of %d"),
+                       start_cpu, total_cpus - 1);
+        return -1;
+    }
+
+    /* return percpu cputime in index 0 */
+    param_idx = 0;
+
+    /* number of cpus to compute */
+    need_cpus = MIN(total_cpus, start_cpu + ncpus);
+
+    for (i = start_cpu; i < need_cpus; i++) {
+        int idx = (i - start_cpu) * nparams + param_idx;
+
+        if (virTypedParameterAssign(&params[idx],
+                                    VIR_DOMAIN_CPU_STATS_CPUTIME,
+                                    VIR_TYPED_PARAM_ULLONG,
+                                    percpu_time + i) < 0)
+            return -1;
+    }
+
+    /* return percpu vcputime in index 1 */
+    param_idx = 1;
+
+    if (param_idx < nparams) {
+        for (i = start_cpu; i < need_cpus; i++) {
+            int idx = (i - start_cpu) * nparams + param_idx;
+
+            if (virTypedParameterAssign(&params[idx],
+                                        VIR_DOMAIN_CPU_STATS_VCPUTIME,
+                                        VIR_TYPED_PARAM_ULLONG,
+                                        percpu_time + i - 1234567890) < 0)
+                return -1;
+        }
+        param_idx++;
+    }
+
+    return param_idx;
+}
+
+
+static int
+testDomainGetCPUStats(virDomainPtr dom,
+                      virTypedParameterPtr params,
+                      unsigned int nparams,
+                      int start_cpu,
+                      unsigned int ncpus,
+                      unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    testDriverPtr privconn = dom->conn->privateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (virDomainObjCheckActive(vm) < 0)
+        goto cleanup;
+
+    if (start_cpu == -1)
+        ret = testDomainGetDomainTotalCpuStats(params, nparams);
+    else
+        ret = testDomainGetPercpuStats(params, nparams, start_cpu, ncpus,
+                                       privconn->nodeInfo.cores);
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int
+testDomainSendProcessSignal(virDomainPtr dom,
+                            long long pid_value,
+                            unsigned int signum,
+                            unsigned int flags)
+{
+    int ret = -1;
+    virDomainObjPtr vm = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (pid_value != 1) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("only sending a signal to pid 1 is supported"));
+        return -1;
+    }
+
+    if (signum >= VIR_DOMAIN_PROCESS_SIGNAL_LAST) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("signum value %d is out of range"),
+                       signum);
+        return -1;
+    }
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        goto cleanup;
+
+    /* do nothing */
+    ret = 0;
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
 
 static int testNodeGetCellsFreeMemory(virConnectPtr conn,
                                       unsigned long long *freemems,
@@ -3032,6 +4042,223 @@ static int testDomainSetAutostart(virDomainPtr domain,
     return 0;
 }
 
+static int testDomainGetDiskErrors(virDomainPtr dom,
+                                   virDomainDiskErrorPtr errors,
+                                   unsigned int maxerrors,
+                                   unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+    size_t i;
+    size_t nerrors = 0;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (virDomainObjCheckActive(vm) < 0)
+        goto cleanup;
+
+    nerrors = MIN(vm->def->ndisks, maxerrors);
+
+    if (errors) {
+        /* sanitize input */
+        memset(errors, 0, sizeof(virDomainDiskError) * nerrors);
+
+        for (i = 0; i < nerrors; i++) {
+            if (VIR_STRDUP(errors[i].disk, vm->def->disks[i]->dst) < 0)
+                goto cleanup;
+            errors[i].error = (i % (VIR_DOMAIN_DISK_ERROR_LAST - 1)) + 1;
+        }
+        ret = i;
+    } else {
+        ret = vm->def->ndisks;
+    }
+
+ cleanup:
+    if (ret < 0) {
+        for (i = 0; i < nerrors; i++)
+            VIR_FREE(errors[i].disk);
+    }
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+
+static int
+testDomainGetFSInfo(virDomainPtr dom,
+                    virDomainFSInfoPtr **info,
+                    unsigned int flags)
+{
+    size_t i;
+    virDomainObjPtr vm;
+    virDomainFSInfoPtr *info_ret = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (virDomainObjCheckActive(vm) < 0)
+        goto cleanup;
+
+    *info = NULL;
+
+    for (i = 0; i < vm->def->ndisks; i++) {
+        if (vm->def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
+            char *name = vm->def->disks[i]->dst;
+
+            if (VIR_ALLOC_N(info_ret, 2) < 0)
+                goto cleanup;
+
+            if (VIR_ALLOC(info_ret[0]) < 0 ||
+                VIR_ALLOC(info_ret[0]->devAlias) < 0 ||
+                VIR_STRDUP(info_ret[0]->mountpoint, "/") < 0 ||
+                VIR_STRDUP(info_ret[0]->fstype, "ext4") < 0 ||
+                VIR_STRDUP(info_ret[0]->devAlias[0], name) < 0 ||
+                virAsprintf(&info_ret[0]->name, "%s1", name) < 0)
+                goto cleanup;
+
+            if (VIR_ALLOC(info_ret[1]) < 0 ||
+                VIR_ALLOC(info_ret[1]->devAlias) < 0 ||
+                VIR_STRDUP(info_ret[1]->mountpoint, "/boot") < 0 ||
+                VIR_STRDUP(info_ret[1]->fstype, "ext4") < 0 ||
+                VIR_STRDUP(info_ret[1]->devAlias[0], name) < 0 ||
+                virAsprintf(&info_ret[1]->name, "%s2", name) < 0)
+                goto cleanup;
+
+            info_ret[0]->ndevAlias = info_ret[1]->ndevAlias = 1;
+
+            VIR_STEAL_PTR(*info, info_ret);
+
+            ret = 2;
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+ cleanup:
+    if (info_ret) {
+        virDomainFSInfoFree(info_ret[0]);
+        virDomainFSInfoFree(info_ret[1]);
+        VIR_FREE(info_ret);
+    }
+
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int
+testDomainSetPerfEvents(virDomainPtr dom,
+                        virTypedParameterPtr params,
+                        int nparams,
+                        unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    size_t i;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    if (virTypedParamsValidate(params, nparams,
+                               VIR_PERF_PARAM_CMT, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_MBMT, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_MBML, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_CPU_CYCLES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_INSTRUCTIONS, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_CACHE_REFERENCES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_CACHE_MISSES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_BRANCH_INSTRUCTIONS, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_BRANCH_MISSES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_BUS_CYCLES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_STALLED_CYCLES_FRONTEND, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_STALLED_CYCLES_BACKEND, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_REF_CPU_CYCLES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_CPU_CLOCK, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_TASK_CLOCK, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_PAGE_FAULTS, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_CONTEXT_SWITCHES, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_CPU_MIGRATIONS, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_PAGE_FAULTS_MIN, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_PAGE_FAULTS_MAJ, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_ALIGNMENT_FAULTS, VIR_TYPED_PARAM_BOOLEAN,
+                               VIR_PERF_PARAM_EMULATION_FAULTS, VIR_TYPED_PARAM_BOOLEAN,
+                               NULL) < 0)
+        return -1;
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        return -1;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+    for (i = 0; i < nparams; i++) {
+        virTypedParameterPtr param = &params[i];
+        virPerfEventType type = virPerfEventTypeFromString(param->field);
+
+        if (param->value.b)
+            def->perf.events[type] = VIR_TRISTATE_BOOL_YES;
+        else
+            def->perf.events[type] = VIR_TRISTATE_BOOL_NO;
+    }
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int
+testDomainGetPerfEvents(virDomainPtr dom,
+                        virTypedParameterPtr *params,
+                        int *nparams,
+                        unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    virTypedParameterPtr par = NULL;
+    size_t i;
+    int maxpar = 0;
+    int npar = 0;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (!(def = virDomainObjGetOneDef(vm, flags)))
+        goto cleanup;
+
+    for (i = 0; i < VIR_PERF_EVENT_LAST; i++) {
+        if (virTypedParamsAddBoolean(&par, &npar, &maxpar,
+                                     virPerfEventTypeToString(i),
+                                     def->perf.events[i] == VIR_TRISTATE_BOOL_YES) < 0)
+            goto cleanup;
+    }
+
+    VIR_STEAL_PTR(*params, par);
+    *nparams = npar;
+    npar = 0;
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    virTypedParamsFree(par, npar);
+    return ret;
+}
+
+
 static char *testDomainGetSchedulerType(virDomainPtr domain ATTRIBUTE_UNUSED,
                                         int *nparams)
 {
@@ -3166,6 +4393,134 @@ static int testDomainBlockStats(virDomainPtr domain,
     ret = 0;
  error:
     virDomainObjEndAPI(&privdom);
+    return ret;
+}
+
+
+static int
+testDomainInterfaceAddressFromNet(testDriverPtr driver,
+                                  const virDomainNetDef *net,
+                                  size_t addr_offset,
+                                  virDomainInterfacePtr iface)
+{
+    virSocketAddr addr;
+    virNetworkObjPtr net_obj = NULL;
+    virNetworkDefPtr net_def = NULL;
+    int ret = -1;
+
+    if (!(net_obj = testNetworkObjFindByName(driver, net->data.network.name)))
+        return -1;
+
+    net_def = virNetworkObjGetDef(net_obj);
+
+    iface->addrs[0].prefix = virSocketAddrGetIPPrefix(&net_def->ips->address,
+                                                      &net_def->ips->netmask,
+                                                      net_def->ips->prefix);
+
+    if (net_def->ips->nranges > 0)
+        addr = net_def->ips->ranges[0].start;
+    else
+        addr = net_def->ips->address;
+
+    if (net_def->ips->family && STREQ(net_def->ips->family, "ipv6")) {
+        iface->addrs[0].type = VIR_IP_ADDR_TYPE_IPV6;
+        addr.data.inet6.sin6_addr.s6_addr[15] += addr_offset;
+    } else {
+        iface->addrs[0].type = VIR_IP_ADDR_TYPE_IPV4;
+        addr.data.inet4.sin_addr.s_addr = \
+            htonl(ntohl(addr.data.inet4.sin_addr.s_addr) + addr_offset);
+    }
+
+    if (!(iface->addrs[0].addr = virSocketAddrFormat(&addr)))
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virNetworkObjEndAPI(&net_obj);
+    return ret;
+}
+
+
+static int
+testDomainInterfaceAddresses(virDomainPtr dom,
+                             virDomainInterfacePtr **ifaces,
+                             unsigned int source,
+                             unsigned int flags)
+{
+    size_t i;
+    size_t ifaces_count = 0;
+    int ret = -1;
+    char macaddr[VIR_MAC_STRING_BUFLEN];
+    virDomainObjPtr vm = NULL;
+    virDomainInterfacePtr iface = NULL;
+    virDomainInterfacePtr *ifaces_ret = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (source >= VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LAST) {
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED,
+                       _("Unknown IP address data source %d"),
+                       source);
+        return -1;
+    }
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainObjCheckActive(vm) < 0)
+        goto cleanup;
+
+    if (VIR_ALLOC_N(ifaces_ret, vm->def->nnets) < 0)
+        goto cleanup;
+
+    for (i = 0; i < vm->def->nnets; i++) {
+        const virDomainNetDef *net = vm->def->nets[i];
+
+        if (VIR_ALLOC(iface) < 0)
+            goto cleanup;
+
+        if (VIR_STRDUP(iface->name, net->ifname) < 0)
+            goto cleanup;
+
+        virMacAddrFormat(&net->mac, macaddr);
+        if (VIR_STRDUP(iface->hwaddr, macaddr) < 0)
+            goto cleanup;
+
+        if (VIR_ALLOC(iface->addrs) < 0)
+            goto cleanup;
+        iface->naddrs = 1;
+
+        if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
+            /* try using different addresses per different inf and domain */
+            const size_t addr_offset = 20 * (vm->def->id - 1) + i + 1;
+
+            if (testDomainInterfaceAddressFromNet(dom->conn->privateData,
+                                                  net, addr_offset, iface) < 0)
+                goto cleanup;
+        } else {
+            iface->addrs[0].type = VIR_IP_ADDR_TYPE_IPV4;
+            iface->addrs[0].prefix = 24;
+            if (virAsprintf(&iface->addrs[0].addr, "192.168.0.%zu", 1 + i) < 0)
+                goto cleanup;
+
+        }
+
+        VIR_APPEND_ELEMENT_INPLACE(ifaces_ret, ifaces_count, iface);
+    }
+
+    VIR_STEAL_PTR(*ifaces, ifaces_ret);
+    ret = ifaces_count;
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+
+    if (ifaces_ret) {
+        for (i = 0; i < ifaces_count; i++)
+            virDomainInterfaceFree(ifaces_ret[i]);
+    }
+    virDomainInterfaceFree(iface);
+
+    VIR_FREE(ifaces_ret);
     return ret;
 }
 
@@ -3400,7 +4755,7 @@ testNetworkCreateXML(virConnectPtr conn, const char *xml)
     virNetworkPtr net = NULL;
     virObjectEventPtr event = NULL;
 
-    if ((newDef = virNetworkDefParseString(xml)) == NULL)
+    if ((newDef = virNetworkDefParseString(xml, NULL)) == NULL)
         goto cleanup;
 
     if (!(obj = virNetworkObjAssignDef(privconn->networks, newDef,
@@ -3436,7 +4791,7 @@ testNetworkDefineXML(virConnectPtr conn,
     virNetworkPtr net = NULL;
     virObjectEventPtr event = NULL;
 
-    if ((newDef = virNetworkDefParseString(xml)) == NULL)
+    if ((newDef = virNetworkDefParseString(xml, NULL)) == NULL)
         goto cleanup;
 
     if (!(obj = virNetworkObjAssignDef(privconn->networks, newDef, 0)))
@@ -3522,7 +4877,8 @@ testNetworkUpdate(virNetworkPtr net,
     }
 
     /* update the network config in memory/on disk */
-    if (virNetworkObjUpdate(obj, command, section, parentIndex, xml, flags) < 0)
+    if (virNetworkObjUpdate(obj, command, section,
+                            parentIndex, xml, NULL, flags) < 0)
        goto cleanup;
 
     ret = 0;
@@ -3606,7 +4962,7 @@ testNetworkGetXMLDesc(virNetworkPtr net,
     if (!(obj = testNetworkObjFindByName(privconn, net->name)))
         goto cleanup;
 
-    ret = virNetworkDefFormat(virNetworkObjGetDef(obj), flags);
+    ret = virNetworkDefFormat(virNetworkObjGetDef(obj), NULL, flags);
 
  cleanup:
     virNetworkObjEndAPI(&obj);
@@ -5857,6 +7213,68 @@ testDomainScreenshot(virDomainPtr dom ATTRIBUTE_UNUSED,
     return ret;
 }
 
+
+static int
+testDomainInjectNMI(virDomainPtr domain,
+                    unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = testDomObjFromDomain(domain)))
+        return -1;
+
+    if (virDomainObjCheckActive(vm) < 0)
+        goto cleanup;
+
+    /* do nothing */
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
+static int
+testDomainSendKey(virDomainPtr domain,
+                  unsigned int codeset,
+                  unsigned int holdtime ATTRIBUTE_UNUSED,
+                  unsigned int *keycodes,
+                  int nkeycodes,
+                  unsigned int flags)
+{
+    int ret = -1;
+    size_t i;
+    virDomainObjPtr vm = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (!(vm = testDomObjFromDomain(domain)))
+        goto cleanup;
+
+    if (virDomainObjCheckActive(vm) < 0)
+        goto cleanup;
+
+    for (i = 0; i < nkeycodes; i++) {
+        if (virKeycodeValueTranslate(codeset, codeset, keycodes[i]) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("invalid keycode %u of %s codeset"),
+                           keycodes[i],
+                           virKeycodeSetTypeToString(codeset));
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+
 static int
 testConnectGetCPUModelNames(virConnectPtr conn ATTRIBUTE_UNUSED,
                             const char *archName,
@@ -5947,6 +7365,42 @@ testDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
 
     virDomainObjEndAPI(&vm);
     return 0;
+}
+
+static int
+testDomainMemoryPeek(virDomainPtr dom,
+                     unsigned long long start,
+                     size_t size,
+                     void *buffer,
+                     unsigned int flags)
+{
+    int ret = -1;
+    size_t i;
+    unsigned char b = start;
+    virDomainObjPtr vm = NULL;
+
+    virCheckFlags(VIR_MEMORY_VIRTUAL | VIR_MEMORY_PHYSICAL, -1);
+
+    if (flags != VIR_MEMORY_VIRTUAL && flags != VIR_MEMORY_PHYSICAL) {
+        virReportError(VIR_ERR_INVALID_ARG,
+                       "%s", _("flags parameter must be VIR_MEMORY_VIRTUAL or VIR_MEMORY_PHYSICAL"));
+        goto cleanup;
+    }
+
+    if (!(vm = testDomObjFromDomain(dom)))
+        goto cleanup;
+
+    if (virDomainObjCheckActive(vm) < 0)
+        goto cleanup;
+
+    for (i = 0; i < size; i++)
+        ((unsigned char *) buffer)[i] = b++;
+
+    ret = 0;
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
 }
 
 
@@ -6181,14 +7635,14 @@ testDomainSnapshotGetParent(virDomainSnapshotPtr snapshot,
     if (!(snap = testSnapObjFromSnapshot(vm, snapshot)))
         goto cleanup;
 
-    if (!snap->def->parent) {
+    if (!snap->def->parent_name) {
         virReportError(VIR_ERR_NO_DOMAIN_SNAPSHOT,
                        _("snapshot '%s' does not have a parent"),
                        snap->def->name);
         goto cleanup;
     }
 
-    parent = virGetDomainSnapshot(snapshot->domain, snap->def->parent);
+    parent = virGetDomainSnapshot(snapshot->domain, snap->def->parent_name);
 
  cleanup:
     virDomainObjEndAPI(&vm);
@@ -6334,13 +7788,13 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
 {
     testDriverPtr privconn = domain->conn->privateData;
     virDomainObjPtr vm = NULL;
-    virDomainSnapshotDefPtr def = NULL;
     virDomainMomentObjPtr snap = NULL;
     virDomainSnapshotPtr snapshot = NULL;
     virObjectEventPtr event = NULL;
     bool update_current = true;
     bool redefine = flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE;
     unsigned int parse_flags = VIR_DOMAIN_SNAPSHOT_PARSE_DISKS;
+    VIR_AUTOUNREF(virDomainSnapshotDefPtr) def = NULL;
 
     /*
      * DISK_ONLY: Not implemented yet
@@ -6360,7 +7814,8 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
         VIR_DOMAIN_SNAPSHOT_CREATE_HALT |
         VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE |
         VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC |
-        VIR_DOMAIN_SNAPSHOT_CREATE_LIVE, NULL);
+        VIR_DOMAIN_SNAPSHOT_CREATE_LIVE |
+        VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE, NULL);
 
     if ((redefine && !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT)))
         update_current = false;
@@ -6370,11 +7825,20 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
     if (!(vm = testDomObjFromDomain(domain)))
         goto cleanup;
 
+    if (virDomainListCheckpoints(vm->checkpoints, NULL, domain, NULL, 0) > 0) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("cannot create snapshot while checkpoint exists"));
+        goto cleanup;
+    }
+
     if (!vm->persistent && (flags & VIR_DOMAIN_SNAPSHOT_CREATE_HALT)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("cannot halt after transient domain snapshot"));
         goto cleanup;
     }
+
+    if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE)
+        parse_flags |= VIR_DOMAIN_SNAPSHOT_PARSE_VALIDATE;
 
     if (!(def = virDomainSnapshotDefParseString(xmlDesc,
                                                 privconn->caps,
@@ -6389,7 +7853,7 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
                                           &update_current, flags) < 0)
             goto cleanup;
     } else {
-        if (!(def->common.dom = virDomainDefCopy(vm->def,
+        if (!(def->parent.dom = virDomainDefCopy(vm->def,
                                                  privconn->caps,
                                                  privconn->xmlopt,
                                                  NULL,
@@ -6407,7 +7871,7 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
     }
 
     if (!redefine) {
-        if (VIR_STRDUP(snap->def->parent,
+        if (VIR_STRDUP(snap->def->parent_name,
                        virDomainSnapshotGetCurrentName(vm->snapshots)) < 0)
             goto cleanup;
 
@@ -6424,24 +7888,20 @@ testDomainSnapshotCreateXML(virDomainPtr domain,
  cleanup:
     if (vm) {
         if (snapshot) {
-            virDomainMomentObjPtr other;
             if (update_current)
                 virDomainSnapshotSetCurrent(vm->snapshots, snap);
-            other = virDomainSnapshotFindByName(vm->snapshots,
-                                                snap->def->parent);
-            virDomainMomentSetParent(snap, other);
+            virDomainSnapshotLinkParent(vm->snapshots, snap);
         }
         virDomainObjEndAPI(&vm);
     }
     virObjectEventStateQueue(privconn->eventState, event);
-    virDomainSnapshotDefFree(def);
     return snapshot;
 }
 
 
-typedef struct _testSnapRemoveData testSnapRemoveData;
-typedef testSnapRemoveData *testSnapRemoveDataPtr;
-struct _testSnapRemoveData {
+typedef struct _testMomentRemoveData testMomentRemoveData;
+typedef testMomentRemoveData *testMomentRemoveDataPtr;
+struct _testMomentRemoveData {
     virDomainObjPtr vm;
     bool current;
 };
@@ -6452,35 +7912,35 @@ testDomainSnapshotDiscardAll(void *payload,
                              void *data)
 {
     virDomainMomentObjPtr snap = payload;
-    testSnapRemoveDataPtr curr = data;
+    testMomentRemoveDataPtr curr = data;
 
     curr->current |= virDomainSnapshotObjListRemove(curr->vm->snapshots, snap);
     return 0;
 }
 
-typedef struct _testSnapReparentData testSnapReparentData;
-typedef testSnapReparentData *testSnapReparentDataPtr;
-struct _testSnapReparentData {
+typedef struct _testMomentReparentData testMomentReparentData;
+typedef testMomentReparentData *testMomentReparentDataPtr;
+struct _testMomentReparentData {
     virDomainMomentObjPtr parent;
     virDomainObjPtr vm;
     int err;
 };
 
 static int
-testDomainSnapshotReparentChildren(void *payload,
-                                   const void *name ATTRIBUTE_UNUSED,
-                                   void *data)
+testDomainMomentReparentChildren(void *payload,
+                                 const void *name ATTRIBUTE_UNUSED,
+                                 void *data)
 {
-    virDomainMomentObjPtr snap = payload;
-    testSnapReparentDataPtr rep = data;
+    virDomainMomentObjPtr moment = payload;
+    testMomentReparentDataPtr rep = data;
 
     if (rep->err < 0)
         return 0;
 
-    VIR_FREE(snap->def->parent);
+    VIR_FREE(moment->def->parent_name);
 
     if (rep->parent->def &&
-        VIR_STRDUP(snap->def->parent, rep->parent->def->name) < 0) {
+        VIR_STRDUP(moment->def->parent_name, rep->parent->def->name) < 0) {
         rep->err = -1;
         return 0;
     }
@@ -6508,7 +7968,7 @@ testDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
 
     if (flags & (VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN |
                  VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY)) {
-        testSnapRemoveData rem;
+        testMomentRemoveData rem;
         rem.vm = vm;
         rem.current = false;
         virDomainMomentForEachDescendant(snap,
@@ -6517,12 +7977,12 @@ testDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
         if (rem.current)
             virDomainSnapshotSetCurrent(vm->snapshots, snap);
     } else if (snap->nchildren) {
-        testSnapReparentData rep;
+        testMomentReparentData rep;
         rep.parent = snap->parent;
         rep.vm = vm;
         rep.err = 0;
         virDomainMomentForEachChild(snap,
-                                    testDomainSnapshotReparentChildren,
+                                    testDomainMomentReparentChildren,
                                     &rep);
         if (rep.err < 0)
             goto cleanup;
@@ -6535,12 +7995,12 @@ testDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
     } else {
         virDomainMomentDropParent(snap);
         if (snap == virDomainSnapshotGetCurrent(vm->snapshots)) {
-            if (snap->def->parent) {
+            if (snap->def->parent_name) {
                 parentsnap = virDomainSnapshotFindByName(vm->snapshots,
-                                                         snap->def->parent);
+                                                         snap->def->parent_name);
                 if (!parentsnap)
                     VIR_WARN("missing parent snapshot matching name '%s'",
-                             snap->def->parent);
+                             snap->def->parent_name);
             }
             virDomainSnapshotSetCurrent(vm->snapshots, parentsnap);
         }
@@ -6759,7 +8219,372 @@ testDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
     return ret;
 }
 
+/*
+ * Checkpoint APIs
+ */
 
+static int
+testDomainCheckpointDiscardAll(void *payload,
+                               const void *name ATTRIBUTE_UNUSED,
+                               void *data)
+{
+    virDomainMomentObjPtr chk = payload;
+    testMomentRemoveDataPtr curr = data;
+
+    curr->current |= virDomainCheckpointObjListRemove(curr->vm->checkpoints,
+                                                      chk);
+    return 0;
+}
+
+static virDomainObjPtr
+testDomObjFromCheckpoint(virDomainCheckpointPtr checkpoint)
+{
+    return testDomObjFromDomain(checkpoint->domain);
+}
+
+static virDomainMomentObjPtr
+testCheckpointObjFromName(virDomainObjPtr vm,
+                          const char *name)
+{
+    virDomainMomentObjPtr chk = NULL;
+
+    chk = virDomainCheckpointFindByName(vm->checkpoints, name);
+    if (!chk)
+        virReportError(VIR_ERR_NO_DOMAIN_CHECKPOINT,
+                       _("no domain checkpoint with matching name '%s'"),
+                       name);
+
+    return chk;
+}
+
+static virDomainMomentObjPtr
+testCheckpointObjFromCheckpoint(virDomainObjPtr vm,
+                           virDomainCheckpointPtr checkpoint)
+{
+    return testCheckpointObjFromName(vm, checkpoint->name);
+}
+
+static virDomainCheckpointPtr
+testDomainCheckpointCreateXML(virDomainPtr domain,
+                              const char *xmlDesc,
+                              unsigned int flags)
+{
+    testDriverPtr privconn = domain->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    char *xml = NULL;
+    virDomainMomentObjPtr chk = NULL;
+    virDomainCheckpointPtr checkpoint = NULL;
+    virDomainMomentObjPtr current = NULL;
+    bool update_current = true;
+    bool redefine = flags & VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE;
+    unsigned int parse_flags = 0;
+    VIR_AUTOUNREF(virDomainCheckpointDefPtr) def = NULL;
+
+    virCheckFlags(VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE |
+                  VIR_DOMAIN_CHECKPOINT_CREATE_QUIESCE, NULL);
+
+    if (redefine) {
+        parse_flags |= VIR_DOMAIN_CHECKPOINT_PARSE_REDEFINE;
+        update_current = false;
+    }
+
+    if (!(vm = testDomObjFromDomain(domain)))
+        goto cleanup;
+
+    if (virDomainSnapshotObjListNum(vm->snapshots, NULL, 0) > 0) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("cannot create checkpoint while snapshot exists"));
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("cannot create checkpoint for inactive domain"));
+        goto cleanup;
+    }
+
+    if (!(def = virDomainCheckpointDefParseString(xmlDesc, privconn->caps,
+                                                  privconn->xmlopt,
+                                                  parse_flags)))
+        goto cleanup;
+
+    if (redefine) {
+        if (virDomainCheckpointRedefinePrep(domain, vm, &def, &chk,
+                                            privconn->xmlopt,
+                                            &update_current) < 0)
+            goto cleanup;
+    } else {
+        if (!(def->parent.dom = virDomainDefCopy(vm->def,
+                                                 privconn->caps,
+                                                 privconn->xmlopt,
+                                                 NULL,
+                                                 true)))
+            goto cleanup;
+
+        if (virDomainCheckpointAlignDisks(def) < 0)
+            goto cleanup;
+    }
+
+    if (!chk) {
+        if (!(chk = virDomainCheckpointAssignDef(vm->checkpoints, def)))
+            goto cleanup;
+
+        def = NULL;
+    }
+
+    current = virDomainCheckpointGetCurrent(vm->checkpoints);
+    if (current) {
+        if (!redefine &&
+            VIR_STRDUP(chk->def->parent_name, current->def->name) < 0)
+            goto cleanup;
+        if (update_current)
+            virDomainCheckpointSetCurrent(vm->checkpoints, NULL);
+    }
+
+    /* actually do the checkpoint - except the test driver has nothing
+     * to actually do here */
+
+    /* If we fail after this point, there's not a whole lot we can do;
+     * we've successfully created the checkpoint, so we have to go
+     * forward the best we can.
+     */
+    checkpoint = virGetDomainCheckpoint(domain, chk->def->name);
+
+ cleanup:
+    if (checkpoint) {
+        if (update_current)
+            virDomainCheckpointSetCurrent(vm->checkpoints, chk);
+        virDomainCheckpointLinkParent(vm->checkpoints, chk);
+    } else if (chk) {
+        virDomainCheckpointObjListRemove(vm->checkpoints, chk);
+    }
+
+    virDomainObjEndAPI(&vm);
+    VIR_FREE(xml);
+    return checkpoint;
+}
+
+
+static int
+testDomainListAllCheckpoints(virDomainPtr domain,
+                             virDomainCheckpointPtr **chks,
+                             unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int n = -1;
+
+    virCheckFlags(VIR_DOMAIN_CHECKPOINT_LIST_ROOTS |
+                  VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL |
+                  VIR_DOMAIN_CHECKPOINT_FILTERS_ALL, -1);
+
+    if (!(vm = testDomObjFromDomain(domain)))
+        return -1;
+
+    n = virDomainListCheckpoints(vm->checkpoints, NULL, domain, chks, flags);
+
+    virDomainObjEndAPI(&vm);
+    return n;
+}
+
+
+static int
+testDomainCheckpointListAllChildren(virDomainCheckpointPtr checkpoint,
+                                    virDomainCheckpointPtr **chks,
+                                    unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    virDomainMomentObjPtr chk = NULL;
+    int n = -1;
+
+    virCheckFlags(VIR_DOMAIN_CHECKPOINT_LIST_DESCENDANTS |
+                  VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL |
+                  VIR_DOMAIN_CHECKPOINT_FILTERS_ALL, -1);
+
+    if (!(vm = testDomObjFromCheckpoint(checkpoint)))
+        return -1;
+
+    if (!(chk = testCheckpointObjFromCheckpoint(vm, checkpoint)))
+        goto cleanup;
+
+    n = virDomainListCheckpoints(vm->checkpoints, chk, checkpoint->domain,
+                                 chks, flags);
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return n;
+}
+
+
+static virDomainCheckpointPtr
+testDomainCheckpointLookupByName(virDomainPtr domain,
+                                 const char *name,
+                                 unsigned int flags)
+{
+    virDomainObjPtr vm;
+    virDomainMomentObjPtr chk = NULL;
+    virDomainCheckpointPtr checkpoint = NULL;
+
+    virCheckFlags(0, NULL);
+
+    if (!(vm = testDomObjFromDomain(domain)))
+        return NULL;
+
+    if (!(chk = testCheckpointObjFromName(vm, name)))
+        goto cleanup;
+
+    checkpoint = virGetDomainCheckpoint(domain, chk->def->name);
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return checkpoint;
+}
+
+
+static virDomainCheckpointPtr
+testDomainCheckpointGetParent(virDomainCheckpointPtr checkpoint,
+                              unsigned int flags)
+{
+    virDomainObjPtr vm;
+    virDomainMomentObjPtr chk = NULL;
+    virDomainCheckpointPtr parent = NULL;
+
+    virCheckFlags(0, NULL);
+
+    if (!(vm = testDomObjFromCheckpoint(checkpoint)))
+        return NULL;
+
+    if (!(chk = testCheckpointObjFromCheckpoint(vm, checkpoint)))
+        goto cleanup;
+
+    if (!chk->def->parent_name) {
+        virReportError(VIR_ERR_NO_DOMAIN_CHECKPOINT,
+                       _("checkpoint '%s' does not have a parent"),
+                       chk->def->name);
+        goto cleanup;
+    }
+
+    parent = virGetDomainCheckpoint(checkpoint->domain, chk->def->parent_name);
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return parent;
+}
+
+
+static char *
+testDomainCheckpointGetXMLDesc(virDomainCheckpointPtr checkpoint,
+                               unsigned int flags)
+{
+    testDriverPtr privconn = checkpoint->domain->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    char *xml = NULL;
+    virDomainMomentObjPtr chk = NULL;
+    size_t i;
+    virDomainCheckpointDefPtr chkdef;
+    unsigned int format_flags;
+
+    virCheckFlags(VIR_DOMAIN_CHECKPOINT_XML_SECURE |
+                  VIR_DOMAIN_CHECKPOINT_XML_NO_DOMAIN |
+                  VIR_DOMAIN_CHECKPOINT_XML_SIZE, NULL);
+
+    if (!(vm = testDomObjFromCheckpoint(checkpoint)))
+        return NULL;
+
+    if (!(chk = testCheckpointObjFromCheckpoint(vm, checkpoint)))
+        goto cleanup;
+    chkdef = virDomainCheckpointObjGetDef(chk);
+
+    if (flags & VIR_DOMAIN_CHECKPOINT_XML_SIZE) {
+        if (virDomainObjCheckActive(vm) < 0)
+            goto cleanup;
+
+        for (i = 0; i < chkdef->ndisks; i++) {
+            virDomainCheckpointDiskDefPtr disk = &chkdef->disks[i];
+
+            if (disk->type != VIR_DOMAIN_CHECKPOINT_TYPE_BITMAP)
+                continue;
+            disk->size = 1024; /* Any number will do... */
+        }
+    }
+
+    format_flags = virDomainCheckpointFormatConvertXMLFlags(flags);
+    xml = virDomainCheckpointDefFormat(chkdef, privconn->caps,
+                                       privconn->xmlopt, format_flags);
+
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return xml;
+}
+
+
+static int
+testDomainCheckpointDelete(virDomainCheckpointPtr checkpoint,
+                           unsigned int flags)
+{
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+    virDomainMomentObjPtr chk = NULL;
+    virDomainMomentObjPtr parentchk = NULL;
+
+    virCheckFlags(VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN |
+                  VIR_DOMAIN_CHECKPOINT_DELETE_METADATA_ONLY |
+                  VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN_ONLY, -1);
+
+    if (!(vm = testDomObjFromCheckpoint(checkpoint)))
+        return -1;
+
+    if (!(chk = testCheckpointObjFromCheckpoint(vm, checkpoint)))
+        goto cleanup;
+
+    if (flags & (VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN |
+                 VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN_ONLY)) {
+        testMomentRemoveData rem;
+
+        rem.vm = vm;
+        rem.current = false;
+        virDomainMomentForEachDescendant(chk, testDomainCheckpointDiscardAll,
+                                         &rem);
+        if (rem.current)
+            virDomainCheckpointSetCurrent(vm->checkpoints, chk);
+    } else if (chk->nchildren) {
+        testMomentReparentData rep;
+
+        rep.parent = chk->parent;
+        rep.vm = vm;
+        rep.err = 0;
+        virDomainMomentForEachChild(chk, testDomainMomentReparentChildren,
+                                    &rep);
+        if (rep.err < 0)
+            goto cleanup;
+        virDomainMomentMoveChildren(chk, chk->parent);
+    }
+
+    if (flags & VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN_ONLY) {
+        virDomainMomentDropChildren(chk);
+    } else {
+        virDomainMomentDropParent(chk);
+        if (chk == virDomainCheckpointGetCurrent(vm->checkpoints)) {
+            if (chk->def->parent_name) {
+                parentchk = virDomainCheckpointFindByName(vm->checkpoints,
+                                                          chk->def->parent_name);
+                if (!parentchk)
+                    VIR_WARN("missing parent checkpoint matching name '%s'",
+                             chk->def->parent_name);
+            }
+            virDomainCheckpointSetCurrent(vm->checkpoints, parentchk);
+        }
+        virDomainCheckpointObjListRemove(vm->checkpoints, chk);
+    }
+
+    ret = 0;
+ cleanup:
+    virDomainObjEndAPI(&vm);
+    return ret;
+}
+
+/*
+ * Test driver
+ */
 static virHypervisorDriver testHypervisorDriver = {
     .name = "Test",
     .connectOpen = testConnectOpen, /* 0.1.1 */
@@ -6774,6 +8599,7 @@ static virHypervisorDriver testHypervisorDriver = {
     .connectGetCapabilities = testConnectGetCapabilities, /* 0.2.1 */
     .connectGetSysinfo = testConnectGetSysinfo, /* 2.3.0 */
     .connectGetType = testConnectGetType, /* 2.3.0 */
+    .connectSupportsFeature = testConnectSupportsFeature, /* 5.6.0 */
     .connectListDomains = testConnectListDomains, /* 0.1.1 */
     .connectNumOfDomains = testConnectNumOfDomains, /* 0.1.1 */
     .connectListAllDomains = testConnectListAllDomains, /* 0.9.13 */
@@ -6789,25 +8615,42 @@ static virHypervisorDriver testHypervisorDriver = {
     .domainDestroy = testDomainDestroy, /* 0.1.1 */
     .domainDestroyFlags = testDomainDestroyFlags, /* 4.2.0 */
     .domainGetOSType = testDomainGetOSType, /* 0.1.9 */
+    .domainGetLaunchSecurityInfo = testDomainGetLaunchSecurityInfo, /* 5.5.0 */
     .domainGetMaxMemory = testDomainGetMaxMemory, /* 0.1.4 */
     .domainSetMaxMemory = testDomainSetMaxMemory, /* 0.1.1 */
     .domainSetMemory = testDomainSetMemory, /* 0.1.4 */
+    .domainSetMemoryStatsPeriod = testDomainSetMemoryStatsPeriod, /* 5.6.0 */
+    .domainSetMemoryFlags = testDomainSetMemoryFlags, /* 5.6.0 */
+    .domainGetHostname = testDomainGetHostname, /* 5.5.0 */
     .domainGetInfo = testDomainGetInfo, /* 0.1.1 */
     .domainGetState = testDomainGetState, /* 0.9.2 */
+    .domainGetTime = testDomainGetTime, /* 5.4.0 */
     .domainSave = testDomainSave, /* 0.3.2 */
     .domainSaveFlags = testDomainSaveFlags, /* 0.9.4 */
     .domainRestore = testDomainRestore, /* 0.3.2 */
     .domainRestoreFlags = testDomainRestoreFlags, /* 0.9.4 */
+    .domainSaveImageDefineXML = testDomainSaveImageDefineXML, /* 5.5.0 */
+    .domainSaveImageGetXMLDesc = testDomainSaveImageGetXMLDesc, /* 5.5.0 */
     .domainCoreDump = testDomainCoreDump, /* 0.3.2 */
     .domainCoreDumpWithFormat = testDomainCoreDumpWithFormat, /* 1.2.3 */
+    .domainSetUserPassword = testDomainSetUserPassword, /* 5.6.0 */
+    .domainPinEmulator = testDomainPinEmulator, /* 5.6.0 */
+    .domainGetEmulatorPinInfo = testDomainGetEmulatorPinInfo, /* 5.6.0 */
     .domainSetVcpus = testDomainSetVcpus, /* 0.1.4 */
     .domainSetVcpusFlags = testDomainSetVcpusFlags, /* 0.8.5 */
     .domainGetVcpusFlags = testDomainGetVcpusFlags, /* 0.8.5 */
     .domainPinVcpu = testDomainPinVcpu, /* 0.7.3 */
+    .domainPinVcpuFlags = testDomainPinVcpuFlags, /* 5.6.0 */
     .domainGetVcpus = testDomainGetVcpus, /* 0.7.3 */
     .domainGetVcpuPinInfo = testDomainGetVcpuPinInfo, /* 1.2.18 */
     .domainGetMaxVcpus = testDomainGetMaxVcpus, /* 0.7.3 */
     .domainGetXMLDesc = testDomainGetXMLDesc, /* 0.1.4 */
+    .domainSetMemoryParameters = testDomainSetMemoryParameters, /* 5.6.0 */
+    .domainGetMemoryParameters = testDomainGetMemoryParameters, /* 5.6.0 */
+    .domainSetNumaParameters = testDomainSetNumaParameters, /* 5.6.0 */
+    .domainGetNumaParameters = testDomainGetNumaParameters, /* 5.6.0 */
+    .domainSetInterfaceParameters = testDomainSetInterfaceParameters, /* 5.6.0 */
+    .domainGetInterfaceParameters = testDomainGetInterfaceParameters, /* 5.6.0 */
     .connectListDefinedDomains = testConnectListDefinedDomains, /* 0.1.11 */
     .connectNumOfDefinedDomains = testConnectNumOfDefinedDomains, /* 0.1.11 */
     .domainCreate = testDomainCreate, /* 0.1.11 */
@@ -6818,12 +8661,17 @@ static virHypervisorDriver testHypervisorDriver = {
     .domainUndefineFlags = testDomainUndefineFlags, /* 0.9.4 */
     .domainGetAutostart = testDomainGetAutostart, /* 0.3.2 */
     .domainSetAutostart = testDomainSetAutostart, /* 0.3.2 */
+    .domainGetDiskErrors = testDomainGetDiskErrors, /* 5.4.0 */
+    .domainGetFSInfo = testDomainGetFSInfo, /* 5.6.0 */
+    .domainSetPerfEvents = testDomainSetPerfEvents, /* 5.6.0 */
+    .domainGetPerfEvents = testDomainGetPerfEvents, /* 5.6.0 */
     .domainGetSchedulerType = testDomainGetSchedulerType, /* 0.3.2 */
     .domainGetSchedulerParameters = testDomainGetSchedulerParameters, /* 0.3.2 */
     .domainGetSchedulerParametersFlags = testDomainGetSchedulerParametersFlags, /* 0.9.2 */
     .domainSetSchedulerParameters = testDomainSetSchedulerParameters, /* 0.3.2 */
     .domainSetSchedulerParametersFlags = testDomainSetSchedulerParametersFlags, /* 0.9.2 */
     .domainBlockStats = testDomainBlockStats, /* 0.7.0 */
+    .domainInterfaceAddresses = testDomainInterfaceAddresses, /* 5.4.0 */
     .domainInterfaceStats = testDomainInterfaceStats, /* 0.7.0 */
     .nodeGetCellsFreeMemory = testNodeGetCellsFreeMemory, /* 0.4.2 */
     .connectDomainEventRegister = testConnectDomainEventRegister, /* 0.6.0 */
@@ -6839,12 +8687,17 @@ static virHypervisorDriver testHypervisorDriver = {
     .nodeGetCPUMap = testNodeGetCPUMap, /* 1.0.0 */
     .domainRename = testDomainRename, /* 4.1.0 */
     .domainScreenshot = testDomainScreenshot, /* 1.0.5 */
+    .domainInjectNMI = testDomainInjectNMI, /* 5.6.0 */
+    .domainSendKey = testDomainSendKey, /* 5.5.0 */
     .domainGetMetadata = testDomainGetMetadata, /* 1.1.3 */
     .domainSetMetadata = testDomainSetMetadata, /* 1.1.3 */
+    .domainGetCPUStats = testDomainGetCPUStats, /* 5.6.0 */
+    .domainSendProcessSignal = testDomainSendProcessSignal, /* 5.5.0 */
     .connectGetCPUModelNames = testConnectGetCPUModelNames, /* 1.1.3 */
     .domainManagedSave = testDomainManagedSave, /* 1.1.4 */
     .domainHasManagedSaveImage = testDomainHasManagedSaveImage, /* 1.1.4 */
     .domainManagedSaveRemove = testDomainManagedSaveRemove, /* 1.1.4 */
+    .domainMemoryPeek = testDomainMemoryPeek, /* 5.4.0 */
 
     .domainSnapshotNum = testDomainSnapshotNum, /* 1.1.4 */
     .domainSnapshotListNames = testDomainSnapshotListNames, /* 1.1.4 */
@@ -6864,6 +8717,14 @@ static virHypervisorDriver testHypervisorDriver = {
     .domainSnapshotDelete = testDomainSnapshotDelete, /* 1.1.4 */
 
     .connectBaselineCPU = testConnectBaselineCPU, /* 1.2.0 */
+    .domainCheckpointCreateXML = testDomainCheckpointCreateXML, /* 5.6.0 */
+    .domainCheckpointGetXMLDesc = testDomainCheckpointGetXMLDesc, /* 5.6.0 */
+
+    .domainListAllCheckpoints = testDomainListAllCheckpoints, /* 5.6.0 */
+    .domainCheckpointListAllChildren = testDomainCheckpointListAllChildren, /* 5.6.0 */
+    .domainCheckpointLookupByName = testDomainCheckpointLookupByName, /* 5.6.0 */
+    .domainCheckpointGetParent = testDomainCheckpointGetParent, /* 5.6.0 */
+    .domainCheckpointDelete = testDomainCheckpointDelete, /* 5.6.0 */
 };
 
 static virNetworkDriver testNetworkDriver = {
