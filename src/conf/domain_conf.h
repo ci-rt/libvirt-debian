@@ -20,43 +20,42 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_DOMAIN_CONF_H
-# define LIBVIRT_DOMAIN_CONF_H
+#pragma once
 
-# include <libxml/parser.h>
-# include <libxml/tree.h>
-# include <libxml/xpath.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+#include <libxml/xpath.h>
 
-# include "internal.h"
-# include "virconftypes.h"
-# include "capabilities.h"
-# include "virstorageencryption.h"
-# include "cpu_conf.h"
-# include "virthread.h"
-# include "virhash.h"
-# include "virsocketaddr.h"
-# include "networkcommon_conf.h"
-# include "nwfilter_params.h"
-# include "numa_conf.h"
-# include "virnetdevmacvlan.h"
-# include "virsysinfo.h"
-# include "virnetdev.h"
-# include "virnetdevip.h"
-# include "virnetdevvportprofile.h"
-# include "virnetdevbandwidth.h"
-# include "virnetdevvlan.h"
-# include "virobject.h"
-# include "device_conf.h"
-# include "virbitmap.h"
-# include "virstoragefile.h"
-# include "virseclabel.h"
-# include "virprocess.h"
-# include "virgic.h"
-# include "virperf.h"
-# include "virtypedparam.h"
-# include "virsavecookie.h"
-# include "virresctrl.h"
-# include "virenum.h"
+#include "internal.h"
+#include "virconftypes.h"
+#include "capabilities.h"
+#include "virstorageencryption.h"
+#include "cpu_conf.h"
+#include "virthread.h"
+#include "virhash.h"
+#include "virsocketaddr.h"
+#include "networkcommon_conf.h"
+#include "nwfilter_params.h"
+#include "numa_conf.h"
+#include "virnetdevmacvlan.h"
+#include "virsysinfo.h"
+#include "virnetdev.h"
+#include "virnetdevip.h"
+#include "virnetdevvportprofile.h"
+#include "virnetdevbandwidth.h"
+#include "virnetdevvlan.h"
+#include "virobject.h"
+#include "device_conf.h"
+#include "virbitmap.h"
+#include "virstoragefile.h"
+#include "virseclabel.h"
+#include "virprocess.h"
+#include "virgic.h"
+#include "virperf.h"
+#include "virtypedparam.h"
+#include "virsavecookie.h"
+#include "virresctrl.h"
+#include "virenum.h"
 
 /* Flags for the 'type' field in virDomainDeviceDef */
 typedef enum {
@@ -120,7 +119,6 @@ struct _virDomainDeviceDef {
 };
 
 /* Different types of hypervisor */
-/* NB: Keep in sync with virDomainVirtTypeToString impl */
 typedef enum {
     VIR_DOMAIN_VIRT_NONE = 0,
     VIR_DOMAIN_VIRT_QEMU,
@@ -680,7 +678,7 @@ typedef enum {
     VIR_DOMAIN_CONTROLLER_MODEL_VIRTIO_SERIAL_LAST
 } virDomainControllerModelVirtioSerial;
 
-# define IS_USB2_CONTROLLER(ctrl) \
+#define IS_USB2_CONTROLLER(ctrl) \
     (((ctrl)->type == VIR_DOMAIN_CONTROLLER_TYPE_USB) && \
      ((ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_EHCI1 || \
       (ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI1 || \
@@ -969,6 +967,7 @@ struct _virDomainNetDef {
         struct {
             char *name;
             char *portgroup;
+            unsigned char portid[VIR_UUID_BUFLEN];
             /* actual has info about the currently used physical
              * device (if the network is of type
              * bridge/private/vepa/passthrough). This is saved in the
@@ -976,6 +975,9 @@ struct _virDomainNetDef {
              * since it needs to be re-allocated whenever the domain
              * is restarted. It is also never shown to the user, and
              * the user cannot specify it in XML documents.
+             *
+             * This information is populated from the virNetworkPort
+             * object associated with the portid UUID above.
              */
             virDomainActualNetDefPtr actual;
         } network;
@@ -1208,8 +1210,8 @@ typedef enum {
     VIR_DOMAIN_SMARTCARD_TYPE_LAST
 } virDomainSmartcardType;
 
-# define VIR_DOMAIN_SMARTCARD_NUM_CERTIFICATES 3
-# define VIR_DOMAIN_SMARTCARD_DEFAULT_DATABASE "/etc/pki/nssdb"
+#define VIR_DOMAIN_SMARTCARD_NUM_CERTIFICATES 3
+#define VIR_DOMAIN_SMARTCARD_DEFAULT_DATABASE "/etc/pki/nssdb"
 
 struct _virDomainSmartcardDef {
     int type; /* virDomainSmartcardType */
@@ -1252,7 +1254,7 @@ typedef enum {
     VIR_DOMAIN_TPM_VERSION_LAST
 } virDomainTPMVersion;
 
-# define VIR_DOMAIN_TPM_DEFAULT_DEVICE "/dev/tpm0"
+#define VIR_DOMAIN_TPM_DEFAULT_DEVICE "/dev/tpm0"
 
 struct _virDomainTPMDef {
     int type; /* virDomainTPMBackendType */
@@ -1267,6 +1269,8 @@ struct _virDomainTPMDef {
             virDomainChrSourceDef source;
             char *storagepath;
             char *logfile;
+            unsigned char secretuuid[VIR_UUID_BUFLEN];
+            bool hassecretuuid;
         } emulator;
     } data;
 };
@@ -1382,6 +1386,7 @@ typedef enum {
     VIR_DOMAIN_VIDEO_TYPE_VIRTIO,
     VIR_DOMAIN_VIDEO_TYPE_GOP,
     VIR_DOMAIN_VIDEO_TYPE_NONE,
+    VIR_DOMAIN_VIDEO_TYPE_BOCHS,
 
     VIR_DOMAIN_VIDEO_TYPE_LAST
 } virDomainVideoType;
@@ -1701,7 +1706,7 @@ typedef enum {
 } virDomainSmbiosMode;
 
 
-# define VIR_DOMAIN_MAX_BOOT_DEVS 4
+#define VIR_DOMAIN_MAX_BOOT_DEVS 4
 
 typedef enum {
     VIR_DOMAIN_BOOT_FLOPPY,
@@ -1737,7 +1742,7 @@ typedef enum {
     VIR_DOMAIN_FEATURE_LAST
 } virDomainFeature;
 
-# define VIR_DOMAIN_HYPERV_VENDOR_ID_MAX 12
+#define VIR_DOMAIN_HYPERV_VENDOR_ID_MAX 12
 
 typedef enum {
     VIR_DOMAIN_HYPERV_RELAXED = 0,
@@ -2072,7 +2077,6 @@ typedef enum {
 typedef enum {
     VIR_DOMAIN_RNG_BACKEND_RANDOM,
     VIR_DOMAIN_RNG_BACKEND_EGD,
-    /* VIR_DOMAIN_RNG_BACKEND_POOL, */
 
     VIR_DOMAIN_RNG_BACKEND_LAST
 } virDomainRNGBackend;
@@ -2167,7 +2171,7 @@ struct _virDomainHugePage {
     unsigned long long size;    /* hugepage size in KiB */
 };
 
-# define VIR_DOMAIN_CPUMASK_LEN 1024
+#define VIR_DOMAIN_CPUMASK_LEN 1024
 
 struct _virDomainIOThreadIDDef {
     bool autofill;
@@ -2296,6 +2300,7 @@ struct _virDomainSEVDef {
 
 typedef enum {
     VIR_DOMAIN_IOMMU_MODEL_INTEL,
+    VIR_DOMAIN_IOMMU_MODEL_SMMUV3,
 
     VIR_DOMAIN_IOMMU_MODEL_LAST
 } virDomainIOMMUModel;
@@ -2526,6 +2531,7 @@ typedef enum {
     VIR_DOMAIN_TAINT_CDROM_PASSTHROUGH,/* CDROM passthrough */
     VIR_DOMAIN_TAINT_CUSTOM_DTB,       /* Custom device tree blob was specified */
     VIR_DOMAIN_TAINT_CUSTOM_GA_COMMAND, /* Custom guest agent command */
+    VIR_DOMAIN_TAINT_CUSTOM_HYPERVISOR_FEATURE, /* custom hypervisor feature control */
 
     VIR_DOMAIN_TAINT_LAST
 } virDomainTaintFlags;
@@ -2555,6 +2561,8 @@ struct _virDomainObj {
     virDomainSnapshotObjListPtr snapshots;
 
     bool hasManagedSave;
+
+    virDomainCheckpointObjListPtr checkpoints;
 
     void *privateData;
     void (*privateDataFreeFunc)(void *);
@@ -3041,7 +3049,7 @@ void virDomainIOThreadIDDel(virDomainDefPtr def, unsigned int iothread_id);
  * server omits the requested output, but a new flag to suppress
  * information could result in a security hole when older libvirt
  * supplies the sensitive information in spite of the flag. */
-# define VIR_DOMAIN_XML_COMMON_FLAGS \
+#define VIR_DOMAIN_XML_COMMON_FLAGS \
     (VIR_DOMAIN_XML_SECURE | VIR_DOMAIN_XML_INACTIVE | \
      VIR_DOMAIN_XML_MIGRATABLE)
 unsigned int virDomainDefFormatConvertXMLFlags(unsigned int flags);
@@ -3061,10 +3069,17 @@ int virDomainDefFormatInternal(virDomainDefPtr def,
 
 int virDomainDiskSourceFormat(virBufferPtr buf,
                               virStorageSourcePtr src,
+                              const char *element,
                               int policy,
                               bool attrIndex,
                               unsigned int flags,
                               virDomainXMLOptionPtr xmlopt);
+
+int
+virDomainDiskBackingStoreFormat(virBufferPtr buf,
+                                virStorageSourcePtr src,
+                                virDomainXMLOptionPtr xmlopt,
+                                unsigned int flags);
 
 int virDomainNetDefFormat(virBufferPtr buf,
                           virDomainNetDefPtr def,
@@ -3517,6 +3532,13 @@ int virDomainStorageSourceParse(xmlNodePtr node,
                                 virDomainXMLOptionPtr xmlopt)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 
+int
+virDomainDiskBackingStoreParse(xmlXPathContextPtr ctxt,
+                               virStorageSourcePtr src,
+                               unsigned int flags,
+                               virDomainXMLOptionPtr xmlopt)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+
 int virDomainDefGetVcpuPinInfoHelper(virDomainDefPtr def,
                                      int maplen,
                                      int ncpumaps,
@@ -3551,36 +3573,22 @@ bool
 virDomainDefLifecycleActionAllowed(virDomainLifecycle type,
                                    virDomainLifecycleAction action);
 
-typedef int
-(*virDomainNetAllocateActualDeviceImpl)(virNetworkPtr net,
-                                        virDomainDefPtr dom,
-                                        virDomainNetDefPtr iface);
+// Forward decl to avoid pulling in virnetworkportdef.h because
+// that pulls in virhostdev.h which pulls in domain_conf.h (evil)
+typedef struct _virNetworkPortDef virNetworkPortDef;
+typedef virNetworkPortDef *virNetworkPortDefPtr;
 
-typedef int
-(*virDomainNetNotifyActualDeviceImpl)(virNetworkPtr net,
-                                      virDomainDefPtr dom,
-                                      virDomainNetDefPtr iface);
+virNetworkPortDefPtr
+virDomainNetDefToNetworkPort(virDomainDefPtr dom,
+                             virDomainNetDefPtr iface);
 
-typedef int
-(*virDomainNetReleaseActualDeviceImpl)(virNetworkPtr net,
-                                       virDomainDefPtr dom,
-                                       virDomainNetDefPtr iface);
+int
+virDomainNetDefActualFromNetworkPort(virDomainNetDefPtr iface,
+                                     virNetworkPortDefPtr port);
 
-typedef bool
-(*virDomainNetBandwidthChangeAllowedImpl)(virDomainNetDefPtr iface,
-                                          virNetDevBandwidthPtr newBandwidth);
-
-typedef int
-(*virDomainNetBandwidthUpdateImpl)(virDomainNetDefPtr iface,
-                                   virNetDevBandwidthPtr newBandwidth);
-
-
-void
-virDomainNetSetDeviceImpl(virDomainNetAllocateActualDeviceImpl allocate,
-                          virDomainNetNotifyActualDeviceImpl notify,
-                          virDomainNetReleaseActualDeviceImpl release,
-                          virDomainNetBandwidthChangeAllowedImpl bandwidthChangeAllowed,
-                          virDomainNetBandwidthUpdateImpl bandwidthUpdate);
+virNetworkPortDefPtr
+virDomainNetDefActualToNetworkPort(virDomainDefPtr dom,
+                                   virDomainNetDefPtr iface);
 
 int
 virDomainNetAllocateActualDevice(virConnectPtr conn,
@@ -3598,11 +3606,6 @@ int
 virDomainNetReleaseActualDevice(virConnectPtr conn,
                                 virDomainDefPtr dom,
                                 virDomainNetDefPtr iface)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-
-bool
-virDomainNetBandwidthChangeAllowed(virDomainNetDefPtr iface,
-                              virNetDevBandwidthPtr newBandwidth)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int
@@ -3636,4 +3639,5 @@ virDomainGraphicsGetRenderNode(const virDomainGraphicsDef *graphics);
 bool
 virDomainGraphicsNeedsAutoRenderNode(const virDomainGraphicsDef *graphics);
 
-#endif /* LIBVIRT_DOMAIN_CONF_H */
+int
+virDomainCheckDeviceChanges(virDomainDefPtr def, virDomainDefPtr newDef);

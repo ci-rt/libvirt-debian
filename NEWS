@@ -1,6 +1,185 @@
 libvirt releases
 ================
 
+# v5.6.0 (2019-08-05)
+
+  * New features
+
+    - qemu: Introduce a new video model of type 'bochs'
+        Introduce a new video model type that supports the bochs-display device
+        that was added in qemu version 3.0.
+
+    - api: new virDomainCheckpoint APIs
+        Introduce several new APIs for creating and managing checkpoints in the
+        test and qemu drivers (the latter requires qcow2 images). Checkpoints
+        serve as a way to tell which portions of a disk have changed since a
+        point in time.
+
+    - qemu: Add support for overriding max threads per process limit
+        systemd-based systems impose a limit on the number of threads a process
+        can spawn, which in some cases can be exceeded by QEMU processes
+        running VMs. Add a max_threads_per_process option to qemu.conf to
+        override the system default.
+
+    - Remember original owners and SELinux labels of files
+        When a domain is starting up libvirt changes DAC and SELinux labels so
+        that domain can access it. However, it never remembered the original
+        labels and therefore the file was returned back to root:root. With this
+        release, the original labels are remembered and restored properly.
+
+    - network: Allow passing arbitrary options to dnsmasq
+        This works similarly to the existing support for passing arbitary
+        options to QEMU, and just like that feature it comes with no support
+        guarantees.
+
+  * Removed features
+
+    - xen: Remove sxpr config support
+        Remove the sxpr style config parser and formatter a year after the xend
+        driver was removed.
+
+  * Improvements
+
+    - qemu: Allow XML validation for snapshot creation
+        Add flag VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE to validate snapshot input
+        XML. For virsh, users can use it as virsh snapshot-create --validate.
+
+    - Support encrypted soft TPM
+        A soft TPM backend could be encrypted with passphrase. Now libvirt
+        supports using a secret object to hold the passphrase, and referring to
+        it via the encryption element of the TPM device.
+
+    - test driver: Expand API coverage
+        Additional APIs have been implemented in the test driver.
+
+    - Implement per-driver locking
+        Drivers now acquire a lock when they're loaded, ensuring that there can
+        never be two instances of the same driver active at a time.
+
+    - nss: Report newer addresses first
+        In some cases, a guest might be assigned a new IP address by DHCP
+        before the previous lease has expired, in which case the NSS plugin
+        will correctly report both addresses; many applications, however,
+        ignore all addresses but the first, and may thus end up trying to
+        connect using a stale address. To prevent that from happening, the NSS
+        plugin will now always report the newest address first.
+
+    - util: Optimize mass closing of FDs when spawning child processes
+        When the limit on the number of FDs is very high, closing all unwanted
+        FDs after calling fork() can take a lot of time and delay the start of
+        the child process. libvirt will now use an optimized algorithm that
+        minimizes such delays.
+
+  * Bug fixes
+
+    - logging: Ensure virtlogd rollover takes priority over logrotate
+        virtlogd implements its own rollover mechanism, but until now logrotate
+        could end up acting on the logs before virtlogd had a chance to do so
+        itself.
+
+# v5.5.0 (2019-07-02)
+
+  * Security
+
+    - api: Prevent access to several APIs over read-only connections
+        Certain APIs give root-equivalent access to the host, and as such
+        should be limited to privileged users. CVE-2019-10161, CVE-2019-10166,
+        CVE-2019-10167, CVE-2019-10168.
+
+  * New features
+
+    - qemu: Support SMMUv3 IOMMU
+        SMMUv3 is an IOMMU implementation for ARM virt guests.
+
+    - network: Introduce the network port API
+        This new public API can be used by virtualization drivers to manage
+        network resources associated with guests, and is a further step towards
+        splitting libvirtd into multiple daemons.
+
+  * Removed features
+
+    - qemu: Remove support for virDomainQemuAttach and
+      virConnectDomainXMLFromNative APIs
+        The qemu implementations for the APIs mentioned above were removed and
+        the APIs now return an error. The implementation was stale for a long
+        time and did not work with modern QEMU command lines, generated from
+        libvirt or otherwise.
+
+    - Stop supporting migration of config files from pre-XDG layout
+        The new layout was introduced with libvirt 0.9.13 (Jul 2012).
+
+    - Remove Avahi mDNS support
+        This feature was never used outside of virt-manager, which has itself
+        stopped using it a while ago.
+
+  * Improvements
+
+    - sysinfo: Report SMBIOS information on aarch64
+        While SMBIOS support has historically been limited to x86_64, modern
+        aarch64 machines often offer access to the same information as well,
+        and libvirt now exposes it to the user when that's the case.
+
+    - test driver: Expand API coverage
+        Even more APIs that were missing from the test driver have now been
+        implemented.
+
+    - virt-xml-validate: Allow input to be read from stdin
+
+    - qemu: Validate spapr-vio addresses as 32-bit
+        libvirt has always considered these addresses (used for pSeries guests)
+        as 64-bit, but the sPAPR specification says that they're 32-bit
+        instead.
+
+  * Bug fixes
+
+    - qemu: Set process affinity correctly when using <numatune>
+        libvirt would mistakenly interpret the nodeset attribute as a list of
+        CPUs instead of as a list of NUMA node, and the process affinity would
+        be set incorrectly as a result; this has now been fixed.
+
+# v5.4.0 (2019-06-03)
+
+  * Security
+
+    - cpu: Introduce support for the md-clear CPUID bit
+        This bit is set when microcode provides the mechanism to invoke a flush
+        of various exploitable CPU buffers by invoking the x86 VERW
+        instruction. CVE-2018-12126, CVE-2018-12127, CVE-2018-12130,
+        CVE-2019-11091.
+
+    - Restrict user access to virt-admin, virtlogd and virtlockd
+        The intended users for these facilities are the root user and the
+        libvirtd service respectively, but these restrictions were not enforced
+        correctly. CVE-2019-10132.
+
+  * Improvements
+
+    - test driver: Expand API coverage
+        Several APIs that were missing from the test driver have now been
+        implemented.
+
+    - Avoid unnecessary static linking
+        Most binaries shipped as part of libvirt, for example virtlogd and
+        libvirt_iohelper, were embedding parts of the library even though they
+        also linked against the libvirt.so dynamic library. This is no longer
+        the case, which results in both the disk and memory footprint being
+        reduced.
+
+    - qemu: Report stat-htlb-pgalloc and stat-htlb-pgfail balloon stats
+        These stats have been introduced in QEMU 3.0.
+
+  * Bug fixes
+
+    - qemu: Fix emulator scheduler support
+        Setting the scheduler for QEMU's main thread before QEMU had a chance
+        to start up other threads was misleading as it would affect other
+        threads (vCPU and I/O) as well. In some particular situations this
+        could also lead to an error when the thread for vCPU #0 was being moved
+        to its cpu,cpuacct cgroup. This was fixed so that the scheduler for the
+        main thread is set after QEMU starts.
+
+    - apparmor: Allow hotplug of vhost-scsi devices
+
 # v5.3.0 (2019-05-04)
 
   * New features

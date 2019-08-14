@@ -61,6 +61,7 @@ my %whitelist = (
     "interfaceClose" => 1,
     "connectURIProbe" => 1,
     "localOnly" => 1,
+    "domainQemuAttach" => 1,
     );
 
 # XXX this vzDomainMigrateConfirm3Params looks
@@ -210,6 +211,8 @@ while (<>) {
         } elsif (/\.(\w+)\s*=\s*(\w+),?/) {
             my $api = $1;
             my $impl = $2;
+
+            next if $impl eq "NULL";
 
             if ($api ne "no" &&
                 $api ne "name" &&

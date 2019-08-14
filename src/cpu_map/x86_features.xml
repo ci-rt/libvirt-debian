@@ -320,6 +320,9 @@
   <feature name='avx512-4fmaps'>
     <cpuid eax_in='0x07' ecx_in='0x00' edx='0x00000008'/>
   </feature>
+  <feature name='md-clear'> <!-- md_clear -->
+    <cpuid eax_in='0x07' ecx_in='0x00' edx='0x00000400'/>
+  </feature>
   <feature name='pconfig'>
     <cpuid eax_in='0x07' ecx_in='0x00' edx='0x00040000'/>
   </feature>
@@ -478,5 +481,25 @@
   </feature>
   <feature name='amd-no-ssb'>
     <cpuid eax_in='0x80000008' ebx='0x04000000'/>
+  </feature>
+
+  <!-- IA32_ARCH_CAPABILITIES features -->
+  <feature name='rdctl-no'>
+    <msr index='0x10a' edx='0x00000000' eax='0x00000001'/>
+  </feature>
+  <feature name='ibrs-all'>
+    <msr index='0x10a' edx='0x00000000' eax='0x00000002'/>
+  </feature>
+  <feature name='rsba'>
+    <msr index='0x10a' edx='0x00000000' eax='0x00000004'/>
+  </feature>
+  <feature name='skip-l1dfl-vmentry'>
+    <msr index='0x10a' edx='0x00000000' eax='0x00000008'/>
+  </feature>
+  <feature name='ssb-no'>
+    <msr index='0x10a' edx='0x00000000' eax='0x00000010'/>
+  </feature>
+  <feature name='mds-no'>
+    <msr index='0x10a' edx='0x00000000' eax='0x00000020'/>
   </feature>
 </cpus>

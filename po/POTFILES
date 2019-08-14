@@ -15,6 +15,7 @@ src/bhyve/bhyve_monitor.c
 src/bhyve/bhyve_parse_command.c
 src/bhyve/bhyve_process.c
 src/conf/capabilities.c
+src/conf/checkpoint_conf.c
 src/conf/cpu_conf.c
 src/conf/device_conf.c
 src/conf/domain_addr.c
@@ -69,6 +70,7 @@ src/interface/interface_backend_netcf.c
 src/interface/interface_backend_udev.c
 src/internal.h
 src/libvirt-admin.c
+src/libvirt-domain-checkpoint.c
 src/libvirt-domain-snapshot.c
 src/libvirt-domain.c
 src/libvirt-host.c
@@ -140,7 +142,6 @@ src/qemu/qemu_migration_params.c
 src/qemu/qemu_monitor.c
 src/qemu/qemu_monitor_json.c
 src/qemu/qemu_monitor_text.c
-src/qemu/qemu_parse_command.c
 src/qemu/qemu_process.c
 src/qemu/qemu_qapi.c
 src/remote/remote_client_bodies.h
@@ -161,7 +162,6 @@ src/rpc/virnetmessage.c
 src/rpc/virnetsaslcontext.c
 src/rpc/virnetserver.c
 src/rpc/virnetserverclient.c
-src/rpc/virnetservermdns.c
 src/rpc/virnetserverprogram.c
 src/rpc/virnetserverservice.c
 src/rpc/virnetsocket.c
@@ -258,7 +258,6 @@ src/util/virscsi.c
 src/util/virscsihost.c
 src/util/virscsivhost.c
 src/util/virsecret.c
-src/util/virsexpr.c
 src/util/virsocketaddr.c
 src/util/virstorageencryption.c
 src/util/virstoragefile.c
@@ -293,11 +292,11 @@ src/vz/vz_utils.h
 src/xenapi/xenapi_driver.c
 src/xenapi/xenapi_utils.c
 src/xenconfig/xen_common.c
-src/xenconfig/xen_sxpr.c
 src/xenconfig/xen_xl.c
 src/xenconfig/xen_xm.c
 tests/virpolkittest.c
 tools/libvirt-guests.sh.in
+tools/virsh-checkpoint.c
 tools/virsh-console.c
 tools/virsh-domain-monitor.c
 tools/virsh-domain.c

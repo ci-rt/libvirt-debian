@@ -1,11 +1,12 @@
-libvirt (5.3.0-1~1.gbp5c84f4) UNRELEASED; urgency=medium
+libvirt (5.3.0-1~2.gbp6ef599) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @5c84f4f32ef2a75a837cba4984ef05694460110e **
+  ** SNAPSHOT build @6ef59955262b2219b9ab4e5ce1d1cb89248c316f **
 
   [ Guido Günther ]
   * [fb43676] d/control: Drop dh-autoreconf build-dep
   * [81d21d5] d/not-installed: Use multi-arch dirs
   * [641e532] New upstream version 5.3.0
+  * [07d5669] New upstream version 5.6.0
 
   [ Christian Ehrhardt ]
   * [c28c3b3] d/libvirt0.install: install translations
@@ -29,7 +30,7 @@ libvirt (5.3.0-1~1.gbp5c84f4) UNRELEASED; urgency=medium
   * [82a1edc] Bump symbol versions
   * [73fccd9] Specify --doc-main-package for dh_installdocs
 
- -- Andrea Bolognani <eof@kiyuko.org>  Sat, 10 Aug 2019 17:59:37 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 14 Aug 2019 08:30:07 +0200
 
 libvirt (5.2.0-2) experimental; urgency=medium
 

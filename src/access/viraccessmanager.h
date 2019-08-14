@@ -18,19 +18,19 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRACCESSMANAGER_H
-# define LIBVIRT_VIRACCESSMANAGER_H
+#pragma once
 
-# include "viridentity.h"
-# include "conf/domain_conf.h"
-# include "conf/network_conf.h"
-# include "conf/nwfilter_conf.h"
-# include "conf/node_device_conf.h"
-# include "conf/storage_conf.h"
-# include "conf/secret_conf.h"
-# include "conf/interface_conf.h"
-# include "conf/virnwfilterbindingdef.h"
-# include "access/viraccessperm.h"
+#include "viridentity.h"
+#include "conf/domain_conf.h"
+#include "conf/network_conf.h"
+#include "conf/nwfilter_conf.h"
+#include "conf/node_device_conf.h"
+#include "conf/storage_conf.h"
+#include "conf/secret_conf.h"
+#include "conf/interface_conf.h"
+#include "conf/virnwfilterbindingdef.h"
+#include "conf/virnetworkportdef.h"
+#include "access/viraccessperm.h"
 
 typedef struct _virAccessManager virAccessManager;
 typedef virAccessManager *virAccessManagerPtr;
@@ -66,6 +66,11 @@ int virAccessManagerCheckNetwork(virAccessManagerPtr manager,
                                  const char *driverName,
                                  virNetworkDefPtr network,
                                  virAccessPermNetwork perm);
+int virAccessManagerCheckNetworkPort(virAccessManagerPtr manager,
+                                     const char *driverName,
+                                     virNetworkDefPtr network,
+                                     virNetworkPortDefPtr port,
+                                     virAccessPermNetworkPort perm);
 int virAccessManagerCheckNodeDevice(virAccessManagerPtr manager,
                                     const char *driverName,
                                     virNodeDeviceDefPtr nodedev,
@@ -91,6 +96,3 @@ int virAccessManagerCheckStorageVol(virAccessManagerPtr manager,
                                     virStoragePoolDefPtr pool,
                                     virStorageVolDefPtr vol,
                                     virAccessPermStorageVol perm);
-
-
-#endif /* LIBVIRT_VIRACCESSMANAGER_H */

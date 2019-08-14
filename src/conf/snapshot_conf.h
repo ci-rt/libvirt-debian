@@ -19,13 +19,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_SNAPSHOT_CONF_H
-# define LIBVIRT_SNAPSHOT_CONF_H
+#pragma once
 
-# include "internal.h"
-# include "domain_conf.h"
-# include "moment_conf.h"
-# include "virenum.h"
+#include "internal.h"
+#include "domain_conf.h"
+#include "moment_conf.h"
+#include "virenum.h"
 
 /* Items related to snapshot state */
 
@@ -74,7 +73,7 @@ struct _virDomainSnapshotDiskDef {
 
 /* Stores the complete snapshot metadata */
 struct _virDomainSnapshotDef {
-    virDomainMomentDef common;
+    virDomainMomentDef parent;
 
     /* Additional public XML.  */
     int state; /* virDomainSnapshotState */
@@ -93,6 +92,7 @@ typedef enum {
     VIR_DOMAIN_SNAPSHOT_PARSE_DISKS    = 1 << 1,
     VIR_DOMAIN_SNAPSHOT_PARSE_INTERNAL = 1 << 2,
     VIR_DOMAIN_SNAPSHOT_PARSE_OFFLINE  = 1 << 3,
+    VIR_DOMAIN_SNAPSHOT_PARSE_VALIDATE = 1 << 4,
 } virDomainSnapshotParseFlags;
 
 typedef enum {
@@ -114,7 +114,7 @@ virDomainSnapshotDefPtr virDomainSnapshotDefParseNode(xmlDocPtr xml,
                                                       virDomainXMLOptionPtr xmlopt,
                                                       bool *current,
                                                       unsigned int flags);
-void virDomainSnapshotDefFree(virDomainSnapshotDefPtr def);
+virDomainSnapshotDefPtr virDomainSnapshotDefNew(void);
 char *virDomainSnapshotDefFormat(const char *uuidstr,
                                  virDomainSnapshotDefPtr def,
                                  virCapsPtr caps,
@@ -143,5 +143,3 @@ int virDomainSnapshotRedefineValidate(virDomainSnapshotDefPtr def,
 
 VIR_ENUM_DECL(virDomainSnapshotLocation);
 VIR_ENUM_DECL(virDomainSnapshotState);
-
-#endif /* LIBVIRT_SNAPSHOT_CONF_H */

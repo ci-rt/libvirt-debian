@@ -17,14 +17,13 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRSTORAGEOBJ_H
-# define LIBVIRT_VIRSTORAGEOBJ_H
+#pragma once
 
-# include "internal.h"
+#include "internal.h"
 
-# include "storage_conf.h"
+#include "storage_conf.h"
 
-# include "capabilities.h"
+#include "capabilities.h"
 
 typedef struct _virStoragePoolObj virStoragePoolObj;
 typedef virStoragePoolObj *virStoragePoolObjPtr;
@@ -37,6 +36,9 @@ typedef virStorageDriverState *virStorageDriverStatePtr;
 
 struct _virStorageDriverState {
     virMutex lock;
+
+    /* pid file FD, ensures two copies of the driver can't use the same root */
+    int lockFD;
 
     virStoragePoolObjListPtr pools;
 
@@ -256,5 +258,3 @@ virStoragePoolObjListExport(virConnectPtr conn,
                             virStoragePoolPtr **pools,
                             virStoragePoolObjListFilter filter,
                             unsigned int flags);
-
-#endif /* LIBVIRT_VIRSTORAGEOBJ_H */

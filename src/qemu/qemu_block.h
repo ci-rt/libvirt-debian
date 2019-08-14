@@ -16,17 +16,16 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_QEMU_BLOCK_H
-# define LIBVIRT_QEMU_BLOCK_H
+#pragma once
 
-# include "internal.h"
+#include "internal.h"
 
-# include "qemu_conf.h"
-# include "qemu_domain.h"
+#include "qemu_conf.h"
+#include "qemu_domain.h"
 
-# include "virhash.h"
-# include "virjson.h"
-# include "viruri.h"
+#include "virhash.h"
+#include "virjson.h"
+#include "viruri.h"
 
 typedef struct qemuBlockNodeNameBackingChainData qemuBlockNodeNameBackingChainData;
 typedef qemuBlockNodeNameBackingChainData *qemuBlockNodeNameBackingChainDataPtr;
@@ -59,7 +58,9 @@ qemuBlockStorageSourceSupportsConcurrentAccess(virStorageSourcePtr src);
 
 virJSONValuePtr
 qemuBlockStorageSourceGetBackendProps(virStorageSourcePtr src,
-                                      bool legacy);
+                                      bool legacy,
+                                      bool onlytarget,
+                                      bool autoreadonly);
 
 virURIPtr
 qemuBlockStorageSourceGetURI(virStorageSourcePtr src);
@@ -106,7 +107,12 @@ VIR_DEFINE_AUTOPTR_FUNC(qemuBlockStorageSourceAttachData,
                         qemuBlockStorageSourceAttachDataFree);
 
 qemuBlockStorageSourceAttachDataPtr
-qemuBlockStorageSourceAttachPrepareBlockdev(virStorageSourcePtr src);
+qemuBlockStorageSourceAttachPrepareBlockdev(virStorageSourcePtr src,
+                                            bool autoreadonly);
+
+qemuBlockStorageSourceAttachDataPtr
+qemuBlockStorageSourceDetachPrepare(virStorageSourcePtr src,
+                                    char *driveAlias);
 
 int
 qemuBlockStorageSourceAttachApply(qemuMonitorPtr mon,
@@ -122,10 +128,57 @@ qemuBlockStorageSourceDetachOneBlockdev(virQEMUDriverPtr driver,
                                         qemuDomainAsyncJob asyncJob,
                                         virStorageSourcePtr src);
 
+struct _qemuBlockStorageSourceChainData {
+    qemuBlockStorageSourceAttachDataPtr *srcdata;
+    size_t nsrcdata;
+};
+
+typedef struct _qemuBlockStorageSourceChainData qemuBlockStorageSourceChainData;
+typedef qemuBlockStorageSourceChainData *qemuBlockStorageSourceChainDataPtr;
+
+void
+qemuBlockStorageSourceChainDataFree(qemuBlockStorageSourceChainDataPtr data);
+
+qemuBlockStorageSourceChainDataPtr
+qemuBlockStorageSourceChainDetachPrepareBlockdev(virStorageSourcePtr src);
+qemuBlockStorageSourceChainDataPtr
+qemuBlockStorageSourceChainDetachPrepareDrive(virStorageSourcePtr src,
+                                              char *driveAlias);
+
+int
+qemuBlockStorageSourceChainAttach(qemuMonitorPtr mon,
+                                  qemuBlockStorageSourceChainDataPtr data);
+
+void
+qemuBlockStorageSourceChainDetach(qemuMonitorPtr mon,
+                                  qemuBlockStorageSourceChainDataPtr data);
+
+
+VIR_DEFINE_AUTOPTR_FUNC(qemuBlockStorageSourceChainData,
+                        qemuBlockStorageSourceChainDataFree);
+
 int
 qemuBlockSnapshotAddLegacy(virJSONValuePtr actions,
                            virDomainDiskDefPtr disk,
                            virStorageSourcePtr newsrc,
                            bool reuse);
 
-#endif /* LIBVIRT_QEMU_BLOCK_H */
+int
+qemuBlockSnapshotAddBlockdev(virJSONValuePtr actions,
+                             virDomainDiskDefPtr disk,
+                             virStorageSourcePtr newsrc);
+
+char *
+qemuBlockGetBackingStoreString(virStorageSourcePtr src)
+    ATTRIBUTE_NONNULL(1);
+
+int
+qemuBlockStorageSourceCreateGetFormatProps(virStorageSourcePtr src,
+                                           virStorageSourcePtr backing,
+                                           virJSONValuePtr *props)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
+
+int
+qemuBlockStorageSourceCreateGetStorageProps(virStorageSourcePtr src,
+                                            virJSONValuePtr *props)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;

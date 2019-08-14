@@ -9,7 +9,9 @@
     <h2><a id="SnapshotAttributes">Snapshot XML</a></h2>
 
     <p>
-      There are several types of snapshots:
+      Snapshots are one form
+      of <a href="kbase/domainstatecapture.html">domain state
+      capture</a>.  There are several types of snapshots:
     </p>
     <dl>
       <dt>disk snapshot</dt>
@@ -91,7 +93,9 @@
       sets that snapshot as current, and the prior current snapshot is
       the parent of the new snapshot.  Branches in the hierarchy can
       be formed by reverting to a snapshot with a child, then creating
-      another snapshot.
+      another snapshot.  For now, the creation of external snapshots
+      when checkpoints exist is forbidden, although future work will
+      make it possible to integrate these two concepts.
     </p>
     <p>
       The top-level <code>domainsnapshot</code> element may contain
@@ -140,8 +144,8 @@
           <dd>This sub-element describes the snapshot properties of a
             specific disk.  The attribute <code>name</code> is
             mandatory, and must match either the <code>&lt;target
-            dev='name'/&gt;</code> or an unambiguous <code>&lt;source
-            file='name'/&gt;</code> of one of
+            dev='name'/&gt;</code> (recommended) or an unambiguous
+            <code>&lt;source file='name'/&gt;</code> of one of
             the <a href="formatdomain.html#elementsDisks">disk
             devices</a> specified for the domain at the time of the
             snapshot.  The attribute <code>snapshot</code> is
@@ -170,6 +174,12 @@
               snapshots, the original file name becomes the read-only
               snapshot, and the new file name contains the read-write
               delta of all disk changes since the snapshot.
+              <p/>
+              The <code>source</code> element also may contain the
+              <code>seclabel</code> element (described in the
+              <a href="formatdomain.html#seclabel">domain XML documentation</a>)
+              which can be used to override the domain security labeling policy
+              for <code>source</code>.
               </dd>
               <dt><code>driver</code></dt>
               <dd>An optional sub-element <code>driver</code>,
@@ -177,6 +187,7 @@
               as qcow2), of the new file created by the external
               snapshot of the new file.
               </dd>
+              <dt><code>seclabel</code></dt>
             </dl>
 
             <span class="since">Since 1.2.2</span> the <code>disk</code> element
@@ -216,11 +227,9 @@
         guest.
       </dd>
       <dt><code>parent</code></dt>
-      <dd>An optional readonly representation of the parent of this
-        snapshot.  If present, this element contains exactly one child
-        element, <code>name</code>.  This specifies the name of the
-        parent snapshot of this snapshot, and is used to represent
-        trees of snapshots.
+      <dd>Readonly, present only if this snapshot has a parent. The
+        parent name is given by the sub-element <code>name</code>. The
+        parent relationship allows tracking a tree of related snapshots.
       </dd>
       <dt><code>domain</code></dt>
       <dd>A readonly representation of the domain that this snapshot
@@ -255,10 +264,15 @@
 &lt;domainsnapshot&gt;
   &lt;description&gt;Snapshot of OS install and updates&lt;/description&gt;
   &lt;disks&gt;
-    &lt;disk name='/path/to/old'&gt;
+    &lt;disk name='vda'&gt;
       &lt;source file='/path/to/new'/&gt;
     &lt;/disk&gt;
     &lt;disk name='vdb' snapshot='no'/&gt;
+    &lt;disk name='vdc'&gt;
+      &lt;source file='/path/to/newc'&gt;
+        &lt;seclabel model='dac' relabel='no'/&gt;
+      &lt;/source&gt;
+    &lt;/disk&gt;
   &lt;/disks&gt;
 &lt;/domainsnapshot&gt;</pre>
 

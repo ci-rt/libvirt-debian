@@ -21,8 +21,7 @@
 # error "virsysinfopriv.h may only be included by virsysinfo.c or test suites"
 #endif /* LIBVIRT_VIRSYSINFOPRIV_H_ALLOW */
 
-#ifndef LIBVIRT_VIRSYSINFOPRIV_H
-# define LIBVIRT_VIRSYSINFOPRIV_H
+#pragma once
 
 void
 virSysinfoSetup(const char *dmidecode,
@@ -39,6 +38,4 @@ virSysinfoDefPtr
 virSysinfoReadS390(void);
 
 virSysinfoDefPtr
-virSysinfoReadX86(void);
-
-#endif /* LIBVIRT_VIRSYSINFOPRIV_H */
+virSysinfoReadDMI(void);

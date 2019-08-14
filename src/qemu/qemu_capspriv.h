@@ -23,8 +23,7 @@
 # error "qemu_capspriv.h may only be included by qemu_capabilities.c or test suites"
 #endif /* LIBVIRT_QEMU_CAPSPRIV_H_ALLOW */
 
-#ifndef LIBVIRT_QEMU_CAPSPRIV_H
-# define LIBVIRT_QEMU_CAPSPRIV_H
+#pragma once
 
 virQEMUCapsPtr virQEMUCapsNewCopy(virQEMUCapsPtr qemuCaps);
 
@@ -78,13 +77,13 @@ virQEMUCapsSetCPUModelInfo(virQEMUCapsPtr qemuCaps,
                            qemuMonitorCPUModelInfoPtr modelInfo);
 
 virCPUDataPtr
-virQEMUCapsGetCPUModelX86Data(qemuMonitorCPUModelInfoPtr model,
+virQEMUCapsGetCPUModelX86Data(virQEMUCapsPtr qemuCaps,
+                              qemuMonitorCPUModelInfoPtr model,
                               bool migratable);
 
 virCPUDefPtr
-virQEMUCapsProbeHostCPUForEmulator(virArch hostArch,
-                                   virQEMUCapsPtr qemuCaps,
-                                   virDomainVirtType type) ATTRIBUTE_NOINLINE;
+virQEMUCapsProbeHostCPU(virArch hostArch,
+                        virDomainCapsCPUModelsPtr models) ATTRIBUTE_NOINLINE;
 
 void
 virQEMUCapsSetGICCapabilities(virQEMUCapsPtr qemuCaps,
@@ -106,5 +105,3 @@ virQEMUCapsSetMicrocodeVersion(virQEMUCapsPtr qemuCaps,
 
 void
 virQEMUCapsStripMachineAliases(virQEMUCapsPtr qemuCaps);
-
-#endif /* LIBVIRT_QEMU_CAPSPRIV_H */

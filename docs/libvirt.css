@@ -274,6 +274,12 @@ span.since {
     font-weight: bold;
 }
 
+span.removed {
+    color: darkred;
+    font-style: italic;
+    font-weight: bold;
+}
+
 img.diagram {
     background: rgb(230,230,230);
     border: 2px dotted rgb(178,178,178);
@@ -580,4 +586,23 @@ td.enumvalue {
 
 #advancedsearch label {
     display: inline;
+}
+
+.removedhv {
+    color: darkred;
+}
+
+ul.news-section-content {
+    margin-top: 0.5em;
+}
+
+ul.news-section-content li dl dt {
+    margin: 0;
+}
+
+ul.news-section-content li dl dd {
+    margin-left: 1em;
+    margin-right: 0;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
 }

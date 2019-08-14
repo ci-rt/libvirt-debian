@@ -17,14 +17,13 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRNODEDEVICEOBJ_H
-# define LIBVIRT_VIRNODEDEVICEOBJ_H
+#pragma once
 
-# include "internal.h"
-# include "virthread.h"
+#include "internal.h"
+#include "virthread.h"
 
-# include "node_device_conf.h"
-# include "object_event.h"
+#include "node_device_conf.h"
+#include "object_event.h"
 
 
 typedef struct _virNodeDeviceObj virNodeDeviceObj;
@@ -37,6 +36,11 @@ typedef struct _virNodeDeviceDriverState virNodeDeviceDriverState;
 typedef virNodeDeviceDriverState *virNodeDeviceDriverStatePtr;
 struct _virNodeDeviceDriverState {
     virMutex lock;
+
+    /* pid file FD, ensures two copies of the driver can't use the same root */
+    int lockFD;
+
+    char *stateDir;
 
     virNodeDeviceObjListPtr devs;       /* currently-known devices */
     void *privateData;                  /* driver-specific private data */
@@ -112,5 +116,3 @@ virNodeDeviceObjListExport(virConnectPtr conn,
 void
 virNodeDeviceObjSetSkipUpdateCaps(virNodeDeviceObjPtr obj,
                                   bool skipUpdateCaps);
-
-#endif /* LIBVIRT_VIRNODEDEVICEOBJ_H */

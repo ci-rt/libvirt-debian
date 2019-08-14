@@ -126,6 +126,12 @@ extern int virDomainBlockRebaseEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 extern int virDomainBlockResizeEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainBlockStatsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainBlockStatsFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainCheckpointCreateXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainCheckpointDeleteEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainCheckpointGetParentEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainCheckpointGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainCheckpointListAllChildrenEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainCheckpointLookupByNameEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCoreDumpEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCoreDumpWithFormatEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainCreateEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -188,6 +194,7 @@ extern int virDomainInterfaceStatsEnsureACL(virConnectPtr conn, virDomainDefPtr 
 extern int virDomainIsActiveEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainIsPersistentEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainIsUpdatedEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
+extern int virDomainListAllCheckpointsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainListAllSnapshotsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainLookupByIDEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainLookupByNameEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -243,7 +250,7 @@ extern int virDomainRevertToSnapshotEnsureACL(virConnectPtr conn, virDomainDefPt
 extern int virDomainSaveEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSaveFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSaveImageDefineXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
-extern int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags);
+extern int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainScreenshotEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSendKeyEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
 extern int virDomainSendProcessSignalEnsureACL(virConnectPtr conn, virDomainDefPtr domain);
@@ -310,8 +317,16 @@ extern int virNetworkGetDHCPLeasesEnsureACL(virConnectPtr conn, virNetworkDefPtr
 extern int virNetworkGetXMLDescEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkIsActiveEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkIsPersistentEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
+extern int virNetworkListAllPortsEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
+extern bool virNetworkListAllPortsCheckACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port);
 extern int virNetworkLookupByNameEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkLookupByUUIDEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
+extern int virNetworkPortCreateXMLEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port);
+extern int virNetworkPortDeleteEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port);
+extern int virNetworkPortGetParametersEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port);
+extern int virNetworkPortGetXMLDescEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port);
+extern int virNetworkPortLookupByUUIDEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port);
+extern int virNetworkPortSetParametersEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port);
 extern int virNetworkSetAutostartEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkUndefineEnsureACL(virConnectPtr conn, virNetworkDefPtr network);
 extern int virNetworkUpdateEnsureACL(virConnectPtr conn, virNetworkDefPtr network, unsigned int flags);

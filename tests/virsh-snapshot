@@ -34,6 +34,7 @@ $abs_top_builddir/tools/virsh --connect test:///default >out 2>err '
   # Create a series of snapshots, with names that intentionally sort
   # differently by topology than by name. Use revert to create fanout.
   snapshot-create-as test s1
+  snapshot-create-as test s1
   snapshot-create-as test s3
   snapshot-create-as test s2
   snapshot-revert test s3
@@ -44,6 +45,10 @@ $abs_top_builddir/tools/virsh --connect test:///default >out 2>err '
   snapshot-revert test s1
   snapshot-create-as test s7
   snapshot-create-as test s8
+  # checkpoints cannot be created while snapshots exist
+  echo --err marker
+  checkpoint-create-as test c1
+  echo --err marker
   # Checking tree view (siblings sorted alphabetically)
   snapshot-list test --tree
   # Current was last one created, but we can change that
@@ -84,12 +89,13 @@ $abs_top_builddir/tools/virsh --connect test:///default >out 2>err '
 # and snapshot-list produces timestamps
 sed 's/ *$//; s/[0-9-]\{10\} [0-9:.]* .[0-9]\{4\}/TIMESTAMP/;
    /MarkerA/,/MarkerC/d' < out > out.cooked || fail=1
-# Second part holds domain XMLs
+# Second part holds domain snapshot XMLs
 sed -n '/MarkerA/,/MarkerB/p' < out > s3.xml || fail=1
 sed -n '/MarkerB/,/MarkerC/p' < out > s2.xml || fail=1
 
 cat <<\EOF > exp || fail=1
 Domain snapshot s1 created
+
 Domain snapshot s3 created
 Domain snapshot s2 created
 
@@ -100,6 +106,9 @@ Domain snapshot s4 created
 
 Domain snapshot s7 created
 Domain snapshot s8 created
+
+
+
 s1
   |
   +- s3
@@ -171,6 +180,10 @@ EOF
 compare exp out.cooked || fail=1
 
 cat <<EOF > exp || fail=1
+error: operation failed: domain moment s1 already exists
+error: marker
+error: Operation not supported: cannot create checkpoint while snapshot exists
+error: marker
 error: marker
 error: domain 'test' has no current snapshot
 error: marker
@@ -178,15 +191,15 @@ EOF
 compare exp err || fail=1
 
 # Restore state with redefine
-$abs_top_builddir/tools/virsh -c test:///default >out 2>err <<EOF || fail=1
+$abs_top_builddir/tools/virsh -c test:///default >out 2>err '
   # Redefine must be in topological order; this will fail
-  snapshot-create test --redefine s2.xml
+  snapshot-create test --redefine s2.xml --validate
   echo --err marker
   # This is the right order
-  snapshot-create test --redefine s3.xml
-  snapshot-create test --redefine s2.xml --current
+  snapshot-create test --redefine s3.xml --validate
+  snapshot-create test --redefine s2.xml --current --validate
   snapshot-info test --current
-EOF
+' || fail=1
 
 cat <<\EOF > exp || fail=1
 
@@ -204,9 +217,10 @@ Descendants:    0
 Metadata:       yes
 
 EOF
+compare exp out || fail=1
 
 cat <<EOF > exp || fail=1
-error: invalid argument: parent s3 for snapshot s2 not found
+error: invalid argument: parent s3 for moment s2 not found
 error: marker
 EOF
 compare exp err || fail=1

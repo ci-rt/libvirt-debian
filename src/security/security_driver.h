@@ -16,13 +16,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_SECURITY_DRIVER_H
-# define LIBVIRT_SECURITY_DRIVER_H
+#pragma once
 
-# include "internal.h"
-# include "domain_conf.h"
+#include "internal.h"
+#include "domain_conf.h"
 
-# include "security_manager.h"
+#include "security_manager.h"
 
 /*
  * Return values for security driver probing: the driver will determine
@@ -120,6 +119,10 @@ typedef int (*virSecurityDomainRestoreImageLabel) (virSecurityManagerPtr mgr,
                                                    virDomainDefPtr def,
                                                    virStorageSourcePtr src,
                                                    virSecurityDomainImageLabelFlags flags);
+typedef int (*virSecurityDomainMoveImageMetadata) (virSecurityManagerPtr mgr,
+                                                   pid_t pid,
+                                                   virStorageSourcePtr src,
+                                                   virStorageSourcePtr dst);
 typedef int (*virSecurityDomainSetMemoryLabel) (virSecurityManagerPtr mgr,
                                                 virDomainDefPtr def,
                                                 virDomainMemoryDefPtr mem);
@@ -170,6 +173,7 @@ struct _virSecurityDriver {
 
     virSecurityDomainSetImageLabel domainSetSecurityImageLabel;
     virSecurityDomainRestoreImageLabel domainRestoreSecurityImageLabel;
+    virSecurityDomainMoveImageMetadata domainMoveImageMetadata;
 
     virSecurityDomainSetMemoryLabel domainSetSecurityMemoryLabel;
     virSecurityDomainRestoreMemoryLabel domainRestoreSecurityMemoryLabel;
@@ -216,5 +220,3 @@ struct _virSecurityDriver {
 
 virSecurityDriverPtr virSecurityDriverLookup(const char *name,
                                              const char *virtDriver);
-
-#endif /* LIBVIRT_SECURITY_DRIVER_H */

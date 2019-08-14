@@ -73,6 +73,9 @@
           <ref name='qemucmdline'/>
         </optional>
         <optional>
+          <ref name='qemucapabilities'/>
+        </optional>
+        <optional>
           <ref name='lxcsharens'/>
         </optional>
         <optional>
@@ -2591,6 +2594,11 @@
         <ref name="deviceName"/>
       </attribute>
     </optional>
+    <optional>
+      <attribute name="portid">
+        <ref name="UUID"/>
+      </attribute>
+    </optional>
   </define>
 
   <define name="interface-bridge-attributes">
@@ -3576,6 +3584,7 @@
                 <value>virtio</value>
                 <value>gop</value>
                 <value>none</value>
+                <value>bochs</value>
               </choice>
             </attribute>
             <group>
@@ -4308,6 +4317,7 @@
           <attribute name="type">
              <value>emulator</value>
           </attribute>
+          <ref name="tpm-backend-emulator-encryption"/>
         </group>
       </choice>
       <choice>
@@ -4333,6 +4343,16 @@
             <ref name="filePath"/>
           </attribute>
         </optional>
+      </element>
+    </optional>
+  </define>
+
+  <define name="tpm-backend-emulator-encryption">
+    <optional>
+      <element name="encryption">
+        <attribute name="secret">
+          <ref name="UUID"/>
+        </attribute>
       </element>
     </optional>
   </define>
@@ -4375,7 +4395,10 @@
   <define name="iommu">
     <element name="iommu">
       <attribute name="model">
-        <value>intel</value>
+        <choice>
+          <value>intel</value>
+          <value>smmuv3</value>
+        </choice>
       </attribute>
       <optional>
         <element name="driver">
@@ -6189,6 +6212,22 @@
     </element>
   </define>
 
+  <define name="qemucapabilities">
+    <element name="capabilities" ns="http://libvirt.org/schemas/domain/qemu/1.0">
+      <zeroOrMore>
+        <element name="add">
+          <attribute name="capability"/>
+        </element>
+      </zeroOrMore>
+      <zeroOrMore>
+        <element name="del">
+          <attribute name="capability"/>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
+
+
   <!--
        Optional hypervisor extensions in their own namespace:
        LXC
@@ -6383,7 +6422,7 @@
   </define>
   <define name="spaprvioReg">
     <data type="string">
-      <param name="pattern">(0x)?[0-9a-fA-F]{1,16}</param>
+      <param name="pattern">(0x)?[0-9a-fA-F]{1,8}</param>
     </data>
   </define>
   <define name='aliasName'>

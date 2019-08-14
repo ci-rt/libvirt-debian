@@ -85,8 +85,6 @@ EXTRA_DIST = \
 	domaincapsschemadata \
 	domainconfdata \
 	domainschemadata \
-	domainsnapshotxml2xmlin \
-	domainsnapshotxml2xmlout \
 	fchostdata \
 	genericxml2xmlindata \
 	genericxml2xmloutdata \
@@ -109,10 +107,13 @@ EXTRA_DIST = \
 	nwfilterxml2xmlout \
 	oomtrace.pl \
 	qemuagentdata \
-	qemuargv2xmldata \
 	qemublocktestdata \
 	qemucapabilitiesdata \
 	qemucaps2xmloutdata \
+	qemudomaincheckpointxml2xmlin \
+	qemudomaincheckpointxml2xmlout \
+	qemudomainsnapshotxml2xmlin \
+	qemudomainsnapshotxml2xmlout \
 	qemuhotplugtestcpus \
 	qemuhotplugtestdevices \
 	qemuhotplugtestdomains \
@@ -126,7 +127,6 @@ EXTRA_DIST = \
 	secretxml2xmlin \
 	securityselinuxhelperdata \
 	securityselinuxlabeldata \
-	sexpr2xmldata \
 	storagepoolcapsschemadata \
 	storagepoolschemadata \
 	storagepoolxml2xmlin \
@@ -149,6 +149,8 @@ EXTRA_DIST = \
 	virmockstathelpers.c \
 	virnetdaemondata \
 	virnetdevtestdata \
+	virnetdevopenvswitchdata \
+	virnetworkportxml2xmldata \
 	virnwfilterbindingxml2xmldata \
 	virpcitestdata \
 	virscsidata \
@@ -158,7 +160,6 @@ EXTRA_DIST = \
 	vmx2xmldata \
 	xlconfigdata \
 	xmconfigdata \
-	xml2sexprdata \
 	xml2vmxdata \
 	virstorageutildata \
 	virfilecachedata \
@@ -268,14 +269,14 @@ endif WITH_SECDRIVER_SELINUX
 ssh_SOURCES = ssh.c
 
 if WITH_LIBXL
-test_programs += xlconfigtest xml2sexprtest sexpr2xmltest \
+test_programs += xlconfigtest \
 	xmconfigtest libxlxml2domconfigtest
 test_libraries += libxltestdriver.la libxlmock.la
 endif WITH_LIBXL
 
 if WITH_QEMU
 test_programs += qemuxml2argvtest qemuxml2xmltest \
-	qemuargv2xmltest domainsnapshotxml2xmltest \
+	qemudomaincheckpointxml2xmltest qemudomainsnapshotxml2xmltest \
 	qemumonitorjsontest qemuhotplugtest \
 	qemuagenttest qemucapabilitiestest qemucaps2xmltest \
 	qemumemlocktest \
@@ -333,12 +334,13 @@ test_programs += virjsontest
 endif WITH_YAJL
 
 test_programs += \
-		networkxml2xmltest \
 		networkxml2xmlupdatetest \
+		virnetworkportxml2xmltest \
 		$(NULL)
 
 if WITH_NETWORK
 test_programs += \
+		networkxml2xmltest \
 		networkxml2conftest \
 		networkxml2firewalltest \
 		$(NULL)
@@ -411,6 +413,7 @@ libvirtd_test_scripts = \
 	virsh-schedinfo \
 	virsh-self-test \
 	virt-admin-self-test \
+	virsh-checkpoint \
 	virsh-snapshot \
 	virsh-start \
 	virsh-undefine \
@@ -503,16 +506,6 @@ xlconfigtest_SOURCES = \
 	testutils.c testutils.h
 xlconfigtest_LDADD =$(libxl_LDADDS)
 
-xml2sexprtest_SOURCES = \
-	xml2sexprtest.c testutilsxen.c testutilsxen.h \
-	testutils.c testutils.h
-xml2sexprtest_LDADD = $(libxl_LDADDS)
-
-sexpr2xmltest_SOURCES = \
-	sexpr2xmltest.c testutilsxen.c testutilsxen.h \
-	testutils.c testutils.h
-sexpr2xmltest_LDADD = $(libxl_LDADDS)
-
 xmconfigtest_SOURCES = \
 	xmconfigtest.c testutilsxen.c testutilsxen.h \
 	testutils.c testutils.h
@@ -530,7 +523,7 @@ libxlmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
 libxlmock_la_LIBADD = $(MOCKLIBS_LIBS)
 
 else ! WITH_LIBXL
-EXTRA_DIST += xlconfigtest.c xml2sexprtest.c sexpr2xmltest.c \
+EXTRA_DIST += xlconfigtest.c \
 	xmconfigtest.c libxlxml2domconfigtest.c
 endif ! WITH_LIBXL
 
@@ -554,6 +547,7 @@ endif WITH_STORAGE
 if WITH_DTRACE_PROBES
 qemu_LDADDS += ../src/libvirt_qemu_probes.lo
 endif WITH_DTRACE_PROBES
+qemu_LDADDS += $(LDADDS)
 
 libqemutestdriver_la_SOURCES =
 libqemutestdriver_la_LDFLAGS = $(DRIVERLIB_LDFLAGS)
@@ -580,12 +574,7 @@ qemuxml2argvmock_la_LIBADD = $(MOCKLIBS_LIBS)
 qemuxml2xmltest_SOURCES = \
 	qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
-qemuxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
-
-qemuargv2xmltest_SOURCES = \
-	qemuargv2xmltest.c testutilsqemu.c testutilsqemu.h \
-	testutils.c testutils.h
-qemuargv2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
+qemuxml2xmltest_LDADD = $(qemu_LDADDS)
 
 qemumonitorjsontest_SOURCES = \
 	qemumonitorjsontest.c \
@@ -593,7 +582,7 @@ qemumonitorjsontest_SOURCES = \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
 qemumonitorjsontest_LDADD = libqemumonitortestutils.la \
-	$(qemu_LDADDS) $(LDADDS)
+	$(qemu_LDADDS)
 
 qemucapabilitiestest_SOURCES = \
 	qemucapabilitiestest.c \
@@ -601,7 +590,7 @@ qemucapabilitiestest_SOURCES = \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
 qemucapabilitiestest_LDADD = libqemumonitortestutils.la \
-	$(qemu_LDADDS) $(LDADDS)
+	$(qemu_LDADDS)
 
 qemucapsprobe_SOURCES = \
 	qemucapsprobe.c
@@ -619,14 +608,14 @@ qemucommandutiltest_SOURCES = \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
 qemucommandutiltest_LDADD = libqemumonitortestutils.la \
-	$(qemu_LDADDS) $(LDADDS)
+	$(qemu_LDADDS)
 
 qemucaps2xmltest_SOURCES = \
 	qemucaps2xmltest.c \
 	testutils.c testutils.h \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
-qemucaps2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
+qemucaps2xmltest_LDADD = $(qemu_LDADDS)
 
 qemucaps2xmlmock_la_SOURCES = \
 	qemucaps2xmlmock.c
@@ -638,14 +627,14 @@ qemuagenttest_SOURCES = \
 	testutils.c testutils.h \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
-qemuagenttest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS) $(LDADDS)
+qemuagenttest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS)
 
 qemuhotplugtest_SOURCES = \
 	qemuhotplugtest.c \
 	testutils.c testutils.h \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
-qemuhotplugtest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS) $(LDADDS)
+qemuhotplugtest_LDADD = libqemumonitortestutils.la $(qemu_LDADDS)
 
 qemublocktest_SOURCES = \
 	qemublocktest.c \
@@ -657,19 +646,23 @@ qemublocktest_LDADD = \
 	../src/libvirt_conf.la \
 	../src/libvirt_util.la \
 	$(qemu_LDADDS) \
-	$(LDADDS) \
 	$(NULL)
 
-domainsnapshotxml2xmltest_SOURCES = \
-	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
+qemudomaincheckpointxml2xmltest_SOURCES = \
+	qemudomaincheckpointxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
-domainsnapshotxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
+qemudomaincheckpointxml2xmltest_LDADD = $(qemu_LDADDS)
+
+qemudomainsnapshotxml2xmltest_SOURCES = \
+	qemudomainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
+	testutils.c testutils.h
+qemudomainsnapshotxml2xmltest_LDADD = $(qemu_LDADDS)
 
 qemumemlocktest_SOURCES = \
 	qemumemlocktest.c \
 	testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
-qemumemlocktest_LDADD = $(qemu_LDADDS) $(LDADDS)
+qemumemlocktest_LDADD = $(qemu_LDADDS)
 
 qemumigparamstest_SOURCES = \
 	qemumigparamstest.c \
@@ -677,25 +670,25 @@ qemumigparamstest_SOURCES = \
 	testutilsqemu.c testutilsqemu.h \
 	$(NULL)
 qemumigparamstest_LDADD = libqemumonitortestutils.la \
-	$(qemu_LDADDS) $(LDADDS)
+	$(qemu_LDADDS)
 
 qemusecuritytest_SOURCES = \
 	qemusecuritytest.c qemusecuritytest.h \
 	qemusecuritymock.c \
 	testutils.h testutils.c \
 	testutilsqemu.h testutilsqemu.c
-qemusecuritytest_LDADD = $(qemu_LDADDS) $(LDADDS)
+qemusecuritytest_LDADD = $(qemu_LDADDS)
 
 qemufirmwaretest_SOURCES = \
 	qemufirmwaretest.c \
 	testutils.h testutils.c \
 	virfilewrapper.c virfilewrapper.h \
 	$(NULL)
-qemufirmwaretest_LDADD = $(qemu_LDADDS) $(LDADDS)
+qemufirmwaretest_LDADD = $(qemu_LDADDS)
 
 else ! WITH_QEMU
-EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
-	domainsnapshotxml2xmltest.c \
+EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c \
+	qemudomaincheckpointxml2xmltest.c qemudomainsnapshotxml2xmltest.c \
 	testutilsqemu.c testutilsqemu.h \
 	testutilsqemuschema.c testutilsqemuschema.h \
 	qemumonitorjsontest.c qemuhotplugtest.c \
@@ -822,17 +815,22 @@ EXTRA_DIST += \
 	bhyveargv2xmlmock.c
 endif ! WITH_BHYVE
 
-networkxml2xmltest_SOURCES = \
-	networkxml2xmltest.c \
-	testutils.c testutils.h
-networkxml2xmltest_LDADD = $(LDADDS)
-
 networkxml2xmlupdatetest_SOURCES = \
 	networkxml2xmlupdatetest.c \
 	testutils.c testutils.h
 networkxml2xmlupdatetest_LDADD = $(LDADDS)
 
+virnetworkportxml2xmltest_SOURCES = \
+	virnetworkportxml2xmltest.c \
+	testutils.c testutils.h
+virnetworkportxml2xmltest_LDADD = $(LDADDS)
+
 if WITH_NETWORK
+networkxml2xmltest_SOURCES = \
+	networkxml2xmltest.c \
+	testutils.c testutils.h
+networkxml2xmltest_LDADD = ../src/libvirt_driver_network_impl.la $(LDADDS)
+
 networkxml2conftest_SOURCES = \
 	networkxml2conftest.c \
 	testutils.c testutils.h
@@ -844,7 +842,7 @@ networkxml2firewalltest_SOURCES = \
 networkxml2firewalltest_LDADD = ../src/libvirt_driver_network_impl.la $(LDADDS)
 
 else ! WITH_NETWORK
-EXTRA_DIST += networkxml2conftest.c
+EXTRA_DIST += networkxml2xmltest.c networkxml2conftest.c
 endif !	WITH_NETWORK
 
 if WITH_STORAGE_SHEEPDOG
@@ -961,11 +959,13 @@ interfacexml2xmltest_LDADD = $(LDADDS)
 cputest_SOURCES = \
 	cputest.c \
 	testutils.c testutils.h
-cputest_LDADD = $(LDADDS) $(LIBXML_LIBS)
+cputest_LDADD = $(LIBXML_LIBS)
 if WITH_QEMU
 cputest_SOURCES += testutilsqemu.c testutilsqemu.h
-cputest_LDADD += libqemumonitortestutils.la $(qemu_LDADDS) $(GNULIB_LIBS)
-endif WITH_QEMU
+cputest_LDADD += libqemumonitortestutils.la $(qemu_LDADDS)
+else ! WITH_QEMU
+cputest_LDADD += $(LDADDS)
+endif ! WITH_QEMU
 
 metadatatest_SOURCES = \
 	metadatatest.c \
@@ -1026,7 +1026,11 @@ endif WITH_LXC
 if WITH_QEMU
 vircapstest_SOURCES += testutilsqemu.c testutilsqemu.h
 endif WITH_QEMU
-vircapstest_LDADD = $(qemu_LDADDS) $(LDADDS)
+if WITH_QEMU
+vircapstest_LDADD = $(qemu_LDADDS)
+else ! WITH_QEMU
+vircapstest_LDADD = $(LDADDS)
+endif ! WITH_QEMU
 
 domaincapsmock_la_SOURCES = domaincapsmock.c
 domaincapsmock_la_LDFLAGS = $(MOCKLIBS_LDFLAGS)
@@ -1276,9 +1280,17 @@ virmacmaptest_SOURCES = \
 	virmacmaptest.c testutils.h testutils.c
 virmacmaptest_LDADD = $(LDADDS)
 
-test_programs += virmacmaptest
+virnetdevopenvswitchtest_SOURCES = \
+	virnetdevopenvswitchtest.c testutils.h testutils.c
+virnetdevopenvswitchtest_LDADD = $(LDADDS)
+
+test_programs += \
+	virmacmaptest \
+	virnetdevopenvswitchtest
 else ! WITH_YAJL
-EXTRA_DIST +=  virmacmaptest.c
+EXTRA_DIST += \
+	virmacmaptest.c \
+	virnetdevopenvswitchtest.c
 endif ! WITH_YAJL
 
 virnetdevtest_SOURCES = \
@@ -1397,7 +1409,7 @@ if WITH_QEMU
 securityselinuxlabeltest_SOURCES = \
 	securityselinuxlabeltest.c testutils.h testutils.c \
         testutilsqemu.h testutilsqemu.c
-securityselinuxlabeltest_LDADD = $(qemu_LDADDS) $(LDADDS) $(SELINUX_LIBS)
+securityselinuxlabeltest_LDADD = $(qemu_LDADDS) $(SELINUX_LIBS)
 securityselinuxlabeltest_DEPENDENCIES = libsecurityselinuxhelper.la \
 	../src/libvirt.la
 endif WITH_QEMU

@@ -105,6 +105,7 @@ virSecurityGetRefCountAttrName(const char *name ATTRIBUTE_UNUSED)
  * zero) and returns zero.
  *
  * Returns: 0 on success,
+ *         -2 if underlying file system doesn't support XATTRs,
  *         -1 otherwise (with error reported)
  */
 int
@@ -123,9 +124,9 @@ virSecurityGetRememberedLabel(const char *name,
     if (!(ref_name = virSecurityGetRefCountAttrName(name)))
         goto cleanup;
 
-    if (virFileGetXAttr(path, ref_name, &value) < 0) {
+    if (virFileGetXAttrQuiet(path, ref_name, &value) < 0) {
         if (errno == ENOSYS || errno == ENODATA || errno == ENOTSUP) {
-            ret = 0;
+            ret = -2;
         } else {
             virReportSystemError(errno,
                                  _("Unable to get XATTR %s on %s"),
@@ -192,6 +193,7 @@ virSecurityGetRememberedLabel(const char *name,
  * See also virSecurityGetRememberedLabel.
  *
  * Returns: the new refcount value on success,
+ *         -2 if underlying file system doesn't support XATTRs,
  *         -1 otherwise (with error reported)
  */
 int
@@ -208,9 +210,9 @@ virSecuritySetRememberedLabel(const char *name,
     if (!(ref_name = virSecurityGetRefCountAttrName(name)))
         goto cleanup;
 
-    if (virFileGetXAttr(path, ref_name, &value) < 0) {
+    if (virFileGetXAttrQuiet(path, ref_name, &value) < 0) {
         if (errno == ENOSYS || errno == ENOTSUP) {
-            ret = 0;
+            ret = -2;
             goto cleanup;
         } else if (errno != ENODATA) {
             virReportSystemError(errno,
@@ -253,4 +255,67 @@ virSecuritySetRememberedLabel(const char *name,
     VIR_FREE(attr_name);
     VIR_FREE(ref_name);
     return ret;
+}
+
+
+int
+virSecurityMoveRememberedLabel(const char *name,
+                               const char *src,
+                               const char *dst)
+{
+    VIR_AUTOFREE(char *) ref_name = NULL;
+    VIR_AUTOFREE(char *) ref_value = NULL;
+    VIR_AUTOFREE(char *) attr_name = NULL;
+    VIR_AUTOFREE(char *) attr_value = NULL;
+
+    if (!(ref_name = virSecurityGetRefCountAttrName(name)) |
+        !(attr_name = virSecurityGetAttrName(name)))
+        return -1;
+
+    if (virFileGetXAttrQuiet(src, ref_name, &ref_value) < 0) {
+        if (errno == ENOSYS || errno == ENOTSUP) {
+            return -2;
+        } else if (errno != ENODATA) {
+            virReportSystemError(errno,
+                                 _("Unable to get XATTR %s on %s"),
+                                 ref_name, src);
+            return -1;
+        }
+    }
+
+    if (virFileGetXAttrQuiet(src, attr_name, &attr_value) < 0) {
+        if (errno == ENOSYS || errno == ENOTSUP) {
+            return -2;
+        } else if (errno != ENODATA) {
+            virReportSystemError(errno,
+                                 _("Unable to get XATTR %s on %s"),
+                                 attr_name, src);
+            return -1;
+        }
+    }
+
+    if (ref_value &&
+        virFileRemoveXAttr(src, ref_name) < 0) {
+        return -1;
+    }
+
+    if (attr_value &&
+        virFileRemoveXAttr(src, attr_name) < 0) {
+        return -1;
+    }
+
+    if (dst) {
+        if (ref_value &&
+            virFileSetXAttr(dst, ref_name, ref_value) < 0) {
+            return -1;
+        }
+
+        if (attr_value &&
+            virFileSetXAttr(dst, attr_name, attr_value) < 0) {
+            ignore_value(virFileRemoveXAttr(dst, ref_name));
+            return -1;
+        }
+    }
+
+    return 0;
 }

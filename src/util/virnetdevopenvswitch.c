@@ -28,6 +28,7 @@
 #include "virmacaddr.h"
 #include "virstring.h"
 #include "virlog.h"
+#include "virjson.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -298,6 +299,80 @@ int virNetDevOpenvswitchSetMigrateData(char *migrate, const char *ifname)
     return 0;
 }
 
+
+/**
+ * virNetDevOpenvswitchInterfaceParseStats:
+ * @json: Input string in JSON format
+ * @stats: parsed stats
+ *
+ * For given input string @json parse interface statistics and store them into
+ * @stats.
+ *
+ * Returns: 0 on success,
+ *         -1 otherwise (with error reported).
+ */
+int
+virNetDevOpenvswitchInterfaceParseStats(const char *json,
+                                        virDomainInterfaceStatsPtr stats)
+{
+    VIR_AUTOPTR(virJSONValue) jsonStats = NULL;
+    virJSONValuePtr jsonMap = NULL;
+    size_t i;
+
+    stats->rx_bytes = stats->rx_packets = stats->rx_errs = stats->rx_drop = -1;
+    stats->tx_bytes = stats->tx_packets = stats->tx_errs = stats->tx_drop = -1;
+
+    if (!(jsonStats = virJSONValueFromString(json)) ||
+        !virJSONValueIsArray(jsonStats) ||
+        !(jsonMap = virJSONValueArrayGet(jsonStats, 1))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to parse ovs-vsctl output"));
+        return -1;
+    }
+
+    for (i = 0; i < virJSONValueArraySize(jsonMap); i++) {
+        virJSONValuePtr item = virJSONValueArrayGet(jsonMap, i);
+        virJSONValuePtr jsonKey;
+        virJSONValuePtr jsonVal;
+        const char *key;
+        long long val;
+
+        if (!item ||
+            (!(jsonKey = virJSONValueArrayGet(item, 0))) ||
+            (!(jsonVal = virJSONValueArrayGet(item, 1))) ||
+            (!(key = virJSONValueGetString(jsonKey))) ||
+            (virJSONValueGetNumberLong(jsonVal, &val) < 0)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Malformed ovs-vsctl output"));
+            return -1;
+        }
+
+        /* The TX/RX fields appear to be swapped here
+         * because this is the host view. */
+        if (STREQ(key, "rx_bytes")) {
+            stats->tx_bytes = val;
+        } else if (STREQ(key, "rx_packets")) {
+            stats->tx_packets = val;
+        } else if (STREQ(key, "rx_errors")) {
+            stats->tx_errs = val;
+        } else if (STREQ(key, "rx_dropped")) {
+            stats->tx_drop = val;
+        } else if (STREQ(key, "tx_bytes")) {
+            stats->rx_bytes = val;
+        } else if (STREQ(key, "tx_packets")) {
+            stats->rx_packets = val;
+        } else if (STREQ(key, "tx_errors")) {
+            stats->rx_errs = val;
+        } else if (STREQ(key, "tx_dropped")) {
+            stats->rx_drop = val;
+        } else {
+            VIR_DEBUG("Unused ovs-vsctl stat key=%s val=%lld", key, val);
+        }
+    }
+
+    return 0;
+}
+
 /**
  * virNetDevOpenvswitchInterfaceStats:
  * @ifname: the name of the interface
@@ -311,58 +386,43 @@ int
 virNetDevOpenvswitchInterfaceStats(const char *ifname,
                                    virDomainInterfaceStatsPtr stats)
 {
-    char *tmp;
-    bool gotStats = false;
     VIR_AUTOPTR(virCommand) cmd = NULL;
     VIR_AUTOFREE(char *) output = NULL;
 
-    /* Just ensure the interface exists in ovs */
     cmd = virCommandNew(OVSVSCTL);
     virNetDevOpenvswitchAddTimeout(cmd);
-    virCommandAddArgList(cmd, "get", "Interface", ifname, "name", NULL);
+    virCommandAddArgList(cmd, "--if-exists", "--format=list", "--data=json",
+                         "--no-headings", "--columns=statistics", "list",
+                         "Interface", ifname, NULL);
     virCommandSetOutputBuffer(cmd, &output);
 
-    if (virCommandRun(cmd, NULL) < 0) {
+    /* The above command returns either:
+     * 1) empty string if @ifname doesn't exist, or
+     * 2) a JSON array, for instance:
+     *    ["map",[["collisions",0],["rx_bytes",0],["rx_crc_err",0],["rx_dropped",0],
+     *    ["rx_errors",0],["rx_frame_err",0],["rx_over_err",0],["rx_packets",0],
+     *    ["tx_bytes",12406],["tx_dropped",0],["tx_errors",0],["tx_packets",173]]]
+     */
+
+    if (virCommandRun(cmd, NULL) < 0 ||
+        STREQ_NULLABLE(output, "")) {
         /* no ovs-vsctl or interface 'ifname' doesn't exists in ovs */
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Interface not found"));
         return -1;
     }
 
-#define GET_STAT(name, member) \
-    do { \
-        VIR_FREE(output); \
-        virCommandFree(cmd); \
-        cmd = virCommandNew(OVSVSCTL); \
-        virNetDevOpenvswitchAddTimeout(cmd); \
-        virCommandAddArgList(cmd, "--if-exists", "get", "Interface", \
-                             ifname, "statistics:" name, NULL); \
-        virCommandSetOutputBuffer(cmd, &output); \
-        if (virCommandRun(cmd, NULL) < 0 || !output || !*output || *output == '\n') { \
-            stats->member = -1; \
-        } else { \
-            if (virStrToLong_ll(output, &tmp, 10, &stats->member) < 0 || \
-                *tmp != '\n') { \
-                virReportError(VIR_ERR_INTERNAL_ERROR, "%s", \
-                               _("Fail to parse ovs-vsctl output")); \
-                return -1; \
-            } \
-            gotStats = true; \
-        } \
-    } while (0)
+    if (virNetDevOpenvswitchInterfaceParseStats(output, stats) < 0)
+        return -1;
 
-    /* The TX/RX fields appear to be swapped here
-     * because this is the host view. */
-    GET_STAT("rx_bytes", tx_bytes);
-    GET_STAT("rx_packets", tx_packets);
-    GET_STAT("rx_errors", tx_errs);
-    GET_STAT("rx_dropped", tx_drop);
-    GET_STAT("tx_bytes", rx_bytes);
-    GET_STAT("tx_packets", rx_packets);
-    GET_STAT("tx_errors", rx_errs);
-    GET_STAT("tx_dropped", rx_drop);
-
-    if (!gotStats) {
+    if (stats->rx_bytes == -1 &&
+        stats->rx_packets == -1 &&
+        stats->rx_errs == -1 &&
+        stats->rx_drop == -1 &&
+        stats->tx_bytes == -1 &&
+        stats->tx_packets == -1 &&
+        stats->tx_errs == -1 &&
+        stats->tx_drop == -1) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Interface doesn't have any statistics"));
         return -1;

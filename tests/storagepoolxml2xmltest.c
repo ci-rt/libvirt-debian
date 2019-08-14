@@ -73,6 +73,7 @@ mymain(void)
     DO_TEST("pool-iscsi");
     DO_TEST("pool-iscsi-auth");
     DO_TEST("pool-netfs");
+    DO_TEST("pool-netfs-slash");
     DO_TEST("pool-netfs-auto");
     DO_TEST("pool-netfs-protocol-ver");
     DO_TEST("pool-netfs-gluster");
@@ -95,6 +96,7 @@ mymain(void)
     DO_TEST("pool-zfs-sourcedev");
     DO_TEST("pool-rbd");
 #ifdef WITH_STORAGE_RBD
+    DO_TEST("pool-rbd-ipv6");
     DO_TEST("pool-rbd-refresh-volume-allocation");
     DO_TEST("pool-rbd-ns-configopts");
 #endif

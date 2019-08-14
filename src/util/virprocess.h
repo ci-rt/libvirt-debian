@@ -19,15 +19,14 @@
  *
  */
 
-#ifndef LIBVIRT_VIRPROCESS_H
-# define LIBVIRT_VIRPROCESS_H
+#pragma once
 
-# include <sys/types.h>
+#include <sys/types.h>
 
-# include "internal.h"
-# include "virbitmap.h"
-# include "virutil.h"
-# include "virenum.h"
+#include "internal.h"
+#include "virbitmap.h"
+#include "virutil.h"
+#include "virenum.h"
 
 typedef enum {
     VIR_PROC_POLICY_NONE = 0,
@@ -108,7 +107,8 @@ typedef int (*virProcessForkCallback)(pid_t ppid,
                                       void *opaque);
 
 int virProcessRunInFork(virProcessForkCallback cb,
-                        void *opaque);
+                        void *opaque)
+    ATTRIBUTE_NOINLINE;
 
 int virProcessSetupPrivateMountNS(void);
 
@@ -125,5 +125,3 @@ typedef enum {
 } virProcessNamespaceFlags;
 
 int virProcessNamespaceAvailable(unsigned int ns);
-
-#endif /* LIBVIRT_VIRPROCESS_H */

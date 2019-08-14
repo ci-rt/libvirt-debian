@@ -18,11 +18,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_QEMU_EXTDEVICE_H
-# define LIBVIRT_QEMU_EXTDEVICE_H
+#pragma once
 
-# include "qemu_conf.h"
-# include "qemu_domain.h"
+#include "qemu_conf.h"
+#include "qemu_domain.h"
 
 int qemuExtDeviceLogCommand(qemuDomainLogContextPtr logCtxt,
                             virCommandPtr cmd,
@@ -41,7 +40,8 @@ void qemuExtDevicesCleanupHost(virQEMUDriverPtr driver,
 
 int qemuExtDevicesStart(virQEMUDriverPtr driver,
                         virDomainObjPtr vm,
-                        qemuDomainLogContextPtr logCtxt)
+                        qemuDomainLogContextPtr logCtxt,
+                        bool incomingMigration)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_RETURN_CHECK;
 
@@ -55,4 +55,5 @@ int qemuExtDevicesSetupCgroup(virQEMUDriverPtr driver,
                               virDomainDefPtr def,
                               virCgroupPtr cgroup);
 
-#endif /* LIBVIRT_QEMU_EXTDEVICE_H */
+int qemuExtDevicesInitPaths(virQEMUDriverPtr driver,
+                            virDomainDefPtr def);

@@ -18,18 +18,18 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_CPU_CONF_H
-# define LIBVIRT_CPU_CONF_H
+#pragma once
 
-# include "virutil.h"
-# include "virbuffer.h"
-# include "virxml.h"
-# include "virbitmap.h"
-# include "virarch.h"
-# include "numa_conf.h"
-# include "virenum.h"
+#include "virutil.h"
+#include "virbuffer.h"
+#include "virxml.h"
+#include "virbitmap.h"
+#include "virarch.h"
+#include "numa_conf.h"
+#include "virenum.h"
+#include "virhostcpu.h"
 
-# define VIR_CPU_VENDOR_ID_LENGTH 12
+#define VIR_CPU_VENDOR_ID_LENGTH 12
 
 typedef enum {
     VIR_CPU_TYPE_HOST,
@@ -139,6 +139,7 @@ struct _virCPUDef {
     size_t nfeatures_max;
     virCPUFeatureDefPtr features;
     virCPUCacheDefPtr cache;
+    virHostCPUTscInfoPtr tsc;
 };
 
 
@@ -218,11 +219,20 @@ virCPUFeatureDefPtr
 virCPUDefFindFeature(virCPUDefPtr def,
                      const char *name);
 
+int
+virCPUDefFilterFeatures(virCPUDefPtr cpu,
+                        virCPUDefFeatureFilter filter,
+                        void *opaque);
+
+int
+virCPUDefCheckFeatures(virCPUDefPtr cpu,
+                       virCPUDefFeatureFilter filter,
+                       void *opaque,
+                       char ***features);
+
 virCPUDefPtr *
 virCPUDefListParse(const char **xmlCPUs,
                    unsigned int ncpus,
                    virCPUType cpuType);
 void
 virCPUDefListFree(virCPUDefPtr *cpus);
-
-#endif /* LIBVIRT_CPU_CONF_H */

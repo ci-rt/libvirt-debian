@@ -1306,6 +1306,9 @@
 /* Define to 1 if you have the <libxlutil.h> header file. */
 #undef HAVE_LIBXLUTIL_H
 
+/* Define to 1 if you have the `yajl' library (-lyajl). */
+#undef HAVE_LIBYAJL
+
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
 
@@ -1949,13 +1952,6 @@
 /* Define to 1 if you have the `tzset' function. */
 #undef HAVE_TZSET
 
-/* whether libudev logging can be used */
-#undef HAVE_UDEV_LOGGING
-
-/* Define to 1 if you have the `udev_monitor_set_receive_buffer_size'
-   function. */
-#undef HAVE_UDEV_MONITOR_SET_RECEIVE_BUFFER_SIZE
-
 /* Define to 1 if you have the `uname' function. */
 #undef HAVE_UNAME
 
@@ -2444,9 +2440,6 @@
 /* Location or name of the udevadm program */
 #undef UDEVADM
 
-/* Location or name of the udevsettle program */
-#undef UDEVSETTLE
-
 /* Location or name of the umount programm */
 #undef UMOUNT
 
@@ -2620,9 +2613,6 @@
 
 /* whether libaudit is available */
 #undef WITH_AUDIT
-
-/* whether avahi-client >= 0.6.0 is available */
-#undef WITH_AVAHI
 
 /* whether bash-completion >= 2.0 is available */
 #undef WITH_BASH_COMPLETION
@@ -2816,7 +2806,7 @@
 /* whether Test driver is enabled */
 #undef WITH_TEST
 
-/* whether libudev >= 145 is available */
+/* whether libudev >= 219 is available */
 #undef WITH_UDEV
 
 /* whether VirtualBox driver is enabled */
@@ -2840,7 +2830,7 @@
 /* whether libxenserver is available */
 #undef WITH_XENAPI
 
-/* whether yajl >= 2.0.3 is available */
+/* whether libyajl is available */
 #undef WITH_YAJL
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
@@ -3177,6 +3167,14 @@
 /* ssh_get_publickey is deprecated and replaced by ssh_get_server_publickey.
    */
 #undef ssh_get_server_publickey
+
+/* ssh_is_server_known is deprecated and replaced by
+   ssh_session_is_known_server. */
+#undef ssh_session_is_known_server
+
+/* ssh_write_knownhost is deprecated and replaced by
+   ssh_session_update_known_hosts. */
+#undef ssh_session_update_known_hosts
 
 /* Define as a signed type of the same size as size_t. */
 #undef ssize_t

@@ -51,7 +51,6 @@ struct _qemuMonitorTest {
     virMutex lock;
     virThread thread;
 
-    bool json;
     bool quit;
     bool running;
     bool started;
@@ -124,48 +123,35 @@ qemuMonitorTestAddErrorResponse(qemuMonitorTestPtr test,
                                 const char *usermsg)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    char *escapemsg = NULL;
-    char *jsonmsg = NULL;
-    const char *monmsg = NULL;
+    VIR_AUTOFREE(char *) escapemsg = NULL;
+    VIR_AUTOFREE(char *) jsonmsg = NULL;
     char *tmp;
-    int ret = -1;
 
     if (!usermsg)
         usermsg = "unexpected command";
 
-    if (test->json || test->agent) {
-        virBufferEscape(&buf, '\\', "\"", "%s", usermsg);
-        if (virBufferCheckError(&buf) < 0)
-            goto error;
-        escapemsg = virBufferContentAndReset(&buf);
+    virBufferEscape(&buf, '\\', "\"", "%s", usermsg);
+    if (virBufferCheckError(&buf) < 0)
+        return -1;
+    escapemsg = virBufferContentAndReset(&buf);
 
-        /* replace newline/carriage return with space */
-        tmp = escapemsg;
-        while (*tmp) {
-            if (*tmp == '\r' || *tmp == '\n')
-                *tmp = ' ';
+    /* replace newline/carriage return with space */
+    tmp = escapemsg;
+    while (*tmp) {
+        if (*tmp == '\r' || *tmp == '\n')
+            *tmp = ' ';
 
-            tmp++;
-        }
-
-        /* format the JSON error message */
-        if (virAsprintf(&jsonmsg, "{ \"error\": "
-                                  " { \"desc\": \"%s\", "
-                                  "   \"class\": \"UnexpectedCommand\" } }",
-                                  escapemsg) < 0)
-            goto error;
-
-        monmsg = jsonmsg;
-    } else {
-        monmsg = usermsg;
+        tmp++;
     }
 
-    ret = qemuMonitorTestAddResponse(test, monmsg);
+    /* format the JSON error message */
+    if (virAsprintf(&jsonmsg, "{ \"error\": "
+                    " { \"desc\": \"%s\", "
+                    "   \"class\": \"UnexpectedCommand\" } }",
+                    escapemsg) < 0)
+        return -1;
 
- error:
-    VIR_FREE(escapemsg);
-    VIR_FREE(jsonmsg);
-    return ret;
+    return qemuMonitorTestAddResponse(test, jsonmsg);
 }
 
 
@@ -173,16 +159,12 @@ static int
 qemuMonitorTestAddUnexpectedErrorResponse(qemuMonitorTestPtr test,
                                           const char *command)
 {
-    char *msg;
-    int ret;
+    VIR_AUTOFREE(char *) msg = NULL;
 
     if (virAsprintf(&msg, "unexpected command: '%s'", command) < 0)
         return -1;
 
-    ret = qemuMonitorTestAddErrorResponse(test, msg);
-
-    VIR_FREE(msg);
-    return ret;
+    return qemuMonitorTestAddErrorResponse(test, msg);
 }
 
 
@@ -191,17 +173,13 @@ qemuMonitorTestAddInvalidCommandResponse(qemuMonitorTestPtr test,
                                          const char *expectedcommand,
                                          const char *actualcommand)
 {
-    char *msg;
-    int ret;
+    VIR_AUTOFREE(char *) msg = NULL;
 
     if (virAsprintf(&msg, "expected command '%s' got '%s'",
                     expectedcommand, actualcommand) < 0)
         return -1;
 
-    ret = qemuMonitorTestAddErrorResponse(test, msg);
-
-    VIR_FREE(msg);
-    return ret;
+    return qemuMonitorTestAddErrorResponse(test, msg);
 }
 
 
@@ -209,8 +187,9 @@ int ATTRIBUTE_FMT_PRINTF(2, 3)
 qemuMonitorReportError(qemuMonitorTestPtr test, const char *errmsg, ...)
 {
     va_list msgargs;
-    char *msg = NULL;
-    char *jsonmsg = NULL;
+    VIR_AUTOFREE(char *) tmp = NULL;
+    VIR_AUTOFREE(char *) msg = NULL;
+    VIR_AUTOFREE(char *) jsonmsg = NULL;
     int ret = -1;
 
     va_start(msgargs, errmsg);
@@ -218,29 +197,19 @@ qemuMonitorReportError(qemuMonitorTestPtr test, const char *errmsg, ...)
     if (virVasprintf(&msg, errmsg, msgargs) < 0)
         goto cleanup;
 
-    if (test->agent || test->json) {
-        char *tmp = msg;
-        msg = qemuMonitorEscapeArg(tmp);
-        VIR_FREE(tmp);
-        if (!msg)
-            goto cleanup;
+    if (!(tmp = qemuMonitorEscapeArg(msg)))
+        goto cleanup;
 
-        if (virAsprintf(&jsonmsg, "{ \"error\": "
-                                  " { \"desc\": \"%s\", "
-                                  "   \"class\": \"UnexpectedCommand\" } }",
-                                  msg) < 0)
-            goto cleanup;
-    } else {
-        if (virAsprintf(&jsonmsg, "error: '%s'", msg) < 0)
-            goto cleanup;
-    }
+    if (virAsprintf(&jsonmsg, "{ \"error\": "
+                    " { \"desc\": \"%s\", "
+                    "   \"class\": \"UnexpectedCommand\" } }",
+                    tmp) < 0)
+        goto cleanup;
 
     ret = qemuMonitorTestAddResponse(test, jsonmsg);
 
  cleanup:
     va_end(msgargs);
-    VIR_FREE(msg);
-    VIR_FREE(jsonmsg);
     return ret;
 }
 
@@ -326,7 +295,7 @@ qemuMonitorTestIO(virNetSocketPtr sock,
          */
         t1 = test->incoming;
         while ((t2 = strstr(t1, "\n")) ||
-                (!test->json && (t2 = strstr(t1, "\r")))) {
+                (test->agent && (t2 = strstr(t1, "\r")))) {
             *t2 = '\0';
 
             if (qemuMonitorTestProcessCommand(test, t1) < 0) {
@@ -546,57 +515,54 @@ qemuMonitorTestProcessCommandDefaultValidate(qemuMonitorTestPtr test,
                                              const char *cmdname,
                                              virJSONValuePtr args)
 {
-    virBuffer debug = VIR_BUFFER_INITIALIZER;
+    VIR_AUTOCLEAN(virBuffer) debug = VIR_BUFFER_INITIALIZER;
     virJSONValuePtr schemaroot;
-    virJSONValuePtr emptyargs = NULL;
-    char *schemapath = NULL;
-    int ret = -1;
+    VIR_AUTOPTR(virJSONValue) emptyargs = NULL;
+    VIR_AUTOFREE(char *) schemapath = NULL;
 
-    if (!test->qapischema || !test->json || test->agent)
+    if (!test->qapischema)
         return 0;
+
+    if (test->agent) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       "Command validation testing is not "
+                       "implemented for the guest agent");
+        return -1;
+    }
 
     /* 'device_add' needs to be skipped as it does not have fully defined schema */
     if (STREQ(cmdname, "device_add"))
         return 0;
 
     if (virAsprintf(&schemapath, "%s/arg-type", cmdname) < 0)
-        goto cleanup;
+        return -1;
 
     if (virQEMUQAPISchemaPathGet(schemapath, test->qapischema, &schemaroot) < 0 ||
         !schemaroot) {
         if (qemuMonitorReportError(test,
                                    "command '%s' not found in QAPI schema",
                                    cmdname) == 0)
-            ret = 1;
-        goto cleanup;
+            return 1;
+        return -1;
     }
 
     if (!args) {
         if (!(emptyargs = virJSONValueNewObject()))
-            goto cleanup;
+            return -1;
 
         args = emptyargs;
     }
 
     if (testQEMUSchemaValidate(args, schemaroot, test->qapischema, &debug) < 0) {
-        char *debugmsg = virBufferContentAndReset(&debug);
         if (qemuMonitorReportError(test,
                                    "failed to validate arguments of '%s' "
                                    "against QAPI schema: %s",
-                                   cmdname, debugmsg) == 0)
-            ret = 1;
-
-        VIR_FREE(debugmsg);
-        goto cleanup;
+                                   cmdname, virBufferCurrentContent(&debug)) == 0)
+            return 1;
+        return -1;
     }
 
-    ret = 0;
-
- cleanup:
-    virBufferFreeAndReset(&debug);
-    virJSONValueFree(emptyargs);
-    VIR_FREE(schemapath);
-    return ret;
+    return 0;
 }
 
 
@@ -606,57 +572,29 @@ qemuMonitorTestProcessCommandDefault(qemuMonitorTestPtr test,
                                      const char *cmdstr)
 {
     struct qemuMonitorTestHandlerData *data = item->opaque;
-    virJSONValuePtr val = NULL;
+    VIR_AUTOPTR(virJSONValue) val = NULL;
     virJSONValuePtr cmdargs = NULL;
-    char *cmdcopy = NULL;
     const char *cmdname;
-    char *tmp;
-    int ret = -1;
     int rc;
 
-    if (test->agent || test->json) {
-        if (!(val = virJSONValueFromString(cmdstr)))
-            return -1;
+    if (!(val = virJSONValueFromString(cmdstr)))
+        return -1;
 
-        if (!(cmdname = virJSONValueObjectGetString(val, "execute"))) {
-            ret = qemuMonitorReportError(test, "Missing command name in %s", cmdstr);
-            goto cleanup;
-        }
+    if (!(cmdname = virJSONValueObjectGetString(val, "execute")))
+        return qemuMonitorReportError(test, "Missing command name in %s", cmdstr);
 
-        cmdargs = virJSONValueObjectGet(val, "arguments");
-    } else {
-        if (VIR_STRDUP(cmdcopy, cmdstr) < 0)
-            return -1;
-
-        cmdname = cmdcopy;
-
-        if (!(tmp = strchr(cmdcopy, ' '))) {
-            ret = qemuMonitorReportError(test,
-                                         "Cannot find command name in '%s'",
-                                         cmdstr);
-            goto cleanup;
-        }
-        *tmp = '\0';
-    }
-
+    cmdargs = virJSONValueObjectGet(val, "arguments");
     if ((rc = qemuMonitorTestProcessCommandDefaultValidate(test, cmdname, cmdargs)) < 0)
-        goto cleanup;
+        return -1;
+    if (rc == 1)
+        return 0;
 
-    if (rc == 1) {
-        ret = 0;
-        goto cleanup;
+    if (data->command_name && STRNEQ(data->command_name, cmdname)) {
+        return qemuMonitorTestAddInvalidCommandResponse(test, data->command_name,
+                                                        cmdname);
+    } else {
+        return qemuMonitorTestAddResponse(test, data->response);
     }
-
-    if (data->command_name && STRNEQ(data->command_name, cmdname))
-        ret = qemuMonitorTestAddInvalidCommandResponse(test, data->command_name,
-                                                       cmdname);
-    else
-        ret = qemuMonitorTestAddResponse(test, data->response);
-
- cleanup:
-    VIR_FREE(cmdcopy);
-    virJSONValueFree(val);
-    return ret;
 }
 
 
@@ -688,16 +626,30 @@ qemuMonitorTestProcessCommandVerbatim(qemuMonitorTestPtr test,
                                       const char *cmdstr)
 {
     struct qemuMonitorTestHandlerData *data = item->opaque;
-    char *reformatted = NULL;
-    char *errmsg = NULL;
+    VIR_AUTOFREE(char *) reformatted = NULL;
+    VIR_AUTOFREE(char *) errmsg = NULL;
+    VIR_AUTOPTR(virJSONValue) json = NULL;
+    virJSONValuePtr cmdargs;
+    const char *cmdname;
     int ret = -1;
+    int rc;
 
     /* JSON strings will be reformatted to simplify checking */
-    if (test->json || test->agent) {
-        if (!(reformatted = virJSONStringReformat(cmdstr, false)))
+    if (!(json = virJSONValueFromString(cmdstr)) ||
+        !(reformatted = virJSONValueToString(json, false)))
+        return -1;
+
+    cmdstr = reformatted;
+
+    /* in this case we do a best-effort schema check if we can find the command */
+    if ((cmdname = virJSONValueObjectGetString(json, "execute"))) {
+        cmdargs = virJSONValueObjectGet(json, "arguments");
+
+        if ((rc = qemuMonitorTestProcessCommandDefaultValidate(test, cmdname, cmdargs)) < 0)
             return -1;
 
-        cmdstr = reformatted;
+        if (rc == 1)
+            return 0;
     }
 
     if (STREQ(data->command_name, cmdstr)) {
@@ -705,7 +657,7 @@ qemuMonitorTestProcessCommandVerbatim(qemuMonitorTestPtr test,
     } else {
         if (data->cmderr) {
             if (virAsprintf(&errmsg, "%s: %s", data->cmderr, cmdstr) < 0)
-                goto cleanup;
+                return -1;
 
             ret = qemuMonitorTestAddErrorResponse(test, errmsg);
         } else {
@@ -715,9 +667,6 @@ qemuMonitorTestProcessCommandVerbatim(qemuMonitorTestPtr test,
         }
     }
 
- cleanup:
-    VIR_FREE(errmsg);
-    VIR_FREE(reformatted);
     return ret;
 }
 
@@ -751,11 +700,7 @@ qemuMonitorTestAddItemVerbatim(qemuMonitorTestPtr test,
         VIR_STRDUP(data->cmderr, cmderr) < 0)
         goto error;
 
-    if (test->json || test->agent)
-        data->command_name = virJSONStringReformat(command, false);
-    else
-        ignore_value(VIR_STRDUP(data->command_name, command));
-
+    data->command_name = virJSONStringReformat(command, false);
     if (!data->command_name)
         goto error;
 
@@ -1228,11 +1173,8 @@ qemuMonitorCommonTestInit(qemuMonitorTestPtr test)
                             "}"
 /* We skip the normal handshake reply of "{\"execute\":\"qmp_capabilities\"}" */
 
-#define QEMU_TEXT_GREETING "QEMU 1.0,1 monitor - type 'help' for more information"
-
 qemuMonitorTestPtr
-qemuMonitorTestNew(bool json,
-                   virDomainXMLOptionPtr xmlopt,
+qemuMonitorTestNew(virDomainXMLOptionPtr xmlopt,
                    virDomainObjPtr vm,
                    virQEMUDriverPtr driver,
                    const char *greeting,
@@ -1246,11 +1188,9 @@ qemuMonitorTestNew(bool json,
     if (!(test = qemuMonitorCommonTestNew(xmlopt, vm, &src)))
         goto error;
 
-    test->json = json;
     test->qapischema = schema;
     if (!(test->mon = qemuMonitorOpen(test->vm,
                                       &src,
-                                      json,
                                       true,
                                       0,
                                       &qemuMonitorTestCallbacks,
@@ -1260,7 +1200,7 @@ qemuMonitorTestNew(bool json,
     virObjectLock(test->mon);
 
     if (!greeting)
-        greeting = json ? QEMU_JSON_GREETING : QEMU_TEXT_GREETING;
+        greeting = QEMU_JSON_GREETING;
 
     if (qemuMonitorTestAddResponse(test, greeting) < 0)
         goto error;
@@ -1305,7 +1245,7 @@ qemuMonitorTestNewFromFile(const char *fileName,
     if (virTestLoadFile(fileName, &json) < 0)
         goto cleanup;
 
-    if (simple && !(test = qemuMonitorTestNewSimple(true, xmlopt)))
+    if (simple && !(test = qemuMonitorTestNewSimple(xmlopt)))
         goto cleanup;
 
     /* Our JSON parser expects replies to be separated by a newline character.
@@ -1327,7 +1267,7 @@ qemuMonitorTestNewFromFile(const char *fileName,
                     goto error;
             } else {
                 /* Create new mocked monitor with our greeting */
-                if (!(test = qemuMonitorTestNew(true, xmlopt, NULL, NULL,
+                if (!(test = qemuMonitorTestNew(xmlopt, NULL, NULL,
                                                 singleReply, NULL)))
                     goto error;
             }
@@ -1383,6 +1323,7 @@ qemuMonitorTestFullAddItem(qemuMonitorTestPtr test,
  * @fileName: File name to load monitor replies from
  * @driver: qemu driver object
  * @vm: domain object (may be null if it's not needed by the test)
+ * @qmpschema: QMP schema data hash table if QMP checking is required
  *
  * Create a JSON test monitor simulator object and fill it with expected command
  * sequence and replies specified in @fileName.
@@ -1396,7 +1337,8 @@ qemuMonitorTestFullAddItem(qemuMonitorTestPtr test,
 qemuMonitorTestPtr
 qemuMonitorTestNewFromFileFull(const char *fileName,
                                virQEMUDriverPtr driver,
-                               virDomainObjPtr vm)
+                               virDomainObjPtr vm,
+                               virHashTablePtr qmpschema)
 {
     qemuMonitorTestPtr ret = NULL;
     char *jsonstr = NULL;
@@ -1410,7 +1352,8 @@ qemuMonitorTestNewFromFileFull(const char *fileName,
     if (virTestLoadFile(fileName, &jsonstr) < 0)
         return NULL;
 
-    if (!(ret = qemuMonitorTestNew(true, driver->xmlopt, vm, driver, NULL, NULL)))
+    if (!(ret = qemuMonitorTestNew(driver->xmlopt, vm, driver, NULL,
+                                   qmpschema)))
         goto cleanup;
 
     tmp = jsonstr;

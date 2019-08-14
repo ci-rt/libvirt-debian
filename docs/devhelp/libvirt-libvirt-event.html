@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>libvirt-event: APIs for management of events</title>
+    <meta name="generator" content="Libvirt devhelp stylesheet"/>
+    <link rel="start" href="index.html" title="libvirt Reference Manual"/>
+    <link rel="up" href="general.html" title="API"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="chapter" href="general.html" title="API"/>
+  </head>
+  <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+    <table class="navigation" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+      <tr valign="middle">
+        <td>
+          <a accesskey="p" href="libvirt-libvirt-domain.html">
+            <img src="left.png" width="24" height="24" border="0" alt="Prev"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="u" href="general.html">
+            <img src="up.png" width="24" height="24" border="0" alt="Up"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="h" href="index.html">
+            <img src="home.png" width="24" height="24" border="0" alt="Home"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="n" href="libvirt-libvirt-host.html">
+            <img src="right.png" width="24" height="24" border="0" alt="Next"/>
+          </a>
+        </td>
+        <th width="100%" align="center">libvirt Reference Manual</th>
+      </tr>
+    </table>
+    <h2>
+      <span class="refentrytitle">libvirt-event</span>
+    </h2>
+    <p>libvirt-event - APIs for management of events</p>
+    <p>Provides APIs for the management of events  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <div class="refsynopsisdiv">
+      <h2>Synopsis</h2>
+      <pre class="synopsis">typedef enum <a href="#virEventHandleType">virEventHandleType</a>;
+int	<a href="#virEventAddHandle">virEventAddHandle</a>		(int fd, <br/>					 int events, <br/>					 <a href="libvirt-libvirt-event.html#virEventHandleCallback">virEventHandleCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> ff);
+typedef int <a href="#virEventAddHandleFunc">virEventAddHandleFunc</a>		(int fd, <br/>					 int event, <br/>					 <a href="libvirt-libvirt-event.html#virEventHandleCallback">virEventHandleCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> ff);
+int	<a href="#virEventAddTimeout">virEventAddTimeout</a>		(int timeout, <br/>					 <a href="libvirt-libvirt-event.html#virEventTimeoutCallback">virEventTimeoutCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> ff);
+typedef int <a href="#virEventAddTimeoutFunc">virEventAddTimeoutFunc</a>		(int timeout, <br/>					 <a href="libvirt-libvirt-event.html#virEventTimeoutCallback">virEventTimeoutCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> ff);
+typedef void <a href="#virEventHandleCallback">virEventHandleCallback</a>		(int watch, <br/>					 int fd, <br/>					 int events, <br/>					 void * opaque);
+int	<a href="#virEventRegisterDefaultImpl">virEventRegisterDefaultImpl</a>	(void);
+void	<a href="#virEventRegisterImpl">virEventRegisterImpl</a>		(<a href="libvirt-libvirt-event.html#virEventAddHandleFunc">virEventAddHandleFunc</a> addHandle, <br/>					 <a href="libvirt-libvirt-event.html#virEventUpdateHandleFunc">virEventUpdateHandleFunc</a> updateHandle, <br/>					 <a href="libvirt-libvirt-event.html#virEventRemoveHandleFunc">virEventRemoveHandleFunc</a> removeHandle, <br/>					 <a href="libvirt-libvirt-event.html#virEventAddTimeoutFunc">virEventAddTimeoutFunc</a> addTimeout, <br/>					 <a href="libvirt-libvirt-event.html#virEventUpdateTimeoutFunc">virEventUpdateTimeoutFunc</a> updateTimeout, <br/>					 <a href="libvirt-libvirt-event.html#virEventRemoveTimeoutFunc">virEventRemoveTimeoutFunc</a> removeTimeout);
+int	<a href="#virEventRemoveHandle">virEventRemoveHandle</a>		(int watch);
+typedef int <a href="#virEventRemoveHandleFunc">virEventRemoveHandleFunc</a>	(int watch);
+int	<a href="#virEventRemoveTimeout">virEventRemoveTimeout</a>		(int timer);
+typedef int <a href="#virEventRemoveTimeoutFunc">virEventRemoveTimeoutFunc</a>	(int timer);
+int	<a href="#virEventRunDefaultImpl">virEventRunDefaultImpl</a>		(void);
+typedef void <a href="#virEventTimeoutCallback">virEventTimeoutCallback</a>		(int timer, <br/>					 void * opaque);
+void	<a href="#virEventUpdateHandle">virEventUpdateHandle</a>		(int watch, <br/>					 int events);
+typedef void <a href="#virEventUpdateHandleFunc">virEventUpdateHandleFunc</a>	(int watch, <br/>					 int event);
+void	<a href="#virEventUpdateTimeout">virEventUpdateTimeout</a>		(int timer, <br/>					 int timeout);
+typedef void <a href="#virEventUpdateTimeoutFunc">virEventUpdateTimeoutFunc</a>	(int timer, <br/>					 int timeout);
+</pre>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Description</h2>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Details</h2>
+      <div class="refsect2" lang="en">
+        <div class="refsect2" lang="en"><h3><a name="virEventHandleType">Enum </a>virEventHandleType</h3><pre class="programlisting">enum <a href="#virEventHandleType">virEventHandleType</a> {
+    <a name="VIR_EVENT_HANDLE_READABLE">VIR_EVENT_HANDLE_READABLE</a> = 1
+    <a name="VIR_EVENT_HANDLE_WRITABLE">VIR_EVENT_HANDLE_WRITABLE</a> = 2
+    <a name="VIR_EVENT_HANDLE_ERROR">VIR_EVENT_HANDLE_ERROR</a> = 4
+    <a name="VIR_EVENT_HANDLE_HANGUP">VIR_EVENT_HANDLE_HANGUP</a> = 8
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventAddHandleFunc"/>Function type virEventAddHandleFunc</h3><pre class="programlisting">int	virEventAddHandleFunc		(int fd, <br/>					 int event, <br/>					 <a href="libvirt-libvirt-event.html#virEventHandleCallback">virEventHandleCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> ff)<br/>
+</pre><p>Part of the EventImpl, this callback adds a file handle callback to
+listen for specific events. The same file handle can be registered
+multiple times provided the requested event sets are non-overlapping
+
+If the opaque user data requires free'ing when the handle
+is unregistered, then a 2nd callback can be supplied for
+this purpose. This callback needs to be invoked from a clean stack.
+If 'ff' callbacks are invoked directly from the virEventRemoveHandleFunc
+they will likely deadlock in libvirt.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>fd</tt></i>:</span></td><td>file descriptor to listen on</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>bitset of events on which to fire the callback</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>the callback to be called when an event occurs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to the callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>the callback invoked to free opaque data blob</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventAddTimeoutFunc"/>Function type virEventAddTimeoutFunc</h3><pre class="programlisting">int	virEventAddTimeoutFunc		(int timeout, <br/>					 <a href="libvirt-libvirt-event.html#virEventTimeoutCallback">virEventTimeoutCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> ff)<br/>
+</pre><p>Part of the EventImpl, this user-defined callback handles adding an
+event timeout.
+
+If the opaque user data requires free'ing when the handle
+is unregistered, then a 2nd callback can be supplied for
+this purpose.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timeout</tt></i>:</span></td><td>The timeout to monitor</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>the callback to call when timeout has expired</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to the callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>the callback invoked to free opaque data blob</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a timer value</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventHandleCallback"/>Function type virEventHandleCallback</h3><pre class="programlisting">void	virEventHandleCallback		(int watch, <br/>					 int fd, <br/>					 int events, <br/>					 void * opaque)<br/>
+</pre><p>Callback for receiving file handle events. The callback will
+be invoked once for each event which is pending.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>watch</tt></i>:</span></td><td>watch on which the event occurred</td></tr><tr><td><span class="term"><i><tt>fd</tt></i>:</span></td><td>file handle on which the event occurred</td></tr><tr><td><span class="term"><i><tt>events</tt></i>:</span></td><td>bitset of events from <a href="libvirt-libvirt-event.html#virEventHandleType">virEventHandleType</a> constants</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data registered with handle</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventRemoveHandleFunc"/>Function type virEventRemoveHandleFunc</h3><pre class="programlisting">int	virEventRemoveHandleFunc	(int watch)<br/>
+</pre><p>Part of the EventImpl, this user-provided callback is notified when
+an fd is no longer being listened on.
+
+If a virEventHandleFreeFunc was supplied when the handle was
+registered, it will be invoked some time during, or after this
+function call, when it is safe to release the user data.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>watch</tt></i>:</span></td><td>file descriptor watch to stop listening on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle was not registered, 0 upon success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventRemoveTimeoutFunc"/>Function type virEventRemoveTimeoutFunc</h3><pre class="programlisting">int	virEventRemoveTimeoutFunc	(int timer)<br/>
+</pre><p>Part of the EventImpl, this user-defined callback removes a timer
+
+If a virEventTimeoutFreeFunc was supplied when the handle was
+registered, it will be invoked some time during, or after this
+function call, when it is safe to release the user data.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timer</tt></i>:</span></td><td>the timer to remove</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventTimeoutCallback"/>Function type virEventTimeoutCallback</h3><pre class="programlisting">void	virEventTimeoutCallback		(int timer, <br/>					 void * opaque)<br/>
+</pre><p>callback for receiving timer events</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timer</tt></i>:</span></td><td>timer id emitting the event</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data registered with handle</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventUpdateHandleFunc"/>Function type virEventUpdateHandleFunc</h3><pre class="programlisting">void	virEventUpdateHandleFunc	(int watch, <br/>					 int event)<br/>
+</pre><p>Part of the EventImpl, this user-provided callback is notified when
+events to listen on change</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>watch</tt></i>:</span></td><td>file descriptor watch to modify</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>new events to listen on</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventUpdateTimeoutFunc"/>Function type virEventUpdateTimeoutFunc</h3><pre class="programlisting">void	virEventUpdateTimeoutFunc	(int timer, <br/>					 int timeout)<br/>
+</pre><p>Part of the EventImpl, this user-defined callback updates an
+event timeout.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timer</tt></i>:</span></td><td>the timer to modify</td></tr><tr><td><span class="term"><i><tt>timeout</tt></i>:</span></td><td>the new timeout value</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventAddHandle"/>virEventAddHandle ()</h3><pre class="programlisting">int	virEventAddHandle		(int fd, <br/>					 int events, <br/>					 <a href="libvirt-libvirt-event.html#virEventHandleCallback">virEventHandleCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> ff)<br/>
+</pre><p>Register a callback for monitoring file handle events. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>fd</tt></i>:</span></td><td>file handle to monitor for events</td></tr><tr><td><span class="term"><i><tt>events</tt></i>:</span></td><td>bitset of events to watch from <a href="libvirt-libvirt-event.html#virEventHandleType">virEventHandleType</a> constants</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to invoke when an event occurs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>callback to free opaque when handle is removed</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle cannot be registered, otherwise a handle watch number to be used for updating and unregistering for events.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventAddTimeout"/>virEventAddTimeout ()</h3><pre class="programlisting">int	virEventAddTimeout		(int timeout, <br/>					 <a href="libvirt-libvirt-event.html#virEventTimeoutCallback">virEventTimeoutCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> ff)<br/>
+</pre><p>Register a callback for a timer event. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().
+
+Setting @timeout to -1 will disable the timer. Setting @timeout
+to zero will cause it to fire on every event loop iteration.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timeout</tt></i>:</span></td><td>time between events in milliseconds</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to invoke when an event occurs</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>user data to pass to callback</td></tr><tr><td><span class="term"><i><tt>ff</tt></i>:</span></td><td>callback to free opaque when timeout is removed</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the timer cannot be registered, a positive integer timer id upon success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventRegisterDefaultImpl"/>virEventRegisterDefaultImpl ()</h3><pre class="programlisting">int	virEventRegisterDefaultImpl	(void)<br/>
+</pre><p>Registers a default event implementation based on the
+poll() system call. This is a generic implementation
+that can be used by any client application which does
+not have a need to integrate with an external event
+loop impl.
+
+For proper event handling, it is important that the event implementation
+is registered before a connection to the Hypervisor is opened.
+
+Once registered, the application has to invoke virEventRunDefaultImpl() in
+a loop to process events. Failure to do so may result in connections being
+closed unexpectedly as a result of keepalive timeout. The default
+event loop fully supports handle and timeout events, but only
+wakes up on events registered by libvirt API calls such as
+virEventAddHandle() or virConnectDomainEventRegisterAny().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventRegisterImpl"/>virEventRegisterImpl ()</h3><pre class="programlisting">void	virEventRegisterImpl		(<a href="libvirt-libvirt-event.html#virEventAddHandleFunc">virEventAddHandleFunc</a> addHandle, <br/>					 <a href="libvirt-libvirt-event.html#virEventUpdateHandleFunc">virEventUpdateHandleFunc</a> updateHandle, <br/>					 <a href="libvirt-libvirt-event.html#virEventRemoveHandleFunc">virEventRemoveHandleFunc</a> removeHandle, <br/>					 <a href="libvirt-libvirt-event.html#virEventAddTimeoutFunc">virEventAddTimeoutFunc</a> addTimeout, <br/>					 <a href="libvirt-libvirt-event.html#virEventUpdateTimeoutFunc">virEventUpdateTimeoutFunc</a> updateTimeout, <br/>					 <a href="libvirt-libvirt-event.html#virEventRemoveTimeoutFunc">virEventRemoveTimeoutFunc</a> removeTimeout)<br/>
+</pre><p>Registers an event implementation, to allow integration
+with an external event loop. Applications would use this
+to integrate with the libglib2 event loop, or libevent
+or the QT event loop.
+
+For proper event handling, it is important that the event implementation
+is registered before a connection to the Hypervisor is opened.
+
+Use of the virEventAddHandle() and similar APIs require that the
+corresponding handler is registered. Use of the
+virConnectDomainEventRegisterAny() and similar APIs requires that
+the three timeout handlers are registered. Likewise, the three
+timeout handlers must be registered if the remote server has been
+configured to send keepalive messages, or if the client intends
+to call virConnectSetKeepAlive(), to avoid either side from
+unexpectedly closing the connection due to inactivity.
+
+If an application does not need to integrate with an
+existing event loop implementation, then the
+virEventRegisterDefaultImpl() method can be used to setup
+the generic libvirt implementation.
+
+Once registered, the event loop implementation cannot be
+changed, and must be run continuously. Note that callbacks
+may remain registered for a short time even after calling
+virConnectClose on all open connections, so it is not safe
+to stop running the event loop immediately after closing
+the connection.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>addHandle</tt></i>:</span></td><td>the callback to add fd handles</td></tr><tr><td><span class="term"><i><tt>updateHandle</tt></i>:</span></td><td>the callback to update fd handles</td></tr><tr><td><span class="term"><i><tt>removeHandle</tt></i>:</span></td><td>the callback to remove fd handles</td></tr><tr><td><span class="term"><i><tt>addTimeout</tt></i>:</span></td><td>the callback to add a timeout</td></tr><tr><td><span class="term"><i><tt>updateTimeout</tt></i>:</span></td><td>the callback to update a timeout</td></tr><tr><td><span class="term"><i><tt>removeTimeout</tt></i>:</span></td><td>the callback to remove a timeout</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventRemoveHandle"/>virEventRemoveHandle ()</h3><pre class="programlisting">int	virEventRemoveHandle		(int watch)<br/>
+</pre><p>Unregister a callback from a file handle. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>watch</tt></i>:</span></td><td>watch whose file handle to remove</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the file handle was not registered, 0 upon success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventRemoveTimeout"/>virEventRemoveTimeout ()</h3><pre class="programlisting">int	virEventRemoveTimeout		(int timer)<br/>
+</pre><p>Unregister a callback for a timer. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timer</tt></i>:</span></td><td>the timer id to remove</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 if the timer was not registered, 0 upon success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventRunDefaultImpl"/>virEventRunDefaultImpl ()</h3><pre class="programlisting">int	virEventRunDefaultImpl		(void)<br/>
+</pre><p>Run one iteration of the event loop. Applications
+will generally want to have a thread which invokes
+this method in an infinite loop. Furthermore, it is wise
+to set up a pipe-to-self handler (via virEventAddHandle())
+or a timeout (via virEventAddTimeout()) before calling this
+function, as it will block forever if there are no
+registered events.
+
+ static bool quit;
+
+ while (!quit) {
+ if (virEventRunDefaultImpl() &lt; 0)
+ ...print error...
+ }</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventUpdateHandle"/>virEventUpdateHandle ()</h3><pre class="programlisting">void	virEventUpdateHandle		(int watch, <br/>					 int events)<br/>
+</pre><p>Change event set for a monitored file handle. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().
+
+Will not fail if fd exists.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>watch</tt></i>:</span></td><td>watch whose file handle to update</td></tr><tr><td><span class="term"><i><tt>events</tt></i>:</span></td><td>bitset of events to watch from <a href="libvirt-libvirt-event.html#virEventHandleType">virEventHandleType</a> constants</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virEventUpdateTimeout"/>virEventUpdateTimeout ()</h3><pre class="programlisting">void	virEventUpdateTimeout		(int timer, <br/>					 int timeout)<br/>
+</pre><p>Change frequency for a timer. This function
+requires that an event loop has previously been registered with
+virEventRegisterImpl() or virEventRegisterDefaultImpl().
+
+Setting frequency to -1 will disable the timer. Setting the frequency
+to zero will cause it to fire on every event loop iteration.
+
+Will not fail if timer exists.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>timer</tt></i>:</span></td><td>timer id to change</td></tr><tr><td><span class="term"><i><tt>timeout</tt></i>:</span></td><td>time between events in milliseconds</td></tr></tbody></table></div></div>
+        <hr/>
+      </div>
+    </div>
+  </body>
+</html>

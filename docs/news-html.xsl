@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
-<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:stylesheet version="1.0"
+                xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:output method="xml" indent="yes" encoding="UTF-8"/>
 
   <!-- This XSLT stylesheet can be applied to the XML version of the release
@@ -39,12 +41,17 @@
   <!-- Release -->
   <xsl:template match="release">
     <h3>
-      <strong>
-        <xsl:value-of select="@version"/>
-        <xsl:text> (</xsl:text>
-        <xsl:value-of select="@date"/>
-        <xsl:text>)</xsl:text>
-      </strong>
+      <a>
+        <xsl:attribute name="id">
+          <xsl:value-of select="@version"/>
+        </xsl:attribute>
+        <strong>
+          <xsl:value-of select="@version"/>
+          <xsl:text> (</xsl:text>
+          <xsl:value-of select="@date"/>
+          <xsl:text>)</xsl:text>
+        </strong>
+      </a>
     </h3>
     <ul>
       <xsl:apply-templates select="section"/>
@@ -58,7 +65,7 @@
         <xsl:value-of select="@title"/>
       </strong>
       <xsl:if test="*">
-        <ul>
+        <ul class="news-section-content">
           <xsl:apply-templates select="change"/>
         </ul>
       </xsl:if>
@@ -68,8 +75,14 @@
   <!-- Change -->
   <xsl:template match="change">
     <li>
-      <xsl:apply-templates select="summary"/>
-      <xsl:apply-templates select="description"/>
+      <dl>
+        <dt>
+          <xsl:apply-templates select="summary"/>
+        </dt>
+        <dd>
+          <xsl:apply-templates select="description"/>
+        </dd>
+      </dl>
     </li>
   </xsl:template>
 
@@ -80,7 +93,6 @@
 
   <!-- Change description -->
   <xsl:template match="description">
-    <br/>
     <xsl:apply-templates/>
   </xsl:template>
 

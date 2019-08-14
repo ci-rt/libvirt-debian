@@ -2421,6 +2421,148 @@ int virDomainBlockStatsFlagsEnsureACL(virConnectPtr conn, virDomainDefPtr domain
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virDomainCheckpointCreateXMLEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_CHECKPOINT)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    if (((flags & (VIR_DOMAIN_CHECKPOINT_CREATE_QUIESCE)) == (VIR_DOMAIN_CHECKPOINT_CREATE_QUIESCE)) &&
+        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_FS_FREEZE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virDomainCheckpointDeleteEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_CHECKPOINT)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virDomainCheckpointGetParentEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virDomainCheckpointGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    if (((flags & (VIR_DOMAIN_CHECKPOINT_XML_SECURE)) == (VIR_DOMAIN_CHECKPOINT_XML_SECURE)) &&
+        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ_SECURE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virDomainCheckpointListAllChildrenEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virDomainCheckpointLookupByNameEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virDomainCoreDumpEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
@@ -3823,6 +3965,27 @@ int virDomainIsUpdatedEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virDomainListAllCheckpointsEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virDomainListAllSnapshotsEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
@@ -5175,7 +5338,7 @@ int virDomainSaveImageDefineXMLEnsureACL(virConnectPtr conn, virDomainDefPtr dom
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
-int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain, unsigned int flags)
+int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr domain)
 {
     virAccessManagerPtr mgr;
     int rv;
@@ -5184,15 +5347,7 @@ int virDomainSaveImageGetXMLDescEnsureACL(virConnectPtr conn, virDomainDefPtr do
         return -1;
     }
 
-    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ)) <= 0) {
-        virObjectUnref(mgr);
-        if (rv == 0)
-            virReportError(VIR_ERR_ACCESS_DENIED,
-                            _("'%s' denied access"), conn->driver->name);
-        return -1;
-    }
-    if (((flags & (VIR_DOMAIN_SAVE_IMAGE_XML_SECURE)) == (VIR_DOMAIN_SAVE_IMAGE_XML_SECURE)) &&
-        (rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_READ_SECURE)) <= 0) {
+    if ((rv = virAccessManagerCheckDomain(mgr, conn->driver->name, domain, VIR_ACCESS_PERM_DOMAIN_WRITE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED,
@@ -6851,6 +7006,47 @@ int virNetworkIsPersistentEnsureACL(virConnectPtr conn, virNetworkDefPtr network
 }
 
 /* Returns: -1 on error/denied, 0 on allowed */
+int virNetworkListAllPortsEnsureACL(virConnectPtr conn, virNetworkDefPtr network)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNetwork(mgr, conn->driver->name, network, VIR_ACCESS_PERM_NETWORK_SEARCH_PORTS)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: false on error/denied, true on allowed */
+bool virNetworkListAllPortsCheckACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        virResetLastError();
+        return false;
+    }
+
+    if ((rv = virAccessManagerCheckNetworkPort(mgr, conn->driver->name, net, port, VIR_ACCESS_PERM_NETWORK_PORT_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        virResetLastError();
+        return false;
+    }
+    virObjectUnref(mgr);
+    return true;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
 int virNetworkLookupByNameEnsureACL(virConnectPtr conn, virNetworkDefPtr network)
 {
     virAccessManagerPtr mgr;
@@ -6882,6 +7078,132 @@ int virNetworkLookupByUUIDEnsureACL(virConnectPtr conn, virNetworkDefPtr network
     }
 
     if ((rv = virAccessManagerCheckNetwork(mgr, conn->driver->name, network, VIR_ACCESS_PERM_NETWORK_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNetworkPortCreateXMLEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNetworkPort(mgr, conn->driver->name, net, port, VIR_ACCESS_PERM_NETWORK_PORT_CREATE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNetworkPortDeleteEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNetworkPort(mgr, conn->driver->name, net, port, VIR_ACCESS_PERM_NETWORK_PORT_DELETE)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNetworkPortGetParametersEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNetworkPort(mgr, conn->driver->name, net, port, VIR_ACCESS_PERM_NETWORK_PORT_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNetworkPortGetXMLDescEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNetworkPort(mgr, conn->driver->name, net, port, VIR_ACCESS_PERM_NETWORK_PORT_READ)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNetworkPortLookupByUUIDEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNetworkPort(mgr, conn->driver->name, net, port, VIR_ACCESS_PERM_NETWORK_PORT_GETATTR)) <= 0) {
+        virObjectUnref(mgr);
+        if (rv == 0)
+            virReportError(VIR_ERR_ACCESS_DENIED,
+                            _("'%s' denied access"), conn->driver->name);
+        return -1;
+    }
+    virObjectUnref(mgr);
+    return 0;
+}
+
+/* Returns: -1 on error/denied, 0 on allowed */
+int virNetworkPortSetParametersEnsureACL(virConnectPtr conn, virNetworkDefPtr net, virNetworkPortDefPtr port)
+{
+    virAccessManagerPtr mgr;
+    int rv;
+
+    if (!(mgr = virAccessManagerGetDefault())) {
+        return -1;
+    }
+
+    if ((rv = virAccessManagerCheckNetworkPort(mgr, conn->driver->name, net, port, VIR_ACCESS_PERM_NETWORK_PORT_WRITE)) <= 0) {
         virObjectUnref(mgr);
         if (rv == 0)
             virReportError(VIR_ERR_ACCESS_DENIED,

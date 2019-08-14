@@ -79,7 +79,7 @@ qemuExtDeviceLogCommand(qemuDomainLogContextPtr logCtxt,
  * stored and we can remove directories and files in case of domain XML
  * changes.
  */
-static int
+int
 qemuExtDevicesInitPaths(virQEMUDriverPtr driver,
                         virDomainDefPtr def)
 {
@@ -128,7 +128,8 @@ qemuExtDevicesCleanupHost(virQEMUDriverPtr driver,
 int
 qemuExtDevicesStart(virQEMUDriverPtr driver,
                     virDomainObjPtr vm,
-                    qemuDomainLogContextPtr logCtxt)
+                    qemuDomainLogContextPtr logCtxt,
+                    bool incomingMigration)
 {
     int ret = 0;
 
@@ -136,7 +137,7 @@ qemuExtDevicesStart(virQEMUDriverPtr driver,
         return -1;
 
     if (vm->def->tpm)
-        ret = qemuExtTPMStart(driver, vm, logCtxt);
+        ret = qemuExtTPMStart(driver, vm, logCtxt, incomingMigration);
 
     return ret;
 }

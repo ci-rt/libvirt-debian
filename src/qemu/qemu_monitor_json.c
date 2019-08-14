@@ -31,7 +31,6 @@
 #include "qemu_monitor_text.h"
 #include "qemu_monitor_json.h"
 #include "qemu_alias.h"
-#include "qemu_parse_command.h"
 #include "qemu_capabilities.h"
 #include "viralloc.h"
 #include "virlog.h"
@@ -57,6 +56,30 @@ VIR_LOG_INIT("qemu.qemu_monitor_json");
 
 #define LINE_ENDING "\r\n"
 
+VIR_ENUM_IMPL(qemuMonitorJob,
+              QEMU_MONITOR_JOB_TYPE_LAST,
+              "",
+              "commit",
+              "stream",
+              "mirror",
+              "backup",
+              "create");
+
+VIR_ENUM_IMPL(qemuMonitorJobStatus,
+              QEMU_MONITOR_JOB_STATUS_LAST,
+              "",
+              "created",
+              "running",
+              "paused",
+              "ready",
+              "standby",
+              "waiting",
+              "pending",
+              "aborting",
+              "concluded",
+              "undefined",
+              "null");
+
 static void qemuMonitorJSONHandleShutdown(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleReset(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandlePowerdown(qemuMonitorPtr mon, virJSONValuePtr data);
@@ -77,6 +100,7 @@ static void qemuMonitorJSONHandlePMSuspend(qemuMonitorPtr mon, virJSONValuePtr d
 static void qemuMonitorJSONHandleBlockJobCompleted(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleBlockJobCanceled(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleBlockJobReady(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleJobStatusChange(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleBalloonChange(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandlePMSuspendDisk(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleGuestPanic(qemuMonitorPtr mon, virJSONValuePtr data);
@@ -109,6 +133,7 @@ static qemuEventHandler eventHandlers[] = {
     { "DEVICE_TRAY_MOVED", qemuMonitorJSONHandleTrayChange, },
     { "DUMP_COMPLETED", qemuMonitorJSONHandleDumpCompleted, },
     { "GUEST_PANICKED", qemuMonitorJSONHandleGuestPanic, },
+    { "JOB_STATUS_CHANGE", qemuMonitorJSONHandleJobStatusChange, },
     { "MIGRATION", qemuMonitorJSONHandleMigrationStatus, },
     { "MIGRATION_PASS", qemuMonitorJSONHandleMigrationPass, },
     { "NIC_RX_FILTER_CHANGED", qemuMonitorJSONHandleNicRxFilterChanged, },
@@ -555,6 +580,123 @@ qemuMonitorJSONMakeCommand(const char *cmdname,
 }
 
 
+static void
+qemuMonitorJSONParseKeywordsFree(int nkeywords,
+                                 char **keywords,
+                                 char **values)
+{
+    size_t i;
+    for (i = 0; i < nkeywords; i++) {
+        VIR_FREE(keywords[i]);
+        VIR_FREE(values[i]);
+    }
+    VIR_FREE(keywords);
+    VIR_FREE(values);
+}
+
+
+/*
+ * Takes a string containing a set of key=value,key=value,key...
+ * parameters and splits them up, returning two arrays with
+ * the individual keys and values. If allowEmptyValue is nonzero,
+ * the "=value" part is optional and if a key with no value is found,
+ * NULL is be placed into corresponding place in retvalues.
+ */
+static int
+qemuMonitorJSONParseKeywords(const char *str,
+                             char ***retkeywords,
+                             char ***retvalues,
+                             int *retnkeywords,
+                             int allowEmptyValue)
+{
+    int keywordCount = 0;
+    int keywordAlloc = 0;
+    char **keywords = NULL;
+    char **values = NULL;
+    const char *start = str;
+    const char *end;
+
+    *retkeywords = NULL;
+    *retvalues = NULL;
+    *retnkeywords = 0;
+    end = start + strlen(str);
+
+    while (start) {
+        const char *separator;
+        const char *endmark;
+        char *keyword;
+        char *value = NULL;
+
+        endmark = start;
+        do {
+            /* QEMU accepts ',,' as an escape for a literal comma;
+             * skip past those here while searching for the end of the
+             * value, then strip them down below */
+            endmark = strchr(endmark, ',');
+        } while (endmark && endmark[1] == ',' && (endmark += 2));
+        if (!endmark)
+            endmark = end;
+        if (!(separator = strchr(start, '=')))
+            separator = end;
+
+        if (separator >= endmark) {
+            if (!allowEmptyValue) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("malformed keyword arguments in '%s'"), str);
+                goto error;
+            }
+            separator = endmark;
+        }
+
+        if (VIR_STRNDUP(keyword, start, separator - start) < 0)
+            goto error;
+
+        if (separator < endmark) {
+            separator++;
+            if (VIR_STRNDUP(value, separator, endmark - separator) < 0) {
+                VIR_FREE(keyword);
+                goto error;
+            }
+            if (strchr(value, ',')) {
+                char *p = strchr(value, ',') + 1;
+                char *q = p + 1;
+                while (*q) {
+                    if (*q == ',')
+                        q++;
+                    *p++ = *q++;
+                }
+                *p = '\0';
+            }
+        }
+
+        if (keywordAlloc == keywordCount) {
+            if (VIR_REALLOC_N(keywords, keywordAlloc + 10) < 0 ||
+                VIR_REALLOC_N(values, keywordAlloc + 10) < 0) {
+                VIR_FREE(keyword);
+                VIR_FREE(value);
+                goto error;
+            }
+            keywordAlloc += 10;
+        }
+
+        keywords[keywordCount] = keyword;
+        values[keywordCount] = value;
+        keywordCount++;
+
+        start = endmark < end ? endmark + 1 : NULL;
+    }
+
+    *retkeywords = keywords;
+    *retvalues = values;
+    *retnkeywords = keywordCount;
+    return 0;
+
+ error:
+    qemuMonitorJSONParseKeywordsFree(keywordCount, keywords, values);
+    return -1;
+}
+
+
 static virJSONValuePtr
 qemuMonitorJSONKeywordStringToJSON(const char *str, const char *firstkeyword)
 {
@@ -567,7 +709,7 @@ qemuMonitorJSONKeywordStringToJSON(const char *str, const char *firstkeyword)
     if (!(ret = virJSONValueNewObject()))
         return NULL;
 
-    if (qemuParseKeywords(str, &keywords, &values, &nkeywords, 1) < 0)
+    if (qemuMonitorJSONParseKeywords(str, &keywords, &values, &nkeywords, 1) < 0)
         goto error;
 
     for (i = 0; i < nkeywords; i++) {
@@ -588,11 +730,11 @@ qemuMonitorJSONKeywordStringToJSON(const char *str, const char *firstkeyword)
         }
     }
 
-    qemuParseKeywordsFree(nkeywords, keywords, values);
+    qemuMonitorJSONParseKeywordsFree(nkeywords, keywords, values);
     return ret;
 
  error:
-    qemuParseKeywordsFree(nkeywords, keywords, values);
+    qemuMonitorJSONParseKeywordsFree(nkeywords, keywords, values);
     virJSONValueFree(ret);
     return NULL;
 }
@@ -1031,6 +1173,30 @@ qemuMonitorJSONHandleBlockJobImpl(qemuMonitorPtr mon,
  out:
     qemuMonitorEmitBlockJob(mon, device, type, event, error);
 }
+
+
+static void
+qemuMonitorJSONHandleJobStatusChange(qemuMonitorPtr mon,
+                                     virJSONValuePtr data)
+{
+    const char *jobname = virJSONValueObjectGetString(data, "id");
+    const char *statusstr = virJSONValueObjectGetString(data, "status");
+    int status;
+
+    if (!jobname) {
+        VIR_WARN("missing job name in JOB_STATUS_CHANGE event");
+        return;
+    }
+
+    if ((status = qemuMonitorJobStatusTypeFromString(statusstr)) < 0) {
+        VIR_WARN("unknown job status '%s' for job '%s' in JOB_STATUS_CHANGE event",
+                 statusstr, jobname);
+        return;
+    }
+
+    qemuMonitorEmitJobStatusChange(mon, jobname, status);
+}
+
 
 static void
 qemuMonitorJSONHandleTrayChange(qemuMonitorPtr mon,
@@ -2150,6 +2316,11 @@ int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
                       VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE, 1);
     GET_BALLOON_STATS(statsdata, "stat-disk-caches",
                       VIR_DOMAIN_MEMORY_STAT_DISK_CACHES, 1024);
+    GET_BALLOON_STATS(statsdata, "stat-htlb-pgalloc",
+                      VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGALLOC, 1);
+    GET_BALLOON_STATS(statsdata, "stat-htlb-pgfail",
+                      VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGFAIL, 1);
+
     ret = got;
  cleanup:
     virJSONValueFree(cmd);
@@ -2858,8 +3029,9 @@ int qemuMonitorJSONSetCPU(qemuMonitorPtr mon,
                                          "i:id", cpu,
                                          NULL);
     } else {
-        /* offlining is not yet implemented in qmp */
-        goto fallback;
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("vCPU unplug is not supported by this QEMU"));
+        goto cleanup;
     }
     if (!cmd)
         goto cleanup;
@@ -2867,20 +3039,12 @@ int qemuMonitorJSONSetCPU(qemuMonitorPtr mon,
     if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
         goto cleanup;
 
-    if (qemuMonitorJSONHasError(reply, "CommandNotFound"))
-        goto fallback;
-    else
-        ret = qemuMonitorJSONCheckError(cmd, reply);
+    ret = qemuMonitorJSONCheckError(cmd, reply);
 
  cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
-
- fallback:
-    VIR_DEBUG("no QMP support for cpu_set, trying HMP");
-    ret = qemuMonitorTextSetCPU(mon, cpu, online);
-    goto cleanup;
 }
 
 
@@ -4272,13 +4436,11 @@ qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
                            const char *format, unsigned long long speed,
                            unsigned int granularity,
                            unsigned long long buf_size,
-                           unsigned int flags)
+                           bool shallow,
+                           bool reuse)
 {
-    int ret = -1;
-    virJSONValuePtr cmd;
-    virJSONValuePtr reply = NULL;
-    bool shallow = (flags & VIR_DOMAIN_BLOCK_REBASE_SHALLOW) != 0;
-    bool reuse = (flags & VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT) != 0;
+    VIR_AUTOPTR(virJSONValue) cmd = NULL;
+    VIR_AUTOPTR(virJSONValue) reply = NULL;
 
     cmd = qemuMonitorJSONMakeCommand("drive-mirror",
                                      "s:device", device,
@@ -4294,33 +4456,32 @@ qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
         return -1;
 
     if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
-        goto cleanup;
+        return -1;
 
-    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
-        goto cleanup;
-
-    ret = 0;
- cleanup:
-    virJSONValueFree(cmd);
-    virJSONValueFree(reply);
-    return ret;
+    return qemuMonitorJSONCheckError(cmd, reply);
 }
 
 
 int
 qemuMonitorJSONBlockdevMirror(qemuMonitorPtr mon,
                               const char *jobname,
+                              bool persistjob,
                               const char *device,
                               const char *target,
                               unsigned long long speed,
                               unsigned int granularity,
                               unsigned long long buf_size,
-                              unsigned int flags)
+                              bool shallow)
 {
-    int ret = -1;
-    virJSONValuePtr cmd;
-    virJSONValuePtr reply = NULL;
-    bool shallow = (flags & VIR_DOMAIN_BLOCK_REBASE_SHALLOW) != 0;
+    VIR_AUTOPTR(virJSONValue) cmd = NULL;
+    VIR_AUTOPTR(virJSONValue) reply = NULL;
+    virTristateBool autofinalize = VIR_TRISTATE_BOOL_ABSENT;
+    virTristateBool autodismiss = VIR_TRISTATE_BOOL_ABSENT;
+
+    if (persistjob) {
+        autofinalize = VIR_TRISTATE_BOOL_YES;
+        autodismiss = VIR_TRISTATE_BOOL_NO;
+    }
 
     cmd = qemuMonitorJSONMakeCommand("blockdev-mirror",
                                      "S:job-id", jobname,
@@ -4330,18 +4491,16 @@ qemuMonitorJSONBlockdevMirror(qemuMonitorPtr mon,
                                      "z:granularity", granularity,
                                      "P:buf-size", buf_size,
                                      "s:sync", shallow ? "top" : "full",
+                                     "T:auto-finalize", autofinalize,
+                                     "T:auto-dismiss", autodismiss,
                                      NULL);
     if (!cmd)
         return -1;
 
-    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
-        goto cleanup;
-    ret = qemuMonitorJSONCheckError(cmd, reply);
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        return -1;
 
- cleanup:
-    virJSONValueFree(cmd);
-    virJSONValueFree(reply);
-    return ret;
+    return qemuMonitorJSONCheckError(cmd, reply);
 }
 
 
@@ -4408,21 +4567,39 @@ qemuMonitorJSONSupportsActiveCommit(qemuMonitorPtr mon)
 /* speed is in bytes/sec. Returns 0 on success, -1 with error message
  * emitted on failure. */
 int
-qemuMonitorJSONBlockCommit(qemuMonitorPtr mon, const char *device,
-                           const char *top, const char *base,
+qemuMonitorJSONBlockCommit(qemuMonitorPtr mon,
+                           const char *device,
+                           const char *jobname,
+                           bool persistjob,
+                           const char *top,
+                           const char *topNode,
+                           const char *base,
+                           const char *baseNode,
                            const char *backingName,
                            unsigned long long speed)
 {
     int ret = -1;
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
+    virTristateBool autofinalize = VIR_TRISTATE_BOOL_ABSENT;
+    virTristateBool autodismiss = VIR_TRISTATE_BOOL_ABSENT;
+
+    if (persistjob) {
+        autofinalize = VIR_TRISTATE_BOOL_YES;
+        autodismiss = VIR_TRISTATE_BOOL_NO;
+    }
 
     cmd = qemuMonitorJSONMakeCommand("block-commit",
                                      "s:device", device,
+                                     "S:job-id", jobname,
                                      "Y:speed", speed,
                                      "S:top", top,
+                                     "S:top-node", topNode,
                                      "S:base", base,
+                                     "S:base-node", baseNode,
                                      "S:backing-file", backingName,
+                                     "T:auto-finalize", autofinalize,
+                                     "T:auto-dismiss", autodismiss,
                                      NULL);
     if (!cmd)
         return -1;
@@ -4672,7 +4849,8 @@ int qemuMonitorJSONScreendump(qemuMonitorPtr mon,
 
 static int
 qemuMonitorJSONParseBlockJobInfo(virHashTablePtr blockJobs,
-                                 virJSONValuePtr entry)
+                                 virJSONValuePtr entry,
+                                 bool rawjobname)
 {
     qemuMonitorBlockJobInfoPtr info = NULL;
     const char *device;
@@ -4684,7 +4862,9 @@ qemuMonitorJSONParseBlockJobInfo(virHashTablePtr blockJobs,
                        _("entry was missing 'device'"));
         return -1;
     }
-    device = qemuAliasDiskDriveSkipPrefix(device);
+
+    if (!rawjobname)
+        device = qemuAliasDiskDriveSkipPrefix(device);
 
     if (VIR_ALLOC(info) < 0 ||
         virHashAddEntry(blockJobs, device, info) < 0) {
@@ -4734,7 +4914,8 @@ qemuMonitorJSONParseBlockJobInfo(virHashTablePtr blockJobs,
 }
 
 virHashTablePtr
-qemuMonitorJSONGetAllBlockJobInfo(qemuMonitorPtr mon)
+qemuMonitorJSONGetAllBlockJobInfo(qemuMonitorPtr mon,
+                                  bool rawjobname)
 {
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
@@ -4766,7 +4947,7 @@ qemuMonitorJSONGetAllBlockJobInfo(qemuMonitorPtr mon)
                            _("missing array element"));
             goto error;
         }
-        if (qemuMonitorJSONParseBlockJobInfo(blockJobs, entry) < 0)
+        if (qemuMonitorJSONParseBlockJobInfo(blockJobs, entry, rawjobname) < 0)
             goto error;
     }
 
@@ -4804,19 +4985,33 @@ qemuMonitorJSONBlockJobError(virJSONValuePtr cmd,
 int
 qemuMonitorJSONBlockStream(qemuMonitorPtr mon,
                            const char *device,
+                           const char *jobname,
+                           bool persistjob,
                            const char *base,
+                           const char *baseNode,
                            const char *backingName,
                            unsigned long long speed)
 {
     int ret = -1;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
+    virTristateBool autofinalize = VIR_TRISTATE_BOOL_ABSENT;
+    virTristateBool autodismiss = VIR_TRISTATE_BOOL_ABSENT;
+
+    if (persistjob) {
+        autofinalize = VIR_TRISTATE_BOOL_YES;
+        autodismiss = VIR_TRISTATE_BOOL_NO;
+    }
 
     if (!(cmd = qemuMonitorJSONMakeCommand("block-stream",
                                            "s:device", device,
+                                           "S:job-id", jobname,
                                            "Y:speed", speed,
                                            "S:base", base,
+                                           "S:base-node", baseNode,
                                            "S:backing-file", backingName,
+                                           "T:auto-finalize", autofinalize,
+                                           "T:auto-dismiss", autodismiss,
                                            NULL)))
         return -1;
 
@@ -4918,6 +5113,78 @@ qemuMonitorJSONDrivePivot(qemuMonitorPtr mon,
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
+}
+
+
+int
+qemuMonitorJSONJobDismiss(qemuMonitorPtr mon,
+                          const char *jobname)
+{
+    VIR_AUTOPTR(virJSONValue) cmd = NULL;
+    VIR_AUTOPTR(virJSONValue) reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("job-dismiss",
+                                           "s:id", jobname,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        return -1;
+
+    if (qemuMonitorJSONBlockJobError(cmd, reply, jobname) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+int
+qemuMonitorJSONJobCancel(qemuMonitorPtr mon,
+                         const char *jobname,
+                         bool quiet)
+{
+    VIR_AUTOPTR(virJSONValue) cmd = NULL;
+    VIR_AUTOPTR(virJSONValue) reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("job-cancel",
+                                           "s:id", jobname,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        return -1;
+
+    if (quiet) {
+        if (virJSONValueObjectHasKey(reply, "error") != 0)
+            return -1;
+    } else {
+        if (qemuMonitorJSONBlockJobError(cmd, reply, jobname) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+int
+qemuMonitorJSONJobComplete(qemuMonitorPtr mon,
+                           const char *jobname)
+{
+    VIR_AUTOPTR(virJSONValue) cmd = NULL;
+    VIR_AUTOPTR(virJSONValue) reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("job-complete",
+                                           "s:id", jobname,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        return -1;
+
+    if (qemuMonitorJSONBlockJobError(cmd, reply, jobname) < 0)
+        return -1;
+
+    return 0;
 }
 
 
@@ -6143,6 +6410,57 @@ int qemuMonitorJSONGetObjectProperty(qemuMonitorPtr mon,
 }
 
 
+static int
+qemuMonitorJSONGetStringListProperty(qemuMonitorPtr mon,
+                                     const char *path,
+                                     const char *property,
+                                     char ***strList)
+{
+    VIR_AUTOPTR(virJSONValue) cmd = NULL;
+    VIR_AUTOPTR(virJSONValue) reply = NULL;
+    VIR_AUTOSTRINGLIST list = NULL;
+    virJSONValuePtr data;
+    size_t n;
+    size_t i;
+
+    *strList = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("qom-get",
+                                           "s:path", path,
+                                           "s:property", property,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        return -1;
+
+    if (qemuMonitorJSONCheckReply(cmd, reply, VIR_JSON_TYPE_ARRAY) < 0)
+        return -1;
+
+    data = virJSONValueObjectGetArray(reply, "return");
+    n = virJSONValueArraySize(data);
+
+    if (VIR_ALLOC_N(list, n + 1) < 0)
+        return -1;
+
+    for (i = 0; i < n; i++) {
+        virJSONValuePtr item = virJSONValueArrayGet(data, i);
+
+        if (virJSONValueGetType(item) != VIR_JSON_TYPE_STRING) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("unexpected value in %s array"), property);
+            return -1;
+        }
+
+        if (VIR_STRDUP(list[i], virJSONValueGetString(item)) < 0)
+            return -1;
+    }
+
+    VIR_STEAL_PTR(*strList, list);
+    return n;
+}
+
+
 #define MAKE_SET_CMD(STRING, VALUE) \
     cmd = qemuMonitorJSONMakeCommand("qom-set", \
                                       "s:path", path, \
@@ -6212,11 +6530,13 @@ int qemuMonitorJSONSetObjectProperty(qemuMonitorPtr mon,
 static int
 qemuMonitorJSONParsePropsList(virJSONValuePtr cmd,
                               virJSONValuePtr reply,
+                              const char *type,
                               char ***props)
 {
     virJSONValuePtr data;
     char **proplist = NULL;
     size_t n = 0;
+    size_t count = 0;
     size_t i;
     int ret = -1;
 
@@ -6234,17 +6554,21 @@ qemuMonitorJSONParsePropsList(virJSONValuePtr cmd,
         virJSONValuePtr child = virJSONValueArrayGet(data, i);
         const char *tmp;
 
+        if (type &&
+            STRNEQ_NULLABLE(virJSONValueObjectGetString(child, "type"), type))
+            continue;
+
         if (!(tmp = virJSONValueObjectGetString(child, "name"))) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("reply data was missing 'name'"));
             goto cleanup;
         }
 
-        if (VIR_STRDUP(proplist[i], tmp) < 0)
+        if (VIR_STRDUP(proplist[count++], tmp) < 0)
             goto cleanup;
     }
 
-    ret = n;
+    ret = count;
     *props = proplist;
     proplist = NULL;
 
@@ -6277,7 +6601,7 @@ int qemuMonitorJSONGetDeviceProps(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    ret = qemuMonitorJSONParsePropsList(cmd, reply, props);
+    ret = qemuMonitorJSONParsePropsList(cmd, reply, NULL, props);
  cleanup:
     virJSONValueFree(reply);
     virJSONValueFree(cmd);
@@ -6309,7 +6633,7 @@ qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
         goto cleanup;
     }
 
-    ret = qemuMonitorJSONParsePropsList(cmd, reply, props);
+    ret = qemuMonitorJSONParsePropsList(cmd, reply, NULL, props);
  cleanup:
     virJSONValueFree(reply);
     virJSONValueFree(cmd);
@@ -6694,8 +7018,7 @@ qemuMonitorJSONBuildUnixSocketAddress(const char *path)
 
 int
 qemuMonitorJSONNBDServerStart(qemuMonitorPtr mon,
-                              const char *host,
-                              unsigned int port,
+                              const virStorageNetHostDef *server,
                               const char *tls_alias)
 {
     int ret = -1;
@@ -6704,10 +7027,22 @@ qemuMonitorJSONNBDServerStart(qemuMonitorPtr mon,
     virJSONValuePtr addr = NULL;
     char *port_str = NULL;
 
-    if (virAsprintf(&port_str, "%u", port) < 0)
-        return ret;
-
-    if (!(addr = qemuMonitorJSONBuildInetSocketAddress(host, port_str)))
+    switch ((virStorageNetHostTransport)server->transport) {
+    case VIR_STORAGE_NET_HOST_TRANS_TCP:
+        if (virAsprintf(&port_str, "%u", server->port) < 0)
+            return ret;
+        addr = qemuMonitorJSONBuildInetSocketAddress(server->name, port_str);
+        break;
+    case VIR_STORAGE_NET_HOST_TRANS_UNIX:
+        addr = qemuMonitorJSONBuildUnixSocketAddress(server->socket);
+        break;
+    case VIR_STORAGE_NET_HOST_TRANS_RDMA:
+    case VIR_STORAGE_NET_HOST_TRANS_LAST:
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid server address"));
+        goto cleanup;
+    }
+    if (!addr)
         goto cleanup;
 
     if (!(cmd = qemuMonitorJSONMakeCommand("nbd-server-start",
@@ -6735,15 +7070,20 @@ qemuMonitorJSONNBDServerStart(qemuMonitorPtr mon,
 int
 qemuMonitorJSONNBDServerAdd(qemuMonitorPtr mon,
                             const char *deviceID,
-                            bool writable)
+                            const char *export,
+                            bool writable,
+                            const char *bitmap)
 {
     int ret = -1;
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
 
+    /* Note: bitmap must be NULL if QEMU_CAPS_NBD_BITMAP is lacking */
     if (!(cmd = qemuMonitorJSONMakeCommand("nbd-server-add",
                                            "s:device", deviceID,
+                                           "S:name", export,
                                            "b:writable", writable,
+                                           "S:bitmap", bitmap,
                                            NULL)))
         return ret;
 
@@ -7309,9 +7649,8 @@ qemuMonitorJSONCheckCPUx86(qemuMonitorPtr mon)
 
 
 /**
- * qemuMonitorJSONGetGuestCPU:
+ * qemuMonitorJSONGetGuestCPUx86:
  * @mon: Pointer to the monitor
- * @arch: arch of the guest
  * @data: returns the cpu data of the guest
  * @disabled: returns the CPU data for features which were disabled by QEMU
  *
@@ -7321,46 +7660,173 @@ qemuMonitorJSONCheckCPUx86(qemuMonitorPtr mon)
  * -1 on other errors.
  */
 int
-qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
-                           virArch arch,
-                           virCPUDataPtr *data,
-                           virCPUDataPtr *disabled)
+qemuMonitorJSONGetGuestCPUx86(qemuMonitorPtr mon,
+                              virCPUDataPtr *data,
+                              virCPUDataPtr *disabled)
 {
     virCPUDataPtr cpuEnabled = NULL;
     virCPUDataPtr cpuDisabled = NULL;
     int rc;
 
-    if (ARCH_IS_X86(arch)) {
-        if ((rc = qemuMonitorJSONCheckCPUx86(mon)) < 0)
-            return -1;
-        else if (!rc)
-            return -2;
+    if ((rc = qemuMonitorJSONCheckCPUx86(mon)) < 0)
+        return -1;
+    else if (!rc)
+        return -2;
 
-        if (qemuMonitorJSONGetCPUx86Data(mon, "feature-words",
-                                         &cpuEnabled) < 0)
-            goto error;
+    if (qemuMonitorJSONGetCPUx86Data(mon, "feature-words",
+                                     &cpuEnabled) < 0)
+        goto error;
 
-        if (disabled &&
-            qemuMonitorJSONGetCPUx86Data(mon, "filtered-features",
-                                         &cpuDisabled) < 0)
-            goto error;
+    if (disabled &&
+        qemuMonitorJSONGetCPUx86Data(mon, "filtered-features",
+                                     &cpuDisabled) < 0)
+        goto error;
 
-        *data = cpuEnabled;
-        if (disabled)
-            *disabled = cpuDisabled;
-        return 0;
-    }
-
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("CPU definition retrieval isn't supported for '%s'"),
-                   virArchToString(arch));
-    return -1;
+    *data = cpuEnabled;
+    if (disabled)
+        *disabled = cpuDisabled;
+    return 0;
 
  error:
     virCPUDataFree(cpuEnabled);
     virCPUDataFree(cpuDisabled);
     return -1;
 }
+
+
+static int
+qemuMonitorJSONGetCPUProperties(qemuMonitorPtr mon,
+                                char ***props)
+{
+    VIR_AUTOPTR(virJSONValue) cmd = NULL;
+    VIR_AUTOPTR(virJSONValue) reply = NULL;
+
+    *props = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("qom-list",
+                                           "s:path", QOM_CPU_PATH,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        return -1;
+
+    if (qemuMonitorJSONHasError(reply, "DeviceNotFound"))
+        return 0;
+
+    return qemuMonitorJSONParsePropsList(cmd, reply, "bool", props);
+}
+
+
+static int
+qemuMonitorJSONGetCPUData(qemuMonitorPtr mon,
+                          qemuMonitorCPUFeatureTranslationCallback translate,
+                          void *opaque,
+                          virCPUDataPtr data)
+{
+    qemuMonitorJSONObjectProperty prop = { .type = QEMU_MONITOR_OBJECT_PROPERTY_BOOLEAN };
+    VIR_AUTOSTRINGLIST props = NULL;
+    char **p;
+
+    if (qemuMonitorJSONGetCPUProperties(mon, &props) < 0)
+        return -1;
+
+    for (p = props; p && *p; p++) {
+        const char *name = *p;
+
+        if (qemuMonitorJSONGetObjectProperty(mon, QOM_CPU_PATH, name, &prop) < 0)
+            return -1;
+
+        if (!prop.val.b)
+            continue;
+
+        if (translate)
+            name = translate(name, opaque);
+
+        if (virCPUDataAddFeature(data, name) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+qemuMonitorJSONGetCPUDataDisabled(qemuMonitorPtr mon,
+                                  qemuMonitorCPUFeatureTranslationCallback translate,
+                                  void *opaque,
+                                  virCPUDataPtr data)
+{
+    VIR_AUTOSTRINGLIST props = NULL;
+    char **p;
+
+    if (qemuMonitorJSONGetStringListProperty(mon, QOM_CPU_PATH,
+                                             "unavailable-features", &props) < 0)
+        return -1;
+
+    for (p = props; p && *p; p++) {
+        const char *name = *p;
+
+        if (translate)
+            name = translate(name, opaque);
+
+        if (virCPUDataAddFeature(data, name) < 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+/**
+ * qemuMonitorJSONGetGuestCPU:
+ * @mon: Pointer to the monitor
+ * @arch: CPU architecture
+ * @translate: callback for translating CPU feature names from QEMU to libvirt
+ * @opaque: data for @translate callback
+ * @enabled: returns the CPU data for all enabled features
+ * @disabled: returns the CPU data for features which we asked for
+ *      (either explicitly or via a named CPU model) but QEMU disabled them
+ *
+ * Retrieve the definition of the guest CPU from a running QEMU instance.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int
+qemuMonitorJSONGetGuestCPU(qemuMonitorPtr mon,
+                           virArch arch,
+                           qemuMonitorCPUFeatureTranslationCallback translate,
+                           void *opaque,
+                           virCPUDataPtr *enabled,
+                           virCPUDataPtr *disabled)
+{
+    virCPUDataPtr cpuEnabled = NULL;
+    virCPUDataPtr cpuDisabled = NULL;
+    int ret = -1;
+
+    if (!(cpuEnabled = virCPUDataNew(arch)) ||
+        !(cpuDisabled = virCPUDataNew(arch)))
+        goto cleanup;
+
+    if (qemuMonitorJSONGetCPUData(mon, translate, opaque, cpuEnabled) < 0)
+        goto cleanup;
+
+    if (disabled &&
+        qemuMonitorJSONGetCPUDataDisabled(mon, translate, opaque, cpuDisabled) < 0)
+        goto cleanup;
+
+    VIR_STEAL_PTR(*enabled, cpuEnabled);
+    if (disabled)
+        VIR_STEAL_PTR(*disabled, cpuDisabled);
+
+    ret = 0;
+
+ cleanup:
+    virCPUDataFree(cpuEnabled);
+    virCPUDataFree(cpuDisabled);
+    return ret;
+}
+
 
 int
 qemuMonitorJSONRTCResetReinjection(qemuMonitorPtr mon)
@@ -8173,6 +8639,32 @@ qemuMonitorJSONSetWatchdogAction(qemuMonitorPtr mon,
 
 
 int
+qemuMonitorJSONBlockdevCreate(qemuMonitorPtr mon,
+                              const char *jobname,
+                              virJSONValuePtr props)
+{
+    VIR_AUTOPTR(virJSONValue) cmd = NULL;
+    VIR_AUTOPTR(virJSONValue) reply = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("blockdev-create",
+                                     "s:job-id", jobname,
+                                     "a:options", &props,
+                                     NULL);
+    virJSONValueFree(props);
+    if (!cmd)
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        return -1;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+int
 qemuMonitorJSONBlockdevAdd(qemuMonitorPtr mon,
                            virJSONValuePtr props)
 {
@@ -8508,4 +9000,191 @@ qemuMonitorJSONGetCurrentMachineInfo(qemuMonitorPtr mon,
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
+}
+
+
+int
+qemuMonitorJSONAddBitmap(qemuMonitorPtr mon,
+                         const char *node,
+                         const char *bitmap,
+                         bool persistent)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("block-dirty-bitmap-add",
+                                           "s:node", node,
+                                           "s:name", bitmap,
+                                           "b:persistent", persistent,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int
+qemuMonitorJSONEnableBitmap(qemuMonitorPtr mon,
+                            const char *node,
+                            const char *bitmap)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("block-dirty-bitmap-enable",
+                                           "s:node", node,
+                                           "s:name", bitmap,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int
+qemuMonitorJSONMergeBitmaps(qemuMonitorPtr mon,
+                            const char *node,
+                            const char *dst,
+                            virJSONValuePtr *src)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("block-dirty-bitmap-merge",
+                                           "s:node", node,
+                                           "s:target", dst,
+                                           "a:bitmaps", src,
+                                           NULL)))
+        goto cleanup;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virJSONValueFree(*src);
+    *src = NULL;
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int
+qemuMonitorJSONDeleteBitmap(qemuMonitorPtr mon,
+                            const char *node,
+                            const char *bitmap)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("block-dirty-bitmap-remove",
+                                           "s:node", node,
+                                           "s:name", bitmap,
+                                           NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    ret = 0;
+ cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+static qemuMonitorJobInfoPtr
+qemuMonitorJSONGetJobInfoOne(virJSONValuePtr data)
+{
+    const char *id = virJSONValueObjectGetString(data, "id");
+    const char *type = virJSONValueObjectGetString(data, "type");
+    const char *status = virJSONValueObjectGetString(data, "status");
+    const char *errmsg = virJSONValueObjectGetString(data, "error");
+    int tmp;
+    VIR_AUTOPTR(qemuMonitorJobInfo) job = NULL;
+    qemuMonitorJobInfoPtr ret = NULL;
+
+    if (VIR_ALLOC(job) < 0)
+        return NULL;
+
+    if ((tmp = qemuMonitorJobTypeFromString(type)) < 0)
+        tmp = QEMU_MONITOR_JOB_TYPE_UNKNOWN;
+
+    job->type = tmp;
+
+    if ((tmp = qemuMonitorJobStatusTypeFromString(status)) < 0)
+        tmp = QEMU_MONITOR_JOB_STATUS_UNKNOWN;
+
+    job->status = tmp;
+
+    if (VIR_STRDUP(job->id, id) < 0 ||
+        VIR_STRDUP(job->error, errmsg) < 0)
+        return NULL;
+
+    VIR_STEAL_PTR(ret, job);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONGetJobInfo(qemuMonitorPtr mon,
+                          qemuMonitorJobInfoPtr **jobs,
+                          size_t *njobs)
+{
+    virJSONValuePtr data;
+    VIR_AUTOPTR(virJSONValue) cmd = NULL;
+    VIR_AUTOPTR(virJSONValue) reply = NULL;
+    size_t i;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-jobs", NULL)))
+        return -1;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+        return -1;
+
+    if (qemuMonitorJSONCheckReply(cmd, reply, VIR_JSON_TYPE_ARRAY) < 0)
+        return -1;
+
+    data = virJSONValueObjectGetArray(reply, "return");
+
+    for (i = 0; i < virJSONValueArraySize(data); i++) {
+        qemuMonitorJobInfoPtr job = NULL;
+
+        if (!(job = qemuMonitorJSONGetJobInfoOne(virJSONValueArrayGet(data, i))))
+            return -1;
+
+        if (VIR_APPEND_ELEMENT(*jobs, *njobs, job) < 0)
+            return -1;
+    }
+
+    return 0;
 }

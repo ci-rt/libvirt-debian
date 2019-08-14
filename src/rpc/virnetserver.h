@@ -19,15 +19,15 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRNETSERVER_H
-# define LIBVIRT_VIRNETSERVER_H
+#pragma once
 
-# include "virnettlscontext.h"
-# include "virnetserverprogram.h"
-# include "virnetserverclient.h"
-# include "virnetserverservice.h"
-# include "virobject.h"
-# include "virjson.h"
+#include "virnettlscontext.h"
+#include "virnetserverprogram.h"
+#include "virnetserverclient.h"
+#include "virnetserverservice.h"
+#include "virobject.h"
+#include "virjson.h"
+#include "virsystemd.h"
 
 
 virNetServerPtr virNetServerNew(const char *name,
@@ -39,12 +39,11 @@ virNetServerPtr virNetServerNew(const char *name,
                                 size_t max_anonymous_clients,
                                 int keepaliveInterval,
                                 unsigned int keepaliveCount,
-                                const char *mdnsGroupName,
                                 virNetServerClientPrivNew clientPrivNew,
                                 virNetServerClientPrivPreExecRestart clientPrivPreExecRestart,
                                 virFreeCallback clientPrivFree,
                                 void *clientPrivOpaque)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(11) ATTRIBUTE_NONNULL(13);
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(10) ATTRIBUTE_NONNULL(12);
 
 virNetServerPtr virNetServerNewPostExecRestart(virJSONValuePtr object,
                                                const char *name,
@@ -61,8 +60,29 @@ void virNetServerClose(virNetServerPtr srv);
 virJSONValuePtr virNetServerPreExecRestart(virNetServerPtr srv);
 
 int virNetServerAddService(virNetServerPtr srv,
-                           virNetServerServicePtr svc,
-                           const char *mdnsEntryName);
+                           virNetServerServicePtr svc);
+int virNetServerAddServiceTCP(virNetServerPtr srv,
+                              virSystemdActivationPtr act,
+                              const char *actname,
+                              const char *nodename,
+                              const char *service,
+                              int family,
+                              int auth,
+                              virNetTLSContextPtr tls,
+                              bool readonly,
+                              size_t max_queued_clients,
+                              size_t nrequests_client_max);
+int virNetServerAddServiceUNIX(virNetServerPtr srv,
+                               virSystemdActivationPtr act,
+                               const char *actname,
+                               const char *path,
+                               mode_t mask,
+                               gid_t grp,
+                               int auth,
+                               virNetTLSContextPtr tls,
+                               bool readonly,
+                               size_t max_queued_clients,
+                               size_t nrequests_client_max);
 
 int virNetServerAddProgram(virNetServerPtr srv,
                            virNetServerProgramPtr prog);
@@ -78,8 +98,6 @@ void virNetServerProcessClients(virNetServerPtr srv);
 void virNetServerSetClientAuthenticated(virNetServerPtr srv, virNetServerClientPtr client);
 
 void virNetServerUpdateServices(virNetServerPtr srv, bool enabled);
-
-int virNetServerStart(virNetServerPtr srv);
 
 const char *virNetServerGetName(virNetServerPtr srv);
 
@@ -101,6 +119,9 @@ unsigned long long virNetServerNextClientID(virNetServerPtr srv);
 virNetServerClientPtr virNetServerGetClient(virNetServerPtr srv,
                                             unsigned long long id);
 
+bool virNetServerNeedsAuth(virNetServerPtr srv,
+                           int auth);
+
 int virNetServerGetClients(virNetServerPtr srv,
                            virNetServerClientPtr **clients);
 
@@ -112,5 +133,3 @@ size_t virNetServerGetCurrentUnauthClients(virNetServerPtr srv);
 int virNetServerSetClientLimits(virNetServerPtr srv,
                                 long long int maxClients,
                                 long long int maxClientsUnauth);
-
-#endif /* LIBVIRT_VIRNETSERVER_H */

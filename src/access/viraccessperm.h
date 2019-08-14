@@ -18,12 +18,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRACCESSPERM_H
-# define LIBVIRT_VIRACCESSPERM_H
+#pragma once
 
-# include "internal.h"
-# include "virutil.h"
-# include "virenum.h"
+#include "internal.h"
+#include "virutil.h"
+#include "virenum.h"
 
 typedef enum {
     /**
@@ -186,6 +185,12 @@ typedef enum {
      * @message: Migrating domain requires authorization
      */
     VIR_ACCESS_PERM_DOMAIN_MIGRATE,   /* Host migration */
+
+    /**
+     * @desc: Checkpoint domain
+     * @message: Checkpointing domain requires authorization
+     */
+    VIR_ACCESS_PERM_DOMAIN_CHECKPOINT,  /* Checkpoint disks */
 
     /**
      * @desc: Snapshot domain
@@ -406,6 +411,12 @@ typedef enum {
     VIR_ACCESS_PERM_NETWORK_START,
 
     /**
+     * @desc: List network ports
+     * @message: Listing network ports requires authorization
+     */
+    VIR_ACCESS_PERM_NETWORK_SEARCH_PORTS,
+
+    /**
      * @desc: Stop network
      * @message: Stopping network requires authorization
      */
@@ -413,6 +424,43 @@ typedef enum {
 
     VIR_ACCESS_PERM_NETWORK_LAST
 } virAccessPermNetwork;
+
+typedef enum {
+
+    /**
+     * @desc: Access network port
+     * @message: Accessing network port requires authorization
+     * @anonymous: 1
+     */
+    VIR_ACCESS_PERM_NETWORK_PORT_GETATTR,
+
+    /**
+     * @desc: Read network port
+     * @message: Reading network port configuration requires authorization
+     * @anonymous: 1
+     */
+    VIR_ACCESS_PERM_NETWORK_PORT_READ,
+
+    /**
+     * @desc: Read network port
+     * @message: Writing network port configuration requires authorization
+     */
+    VIR_ACCESS_PERM_NETWORK_PORT_WRITE,
+
+    /**
+     * @desc: Create network port
+     * @message: Creating network port configuration requires authorization
+     */
+    VIR_ACCESS_PERM_NETWORK_PORT_CREATE,
+
+    /**
+     * @desc: Delete network port
+     * @message: Deleting network port configuration requires authorization
+     */
+    VIR_ACCESS_PERM_NETWORK_PORT_DELETE,
+
+    VIR_ACCESS_PERM_NETWORK_PORT_LAST
+} virAccessPermNetworkPort;
 
 typedef enum {
 
@@ -693,11 +741,10 @@ VIR_ENUM_DECL(virAccessPermConnect);
 VIR_ENUM_DECL(virAccessPermDomain);
 VIR_ENUM_DECL(virAccessPermInterface);
 VIR_ENUM_DECL(virAccessPermNetwork);
+VIR_ENUM_DECL(virAccessPermNetworkPort);
 VIR_ENUM_DECL(virAccessPermNodeDevice);
 VIR_ENUM_DECL(virAccessPermNWFilter);
 VIR_ENUM_DECL(virAccessPermNWFilterBinding);
 VIR_ENUM_DECL(virAccessPermSecret);
 VIR_ENUM_DECL(virAccessPermStoragePool);
 VIR_ENUM_DECL(virAccessPermStorageVol);
-
-#endif /* LIBVIRT_VIRACCESSPERM_H */

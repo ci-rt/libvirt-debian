@@ -94,26 +94,6 @@ qemuDriverUnlock(virQEMUDriverPtr driver)
     virMutexUnlock(&driver->lock);
 }
 
-void qemuDomainCmdlineDefFree(qemuDomainCmdlineDefPtr def)
-{
-    size_t i;
-
-    if (!def)
-        return;
-
-    for (i = 0; i < def->num_args; i++)
-        VIR_FREE(def->args[i]);
-    for (i = 0; i < def->num_env; i++) {
-        VIR_FREE(def->env_name[i]);
-        VIR_FREE(def->env_value[i]);
-    }
-    VIR_FREE(def->args);
-    VIR_FREE(def->env_name);
-    VIR_FREE(def->env_value);
-    VIR_FREE(def);
-}
-
-
 #ifndef DEFAULT_LOADER_NVRAM
 # define DEFAULT_LOADER_NVRAM \
     "/usr/share/OVMF/OVMF_CODE.fd:/usr/share/OVMF/OVMF_VARS.fd:" \
@@ -145,6 +125,7 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
         cfg->group = (gid_t)-1;
     }
     cfg->dynamicOwnership = privileged;
+    cfg->rememberOwner = privileged;
 
     cfg->cgroupControllers = -1; /* -1 == auto-detect */
 
@@ -178,6 +159,8 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
         if (virAsprintf(&cfg->saveDir, "%s/save", cfg->libDir) < 0)
             goto error;
         if (virAsprintf(&cfg->snapshotDir, "%s/snapshot", cfg->libDir) < 0)
+            goto error;
+        if (virAsprintf(&cfg->checkpointDir, "%s/checkpoint", cfg->libDir) < 0)
             goto error;
         if (virAsprintf(&cfg->autoDumpPath, "%s/dump", cfg->libDir) < 0)
             goto error;
@@ -241,6 +224,8 @@ virQEMUDriverConfigPtr virQEMUDriverConfigNew(bool privileged)
         if (virAsprintf(&cfg->saveDir, "%s/qemu/save", cfg->configBaseDir) < 0)
             goto error;
         if (virAsprintf(&cfg->snapshotDir, "%s/qemu/snapshot", cfg->configBaseDir) < 0)
+            goto error;
+        if (virAsprintf(&cfg->checkpointDir, "%s/qemu/checkpoint", cfg->configBaseDir) < 0)
             goto error;
         if (virAsprintf(&cfg->autoDumpPath, "%s/qemu/dump", cfg->configBaseDir) < 0)
             goto error;
@@ -354,6 +339,7 @@ static void virQEMUDriverConfigDispose(void *obj)
     VIR_FREE(cfg->cacheDir);
     VIR_FREE(cfg->saveDir);
     VIR_FREE(cfg->snapshotDir);
+    VIR_FREE(cfg->checkpointDir);
     VIR_FREE(cfg->channelTargetDir);
     VIR_FREE(cfg->nvramDir);
 
@@ -401,6 +387,8 @@ static void virQEMUDriverConfigDispose(void *obj)
 
     VIR_FREE(cfg->memoryBackingDir);
     VIR_FREE(cfg->swtpmStorageDir);
+
+    virStringListFree(cfg->capabilityfilters);
 }
 
 
@@ -687,6 +675,8 @@ virQEMUDriverConfigLoadProcessEntry(virQEMUDriverConfigPtr cfg,
         return -1;
     if (virConfGetValueUInt(conf, "max_files", &cfg->maxFiles) < 0)
         return -1;
+    if (virConfGetValueUInt(conf, "max_threads_per_process", &cfg->maxThreadsPerProc) < 0)
+        return -1;
 
     if (virConfGetValueType(conf, "max_core") == VIR_CONF_STRING) {
         if (virConfGetValueString(conf, "max_core", &corestr) < 0)
@@ -908,6 +898,9 @@ virQEMUDriverConfigLoadSecurityEntry(virQEMUDriverConfigPtr cfg,
     if (virConfGetValueBool(conf, "dynamic_ownership", &cfg->dynamicOwnership) < 0)
         return -1;
 
+    if (virConfGetValueBool(conf, "remember_owner", &cfg->rememberOwner) < 0)
+        return -1;
+
     if (virConfGetValueStringList(conf, "cgroup_controllers", false,
                                   &controllers) < 0)
         return -1;
@@ -1004,13 +997,24 @@ virQEMUDriverConfigLoadSWTPMEntry(virQEMUDriverConfigPtr cfg,
 }
 
 
+static int
+virQEMUDriverConfigLoadCapsFiltersEntry(virQEMUDriverConfigPtr cfg,
+                                        virConfPtr conf)
+{
+    if (virConfGetValueStringList(conf, "capability_filters", false,
+                                  &cfg->capabilityfilters) < 0)
+        return -1;
+
+    return 0;
+}
+
+
 int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
                                 const char *filename,
                                 bool privileged)
 {
     virConfPtr conf = NULL;
     int ret = -1;
-    char *corestr = NULL;
 
     /* Just check the file is readable before opening it, otherwise
      * libvirt emits an error.
@@ -1074,10 +1078,12 @@ int virQEMUDriverConfigLoadFile(virQEMUDriverConfigPtr cfg,
     if (virQEMUDriverConfigLoadSWTPMEntry(cfg, conf) < 0)
         goto cleanup;
 
+    if (virQEMUDriverConfigLoadCapsFiltersEntry(cfg, conf) < 0)
+        goto cleanup;
+
     ret = 0;
 
  cleanup:
-    VIR_FREE(corestr);
     virConfFree(conf);
     return ret;
 }

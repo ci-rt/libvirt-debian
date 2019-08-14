@@ -83,16 +83,19 @@ struct daemonClientEventCallback {
 
 static virDomainPtr get_nonnull_domain(virConnectPtr conn, remote_nonnull_domain domain);
 static virNetworkPtr get_nonnull_network(virConnectPtr conn, remote_nonnull_network network);
+static virNetworkPortPtr get_nonnull_network_port(virConnectPtr conn, remote_nonnull_network_port port);
 static virInterfacePtr get_nonnull_interface(virConnectPtr conn, remote_nonnull_interface iface);
 static virStoragePoolPtr get_nonnull_storage_pool(virConnectPtr conn, remote_nonnull_storage_pool pool);
 static virStorageVolPtr get_nonnull_storage_vol(virConnectPtr conn, remote_nonnull_storage_vol vol);
 static virSecretPtr get_nonnull_secret(virConnectPtr conn, remote_nonnull_secret secret);
 static virNWFilterPtr get_nonnull_nwfilter(virConnectPtr conn, remote_nonnull_nwfilter nwfilter);
 static virNWFilterBindingPtr get_nonnull_nwfilter_binding(virConnectPtr conn, remote_nonnull_nwfilter_binding binding);
+static virDomainCheckpointPtr get_nonnull_domain_checkpoint(virDomainPtr dom, remote_nonnull_domain_checkpoint checkpoint);
 static virDomainSnapshotPtr get_nonnull_domain_snapshot(virDomainPtr dom, remote_nonnull_domain_snapshot snapshot);
 static virNodeDevicePtr get_nonnull_node_device(virConnectPtr conn, remote_nonnull_node_device dev);
 static int make_nonnull_domain(remote_nonnull_domain *dom_dst, virDomainPtr dom_src) ATTRIBUTE_RETURN_CHECK;
 static int make_nonnull_network(remote_nonnull_network *net_dst, virNetworkPtr net_src) ATTRIBUTE_RETURN_CHECK;
+static int make_nonnull_network_port(remote_nonnull_network_port *port_dst, virNetworkPortPtr port_src) ATTRIBUTE_RETURN_CHECK;
 static int make_nonnull_interface(remote_nonnull_interface *interface_dst, virInterfacePtr interface_src) ATTRIBUTE_RETURN_CHECK;
 static int make_nonnull_storage_pool(remote_nonnull_storage_pool *pool_dst, virStoragePoolPtr pool_src) ATTRIBUTE_RETURN_CHECK;
 static int make_nonnull_storage_vol(remote_nonnull_storage_vol *vol_dst, virStorageVolPtr vol_src) ATTRIBUTE_RETURN_CHECK;
@@ -100,6 +103,7 @@ static int make_nonnull_node_device(remote_nonnull_node_device *dev_dst, virNode
 static int make_nonnull_secret(remote_nonnull_secret *secret_dst, virSecretPtr secret_src) ATTRIBUTE_RETURN_CHECK;
 static int make_nonnull_nwfilter(remote_nonnull_nwfilter *net_dst, virNWFilterPtr nwfilter_src) ATTRIBUTE_RETURN_CHECK;
 static int make_nonnull_nwfilter_binding(remote_nonnull_nwfilter_binding *binding_dst, virNWFilterBindingPtr binding_src) ATTRIBUTE_RETURN_CHECK;
+static int make_nonnull_domain_checkpoint(remote_nonnull_domain_checkpoint *checkpoint_dst, virDomainCheckpointPtr checkpoint_src) ATTRIBUTE_RETURN_CHECK;
 static int make_nonnull_domain_snapshot(remote_nonnull_domain_snapshot *snapshot_dst, virDomainSnapshotPtr snapshot_src) ATTRIBUTE_RETURN_CHECK;
 
 static int
@@ -7175,6 +7179,54 @@ remoteDispatchStorageVolGetInfoFlags(virNetServerPtr server ATTRIBUTE_UNUSED,
 }
 
 
+static int
+remoteDispatchNetworkPortGetParameters(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                       virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                                       virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                       virNetMessageErrorPtr rerr,
+                                       remote_network_port_get_parameters_args *args,
+                                       remote_network_port_get_parameters_ret *ret)
+{
+    int rv = -1;
+    virNetworkPortPtr port = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->networkConn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(port = get_nonnull_network_port(priv->networkConn, args->port)))
+        goto cleanup;
+
+    if (virNetworkPortGetParameters(port, &params, &nparams, args->flags) < 0)
+        goto cleanup;
+
+    if (nparams > REMOTE_NETWORK_PORT_PARAMETERS_MAX) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("nparams too large"));
+        goto cleanup;
+    }
+
+    if (virTypedParamsSerialize(params, nparams,
+                                (virTypedParameterRemotePtr *) &ret->params.params_val,
+                                &ret->params.params_len,
+                                args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+ cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virObjectUnref(port);
+    virTypedParamsFree(params, nparams);
+    return rv;
+}
+
+
 /*----- Helpers. -----*/
 
 /* get_nonnull_domain and get_nonnull_network turn an on-wire
@@ -7196,6 +7248,19 @@ static virNetworkPtr
 get_nonnull_network(virConnectPtr conn, remote_nonnull_network network)
 {
     return virGetNetwork(conn, network.name, BAD_CAST network.uuid);
+}
+
+static virNetworkPortPtr
+get_nonnull_network_port(virConnectPtr conn, remote_nonnull_network_port port)
+{
+    virNetworkPortPtr ret;
+    virNetworkPtr net;
+    net = virGetNetwork(conn, port.net.name, BAD_CAST port.net.uuid);
+    if (!net)
+        return NULL;
+    ret = virGetNetworkPort(net, BAD_CAST port.uuid);
+    virObjectUnref(net);
+    return ret;
 }
 
 static virInterfacePtr
@@ -7238,6 +7303,12 @@ get_nonnull_nwfilter_binding(virConnectPtr conn, remote_nonnull_nwfilter_binding
     return virGetNWFilterBinding(conn, binding.portdev, binding.filtername);
 }
 
+static virDomainCheckpointPtr
+get_nonnull_domain_checkpoint(virDomainPtr dom, remote_nonnull_domain_checkpoint checkpoint)
+{
+    return virGetDomainCheckpoint(dom, checkpoint.name);
+}
+
 static virDomainSnapshotPtr
 get_nonnull_domain_snapshot(virDomainPtr dom, remote_nonnull_domain_snapshot snapshot)
 {
@@ -7267,6 +7338,16 @@ make_nonnull_network(remote_nonnull_network *net_dst, virNetworkPtr net_src)
     if (VIR_STRDUP(net_dst->name, net_src->name) < 0)
         return -1;
     memcpy(net_dst->uuid, net_src->uuid, VIR_UUID_BUFLEN);
+    return 0;
+}
+
+static int
+make_nonnull_network_port(remote_nonnull_network_port *port_dst, virNetworkPortPtr port_src)
+{
+    if (VIR_STRDUP(port_dst->net.name, port_src->net->name) < 0)
+        return -1;
+    memcpy(port_dst->net.uuid, port_src->net->uuid, VIR_UUID_BUFLEN);
+    memcpy(port_dst->uuid, port_src->uuid, VIR_UUID_BUFLEN);
     return 0;
 }
 
@@ -7343,6 +7424,18 @@ make_nonnull_nwfilter_binding(remote_nonnull_nwfilter_binding *binding_dst, virN
         return -1;
     if (VIR_STRDUP(binding_dst->filtername, binding_src->filtername) < 0) {
         VIR_FREE(binding_dst->portdev);
+        return -1;
+    }
+    return 0;
+}
+
+static int
+make_nonnull_domain_checkpoint(remote_nonnull_domain_checkpoint *checkpoint_dst, virDomainCheckpointPtr checkpoint_src)
+{
+    if (VIR_STRDUP(checkpoint_dst->name, checkpoint_src->name) < 0)
+        return -1;
+    if (make_nonnull_domain(&checkpoint_dst->dom, checkpoint_src->domain) < 0) {
+        VIR_FREE(checkpoint_dst->name);
         return -1;
     }
     return 0;

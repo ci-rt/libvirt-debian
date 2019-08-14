@@ -17,12 +17,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRNETWORKOBJ_H
-# define LIBVIRT_VIRNETWORKOBJ_H
+#pragma once
 
-# include "internal.h"
+#include "internal.h"
 
-# include "network_conf.h"
+#include "network_conf.h"
+#include "virnetworkportdef.h"
 
 typedef struct _virNetworkObj virNetworkObj;
 typedef virNetworkObj *virNetworkObjPtr;
@@ -140,7 +140,8 @@ virNetworkObjUpdateAssignDef(virNetworkObjPtr network,
 
 int
 virNetworkObjSetDefTransient(virNetworkObjPtr network,
-                             bool live);
+                             bool live,
+                             virNetworkXMLOptionPtr xmlopt);
 
 void
 virNetworkObjUnsetDefTransient(virNetworkObjPtr network);
@@ -157,17 +158,53 @@ virNetworkObjRemoveInactive(virNetworkObjListPtr nets,
                             virNetworkObjPtr net);
 
 int
+virNetworkObjAddPort(virNetworkObjPtr net,
+                     virNetworkPortDefPtr portdef,
+                     const char *stateDir);
+
+char *
+virNetworkObjGetPortStatusDir(virNetworkObjPtr net,
+                              const char *stateDir);
+
+virNetworkPortDefPtr
+virNetworkObjLookupPort(virNetworkObjPtr net,
+                        const unsigned char *uuid);
+
+int
+virNetworkObjDeletePort(virNetworkObjPtr net,
+                        const unsigned char *uuid,
+                        const char *stateDir);
+
+int
+virNetworkObjDeleteAllPorts(virNetworkObjPtr net,
+                            const char *stateDir);
+
+typedef bool
+(*virNetworkPortListFilter)(virConnectPtr conn,
+                            virNetworkDefPtr def,
+                            virNetworkPortDefPtr portdef);
+
+int
+virNetworkObjPortListExport(virNetworkPtr net,
+                            virNetworkObjPtr obj,
+                            virNetworkPortPtr **ports,
+                            virNetworkPortListFilter filter);
+
+int
 virNetworkObjSaveStatus(const char *statusDir,
-                        virNetworkObjPtr net) ATTRIBUTE_RETURN_CHECK;
+                        virNetworkObjPtr net,
+                        virNetworkXMLOptionPtr xmlopt) ATTRIBUTE_RETURN_CHECK;
 
 int
 virNetworkObjLoadAllConfigs(virNetworkObjListPtr nets,
                             const char *configDir,
-                            const char *autostartDir);
+                            const char *autostartDir,
+                            virNetworkXMLOptionPtr xmlopt);
 
 int
 virNetworkObjLoadAllState(virNetworkObjListPtr nets,
-                          const char *stateDir);
+                          const char *stateDir,
+                          virNetworkXMLOptionPtr xmlopt);
 
 int
 virNetworkObjDeleteConfig(const char *configDir,
@@ -185,6 +222,7 @@ virNetworkObjUpdate(virNetworkObjPtr obj,
                     unsigned int section, /* virNetworkUpdateSection */
                     int parentIndex,
                     const char *xml,
+                    virNetworkXMLOptionPtr xmlopt,
                     unsigned int flags);  /* virNetworkUpdateFlags */
 
 int
@@ -220,5 +258,3 @@ virNetworkObjListNumOfNetworks(virNetworkObjListPtr nets,
 void
 virNetworkObjListPrune(virNetworkObjListPtr nets,
                        unsigned int flags);
-
-#endif /* LIBVIRT_VIRNETWORKOBJ_H */

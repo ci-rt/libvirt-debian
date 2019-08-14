@@ -133,11 +133,13 @@ mymain(void)
     TEST("s390", virSysinfoReadS390);
     TEST("s390-freq", virSysinfoReadS390);
     TEST("ppc", virSysinfoReadPPC);
-    TEST_FULL("x86", virSysinfoReadX86, "/sysinfodata/dmidecode.sh");
+    TEST_FULL("x86", virSysinfoReadDMI, "/sysinfodata/x86dmidecode.sh");
     TEST("arm", virSysinfoReadARM);
     TEST("arm-rpi2", virSysinfoReadARM);
     TEST("aarch64", virSysinfoReadARM);
     TEST("aarch64-moonshot", virSysinfoReadARM);
+    TEST_FULL("aarch64-gigabyte", virSysinfoReadARM,
+              "/sysinfodata/aarch64-gigabytedmidecode.sh");
 
     return ret;
 }

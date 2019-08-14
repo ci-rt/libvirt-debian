@@ -73,6 +73,42 @@ VIR_ENUM_IMPL(virNetworkTaint,
               "hook-script",
 );
 
+static virClassPtr virNetworkXMLOptionClass;
+
+static void
+virNetworkXMLOptionDispose(void *obj ATTRIBUTE_UNUSED)
+{
+    return;
+}
+
+static int
+virNetworkXMLOnceInit(void)
+{
+    if (!VIR_CLASS_NEW(virNetworkXMLOption, virClassForObject()))
+        return -1;
+
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(virNetworkXML);
+
+virNetworkXMLOptionPtr
+virNetworkXMLOptionNew(virNetworkXMLNamespacePtr xmlns)
+{
+    virNetworkXMLOptionPtr xmlopt;
+
+    if (virNetworkXMLInitialize() < 0)
+        return NULL;
+
+    if (!(xmlopt = virObjectNew(virNetworkXMLOptionClass)))
+        return NULL;
+
+    if (xmlns)
+        xmlopt->ns = *xmlns;
+
+    return xmlopt;
+}
+
 static void
 virPortGroupDefClear(virPortGroupDefPtr def)
 {
@@ -235,6 +271,8 @@ virNetworkDefFree(virNetworkDefPtr def)
 
     xmlFreeNode(def->metadata);
 
+    if (def->namespaceData && def->ns.free)
+        (def->ns.free)(def->namespaceData);
     VIR_FREE(def);
 }
 
@@ -249,7 +287,9 @@ virNetworkDefFree(virNetworkDefPtr def)
  * Returns a new NetworkDef on success, or NULL on failure.
  */
 virNetworkDefPtr
-virNetworkDefCopy(virNetworkDefPtr def, unsigned int flags)
+virNetworkDefCopy(virNetworkDefPtr def,
+                  virNetworkXMLOptionPtr xmlopt,
+                  unsigned int flags)
 {
     char *xml = NULL;
     virNetworkDefPtr newDef = NULL;
@@ -261,9 +301,9 @@ virNetworkDefCopy(virNetworkDefPtr def, unsigned int flags)
     }
 
     /* deep copy with a format/parse cycle */
-    if (!(xml = virNetworkDefFormat(def, flags)))
+    if (!(xml = virNetworkDefFormat(def, xmlopt, flags)))
         goto cleanup;
-    newDef = virNetworkDefParseString(xml);
+    newDef = virNetworkDefParseString(xml, xmlopt);
  cleanup:
     VIR_FREE(xml);
     return newDef;
@@ -1188,7 +1228,7 @@ virNetworkPortGroupParseXML(virPortGroupDefPtr def,
 
     bandwidth_node = virXPathNode("./bandwidth", ctxt);
     if (bandwidth_node &&
-        virNetDevBandwidthParse(&def->bandwidth, bandwidth_node, false) < 0)
+        virNetDevBandwidthParse(&def->bandwidth, NULL, bandwidth_node, false) < 0)
         goto cleanup;
 
     vlanNode = virXPathNode("./vlan", ctxt);
@@ -1586,7 +1626,8 @@ virNetworkForwardDefParseXML(const char *networkName,
 
 
 virNetworkDefPtr
-virNetworkDefParseXML(xmlXPathContextPtr ctxt)
+virNetworkDefParseXML(xmlXPathContextPtr ctxt,
+                      virNetworkXMLOptionPtr xmlopt)
 {
     virNetworkDefPtr def;
     char *tmp = NULL;
@@ -1682,7 +1723,7 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     }
 
     if ((bandwidthNode = virXPathNode("./bandwidth", ctxt)) &&
-        virNetDevBandwidthParse(&def->bandwidth, bandwidthNode, false) < 0)
+        virNetDevBandwidthParse(&def->bandwidth, NULL, bandwidthNode, false) < 0)
         goto error;
 
     vlanNode = virXPathNode("./vlan", ctxt);
@@ -2007,6 +2048,12 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
         virXMLNodeSanitizeNamespaces(def->metadata);
     }
 
+    if (xmlopt)
+        def->ns = xmlopt->ns;
+    if (def->ns.parse &&
+        (def->ns.parse)(ctxt, &def->namespaceData) < 0)
+        goto error;
+
     ctxt->node = save;
     return def;
 
@@ -2026,14 +2073,15 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
 
 static virNetworkDefPtr
 virNetworkDefParse(const char *xmlStr,
-                   const char *filename)
+                   const char *filename,
+                   virNetworkXMLOptionPtr xmlopt)
 {
     xmlDocPtr xml;
     virNetworkDefPtr def = NULL;
     int keepBlanksDefault = xmlKeepBlanksDefault(0);
 
     if ((xml = virXMLParse(filename, xmlStr, _("(network_definition)")))) {
-        def = virNetworkDefParseNode(xml, xmlDocGetRootElement(xml));
+        def = virNetworkDefParseNode(xml, xmlDocGetRootElement(xml), xmlopt);
         xmlFreeDoc(xml);
     }
 
@@ -2043,22 +2091,25 @@ virNetworkDefParse(const char *xmlStr,
 
 
 virNetworkDefPtr
-virNetworkDefParseString(const char *xmlStr)
+virNetworkDefParseString(const char *xmlStr,
+                         virNetworkXMLOptionPtr xmlopt)
 {
-    return virNetworkDefParse(xmlStr, NULL);
+    return virNetworkDefParse(xmlStr, NULL, xmlopt);
 }
 
 
 virNetworkDefPtr
-virNetworkDefParseFile(const char *filename)
+virNetworkDefParseFile(const char *filename,
+                       virNetworkXMLOptionPtr xmlopt)
 {
-    return virNetworkDefParse(NULL, filename);
+    return virNetworkDefParse(NULL, filename, xmlopt);
 }
 
 
 virNetworkDefPtr
 virNetworkDefParseNode(xmlDocPtr xml,
-                       xmlNodePtr root)
+                       xmlNodePtr root,
+                       virNetworkXMLOptionPtr xmlopt)
 {
     xmlXPathContextPtr ctxt = NULL;
     virNetworkDefPtr def = NULL;
@@ -2078,7 +2129,7 @@ virNetworkDefParseNode(xmlDocPtr xml,
     }
 
     ctxt->node = root;
-    def = virNetworkDefParseXML(ctxt);
+    def = virNetworkDefParseXML(ctxt, xmlopt);
 
  cleanup:
     xmlXPathFreeContext(ctxt);
@@ -2311,7 +2362,7 @@ virPortGroupDefFormat(virBufferPtr buf,
         return -1;
     if (virNetDevVPortProfileFormat(def->virtPortProfile, buf) < 0)
         return -1;
-    virNetDevBandwidthFormat(def->bandwidth, buf);
+    virNetDevBandwidthFormat(def->bandwidth, 0, buf);
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</portgroup>\n");
     return 0;
@@ -2372,6 +2423,7 @@ virNetworkForwardNatDefFormat(virBufferPtr buf,
 int
 virNetworkDefFormatBuf(virBufferPtr buf,
                        const virNetworkDef *def,
+                       virNetworkXMLOptionPtr xmlopt ATTRIBUTE_UNUSED,
                        unsigned int flags)
 {
     const unsigned char *uuid;
@@ -2381,6 +2433,8 @@ virNetworkDefFormatBuf(virBufferPtr buf,
     bool hasbridge = false;
 
     virBufferAddLit(buf, "<network");
+    if (def->namespaceData && def->ns.href)
+        virBufferAsprintf(buf, " %s", (def->ns.href)());
     if (!(flags & VIR_NETWORK_XML_INACTIVE) && (def->connections > 0))
         virBufferAsprintf(buf, " connections='%d'", def->connections);
     if (def->ipv6nogw)
@@ -2566,7 +2620,7 @@ virNetworkDefFormatBuf(virBufferPtr buf,
 
     if (virNetDevVlanFormat(&def->vlan, buf) < 0)
         goto error;
-    if (virNetDevBandwidthFormat(def->bandwidth, buf) < 0)
+    if (virNetDevBandwidthFormat(def->bandwidth, 0, buf) < 0)
         goto error;
 
     for (i = 0; i < def->nips; i++) {
@@ -2586,6 +2640,11 @@ virNetworkDefFormatBuf(virBufferPtr buf,
         if (virPortGroupDefFormat(buf, &def->portGroups[i]) < 0)
             goto error;
 
+    if (def->namespaceData && def->ns.format) {
+        if ((def->ns.format)(buf, def->namespaceData) < 0)
+            return -1;
+    }
+
     virBufferAdjustIndent(buf, -2);
     virBufferAddLit(buf, "</network>\n");
 
@@ -2598,11 +2657,12 @@ virNetworkDefFormatBuf(virBufferPtr buf,
 
 char *
 virNetworkDefFormat(const virNetworkDef *def,
+                    virNetworkXMLOptionPtr xmlopt,
                     unsigned int flags)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (virNetworkDefFormatBuf(&buf, def, flags) < 0)
+    if (virNetworkDefFormatBuf(&buf, def, xmlopt, flags) < 0)
         goto error;
 
     if (virBufferCheckError(&buf) < 0)
@@ -2676,12 +2736,13 @@ virNetworkSaveXML(const char *configDir,
 
 int
 virNetworkSaveConfig(const char *configDir,
-                     virNetworkDefPtr def)
+                     virNetworkDefPtr def,
+                     virNetworkXMLOptionPtr xmlopt)
 {
     int ret = -1;
     char *xml;
 
-    if (!(xml = virNetworkDefFormat(def, VIR_NETWORK_XML_INACTIVE)))
+    if (!(xml = virNetworkDefFormat(def, xmlopt, VIR_NETWORK_XML_INACTIVE)))
         goto cleanup;
 
     if (virNetworkSaveXML(configDir, def, xml))

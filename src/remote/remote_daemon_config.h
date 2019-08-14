@@ -19,10 +19,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_REMOTE_DAEMON_CONFIG_H
-# define LIBVIRT_REMOTE_DAEMON_CONFIG_H
+#pragma once
 
-# include "internal.h"
+#include "internal.h"
 
 struct daemonConfig {
     char *host_uuid;
@@ -46,9 +45,6 @@ struct daemonConfig {
     int auth_tls;
 
     char **access_drivers;
-
-    bool mdns_adv;
-    char *mdns_name;
 
     bool tls_no_verify_certificate;
     bool tls_no_sanity_certificate;
@@ -103,5 +99,3 @@ int daemonConfigLoadFile(struct daemonConfig *data,
 int daemonConfigLoadData(struct daemonConfig *data,
                          const char *filename,
                          const char *filedata);
-
-#endif /* LIBVIRT_REMOTE_DAEMON_CONFIG_H */

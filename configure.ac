@@ -16,7 +16,7 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this library.  If not, see
 dnl <http://www.gnu.org/licenses/>.
 
-AC_INIT([libvirt], [5.3.0], [libvir-list@redhat.com], [], [https://libvirt.org])
+AC_INIT([libvirt], [5.6.0], [libvir-list@redhat.com], [], [https://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -245,7 +245,6 @@ LIBVIRT_LINKER_NO_UNDEFINED
 LIBVIRT_ARG_APPARMOR
 LIBVIRT_ARG_ATTR
 LIBVIRT_ARG_AUDIT
-LIBVIRT_ARG_AVAHI
 LIBVIRT_ARG_BASH_COMPLETION
 LIBVIRT_ARG_BLKID
 LIBVIRT_ARG_CAPNG
@@ -284,7 +283,6 @@ LIBVIRT_CHECK_APPARMOR
 LIBVIRT_CHECK_ATOMIC
 LIBVIRT_CHECK_ATTR
 LIBVIRT_CHECK_AUDIT
-LIBVIRT_CHECK_AVAHI
 LIBVIRT_CHECK_BASH_COMPLETION
 LIBVIRT_CHECK_BLKID
 LIBVIRT_CHECK_CAPNG
@@ -413,19 +411,6 @@ dnl Check for external programs
 dnl
 
 LIBVIRT_CHECK_EXTERNAL_PROGRAMS
-
-
-dnl Specific dir for HTML output ?
-LIBVIRT_ARG_WITH([HTML_DIR], [path to base html directory],
-                 ['$(datadir)/doc'])
-LIBVIRT_ARG_WITH([HTML_SUBDIR], [directory used under html-dir],
-                 ['$(PACKAGE)-$(VERSION)/html'])
-if test "x$with_html_subdir" != "x" ; then
-  HTML_DIR="$with_html_dir/$with_html_subdir"
-else
-  HTML_DIR="$with_html_dir"
-fi
-AC_SUBST([HTML_DIR])
 
 dnl if --prefix is /usr, don't use /usr/var for localstatedir
 dnl or /usr/etc for sysconfdir
@@ -983,7 +968,6 @@ LIBVIRT_RESULT_ACL
 LIBVIRT_RESULT_APPARMOR
 LIBVIRT_RESULT_ATTR
 LIBVIRT_RESULT_AUDIT
-LIBVIRT_RESULT_AVAHI
 LIBVIRT_RESULT_BASH_COMPLETION
 LIBVIRT_RESULT_BLKID
 LIBVIRT_RESULT_CAPNG

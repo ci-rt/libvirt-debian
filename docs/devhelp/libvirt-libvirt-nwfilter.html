@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>libvirt-nwfilter: APIs for management of nwfilters</title>
+    <meta name="generator" content="Libvirt devhelp stylesheet"/>
+    <link rel="start" href="index.html" title="libvirt Reference Manual"/>
+    <link rel="up" href="general.html" title="API"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="chapter" href="general.html" title="API"/>
+  </head>
+  <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+    <table class="navigation" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+      <tr valign="middle">
+        <td>
+          <a accesskey="p" href="libvirt-libvirt-nodedev.html">
+            <img src="left.png" width="24" height="24" border="0" alt="Prev"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="u" href="general.html">
+            <img src="up.png" width="24" height="24" border="0" alt="Up"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="h" href="index.html">
+            <img src="home.png" width="24" height="24" border="0" alt="Home"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="n" href="libvirt-libvirt-secret.html">
+            <img src="right.png" width="24" height="24" border="0" alt="Next"/>
+          </a>
+        </td>
+        <th width="100%" align="center">libvirt Reference Manual</th>
+      </tr>
+    </table>
+    <h2>
+      <span class="refentrytitle">libvirt-nwfilter</span>
+    </h2>
+    <p>libvirt-nwfilter - APIs for management of nwfilters</p>
+    <p>Provides APIs for the management of nwfilters  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <div class="refsynopsisdiv">
+      <h2>Synopsis</h2>
+      <pre class="synopsis">typedef struct _virNWFilter <a href="#virNWFilter">virNWFilter</a>;
+typedef struct _virNWFilterBinding <a href="#virNWFilterBinding">virNWFilterBinding</a>;
+typedef <a href="libvirt-libvirt-nwfilter.html#virNWFilterBinding">virNWFilterBinding</a> * <a href="#virNWFilterBindingPtr">virNWFilterBindingPtr</a>;
+typedef <a href="libvirt-libvirt-nwfilter.html#virNWFilter">virNWFilter</a> * <a href="#virNWFilterPtr">virNWFilterPtr</a>;
+int	<a href="#virConnectListAllNWFilterBindings">virConnectListAllNWFilterBindings</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> ** bindings, <br/>						 unsigned int flags);
+int	<a href="#virConnectListAllNWFilters">virConnectListAllNWFilters</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> ** filters, <br/>					 unsigned int flags);
+int	<a href="#virConnectListNWFilters">virConnectListNWFilters</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
+int	<a href="#virConnectNumOfNWFilters">virConnectNumOfNWFilters</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a>	<a href="#virNWFilterBindingCreateXML">virNWFilterBindingCreateXML</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * xml, <br/>							 unsigned int flags);
+int	<a href="#virNWFilterBindingDelete">virNWFilterBindingDelete</a>	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding);
+int	<a href="#virNWFilterBindingFree">virNWFilterBindingFree</a>		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding);
+const char *	<a href="#virNWFilterBindingGetFilterName">virNWFilterBindingGetFilterName</a>	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding);
+const char *	<a href="#virNWFilterBindingGetPortDev">virNWFilterBindingGetPortDev</a>	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding);
+char *	<a href="#virNWFilterBindingGetXMLDesc">virNWFilterBindingGetXMLDesc</a>	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding, <br/>					 unsigned int flags);
+<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a>	<a href="#virNWFilterBindingLookupByPortDev">virNWFilterBindingLookupByPortDev</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * portdev);
+int	<a href="#virNWFilterBindingRef">virNWFilterBindingRef</a>		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding);
+<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a>	<a href="#virNWFilterDefineXML">virNWFilterDefineXML</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc);
+int	<a href="#virNWFilterFree">virNWFilterFree</a>			(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter);
+const char *	<a href="#virNWFilterGetName">virNWFilterGetName</a>	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter);
+int	<a href="#virNWFilterGetUUID">virNWFilterGetUUID</a>		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 unsigned char * uuid);
+int	<a href="#virNWFilterGetUUIDString">virNWFilterGetUUIDString</a>	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 char * buf);
+char *	<a href="#virNWFilterGetXMLDesc">virNWFilterGetXMLDesc</a>		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 unsigned int flags);
+<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a>	<a href="#virNWFilterLookupByName">virNWFilterLookupByName</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name);
+<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a>	<a href="#virNWFilterLookupByUUID">virNWFilterLookupByUUID</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid);
+<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a>	<a href="#virNWFilterLookupByUUIDString">virNWFilterLookupByUUIDString</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr);
+int	<a href="#virNWFilterRef">virNWFilterRef</a>			(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter);
+int	<a href="#virNWFilterUndefine">virNWFilterUndefine</a>		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter);
+</pre>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Description</h2>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Details</h2>
+      <div class="refsect2" lang="en">
+        <div class="refsect2" lang="en"><h3><a name="virNWFilter">Structure </a>virNWFilter</h3><pre class="programlisting">struct _virNWFilter {
+The content of this structure is not made public by the API.
+} virNWFilter;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBinding">Structure </a>virNWFilterBinding</h3><pre class="programlisting">struct _virNWFilterBinding {
+The content of this structure is not made public by the API.
+} virNWFilterBinding;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBindingPtr">Typedef </a>virNWFilterBindingPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-nwfilter.html#virNWFilterBinding">virNWFilterBinding</a> * virNWFilterBindingPtr;
+</pre><p>a <a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> is pointer to a <a href="libvirt-libvirt-nwfilter.html#virNWFilterBinding">virNWFilterBinding</a> private structure, this is the type used to reference a network filter port binding in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterPtr">Typedef </a>virNWFilterPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-nwfilter.html#virNWFilter">virNWFilter</a> * virNWFilterPtr;
+</pre><p>a <a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> is pointer to a <a href="libvirt-libvirt-nwfilter.html#virNWFilter">virNWFilter</a> private structure, this is the type used to reference a network filter in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllNWFilterBindings"/>virConnectListAllNWFilterBindings ()</h3><pre class="programlisting">int	virConnectListAllNWFilterBindings	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> ** bindings, <br/>						 unsigned int flags)<br/>
+</pre><p>Collect the list of network filters, and allocate an array to store those
+objects.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>bindings</tt></i>:</span></td><td>Pointer to a variable to store the array containing the network filter objects or NULL if the list is not required (just returns number of network filters).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of network filters found or -1 and sets @filters to NULL in case of error. On success, the array stored into @filters is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virNWFilterFree() on each array element, then calling free() on @filters.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllNWFilters"/>virConnectListAllNWFilters ()</h3><pre class="programlisting">int	virConnectListAllNWFilters	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> ** filters, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect the list of network filters, and allocate an array to store those
+objects.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>filters</tt></i>:</span></td><td>Pointer to a variable to store the array containing the network filter objects or NULL if the list is not required (just returns number of network filters).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of network filters found or -1 and sets @filters to NULL in case of error. On success, the array stored into @filters is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virNWFilterFree() on each array element, then calling free() on @filters.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListNWFilters"/>virConnectListNWFilters ()</h3><pre class="programlisting">int	virConnectListNWFilters		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
+</pre><p>Collect the list of network filters, and store their names in @names</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of network filters</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of network filters found or -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNumOfNWFilters"/>virConnectNumOfNWFilters ()</h3><pre class="programlisting">int	virConnectNumOfNWFilters	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Provides the number of nwfilters.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of nwfilters found or -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBindingCreateXML"/>virNWFilterBindingCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a>	virNWFilterBindingCreateXML	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * xml, <br/>							 unsigned int flags)<br/>
+</pre><p>Define a new network filter, based on an XML description
+similar to the one returned by virNWFilterGetXMLDesc(). This
+API may be used to associate a filter with a currently running
+guest that does not have a filter defined for a specific network
+port. Since the bindings are generally automatically managed by
+the hypervisor, using this command to define a filter for a network
+port and then starting the guest afterwards may prevent the guest
+from starting if it attempts to use the network port and finds a
+filter already defined.
+
+virNWFilterFree should be used to free the resources after the
+binding object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>an XML description of the binding</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new binding object or NULL in case of failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBindingDelete"/>virNWFilterBindingDelete ()</h3><pre class="programlisting">int	virNWFilterBindingDelete	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding)<br/>
+</pre><p>Delete the binding object. This does not free the
+associated <a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> object. This API
+may be used to remove the network port binding filter
+currently in use for the guest while the guest is
+running without needing to restart the guest. Restoring
+the network port binding filter for the running guest
+would be accomplished by using virNWFilterBindingCreateXML.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>binding</tt></i>:</span></td><td>a binding object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBindingFree"/>virNWFilterBindingFree ()</h3><pre class="programlisting">int	virNWFilterBindingFree		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding)<br/>
+</pre><p>Free the binding object. The running instance is kept alive.
+The data structure is freed and should not be used thereafter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>binding</tt></i>:</span></td><td>a binding object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBindingGetFilterName"/>virNWFilterBindingGetFilterName ()</h3><pre class="programlisting">const char *	virNWFilterBindingGetFilterName	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding)<br/>
+</pre><p>Get the filter name for the network filter binding</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>binding</tt></i>:</span></td><td>a binding object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the name or NULL, the string need not be deallocated its lifetime will be the same as the binding object.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBindingGetPortDev"/>virNWFilterBindingGetPortDev ()</h3><pre class="programlisting">const char *	virNWFilterBindingGetPortDev	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding)<br/>
+</pre><p>Get the port dev name for the network filter binding</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>binding</tt></i>:</span></td><td>a binding object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the name or NULL, the string need not be deallocated its lifetime will be the same as the binding object.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBindingGetXMLDesc"/>virNWFilterBindingGetXMLDesc ()</h3><pre class="programlisting">char *	virNWFilterBindingGetXMLDesc	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding, <br/>					 unsigned int flags)<br/>
+</pre><p>Provide an XML description of the network filter. The description may be
+reused later to redefine the network filter with virNWFilterCreateXML().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>binding</tt></i>:</span></td><td>a binding object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. The caller must free() the returned value.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBindingLookupByPortDev"/>virNWFilterBindingLookupByPortDev ()</h3><pre class="programlisting"><a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a>	virNWFilterBindingLookupByPortDev	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * portdev)<br/>
+</pre><p>Try to lookup a network filter binding on the given hypervisor based
+on network port device name.
+
+virNWFilterBindingFree should be used to free the resources after the
+binding object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>portdev</tt></i>:</span></td><td>name for the network port device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new binding object or NULL in case of failure. If the network filter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER_BINDING">VIR_ERR_NO_NWFILTER_BINDING</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterBindingRef"/>virNWFilterBindingRef ()</h3><pre class="programlisting">int	virNWFilterBindingRef		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterBindingPtr">virNWFilterBindingPtr</a> binding)<br/>
+</pre><p>Increment the reference count on the binding. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt-nwfilter.html#virNWFilterFree">virNWFilterFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection remain open until all threads have finished using
+it. ie, each new thread using an binding would increment
+the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>binding</tt></i>:</span></td><td>the binding to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterDefineXML"/>virNWFilterDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterDefineXML	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc)<br/>
+</pre><p>Define a new network filter, based on an XML description
+similar to the one returned by virNWFilterGetXMLDesc()
+
+virNWFilterFree should be used to free the resources after the
+nwfilter object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>an XML description of the nwfilter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterFree"/>virNWFilterFree ()</h3><pre class="programlisting">int	virNWFilterFree			(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
+</pre><p>Free the nwfilter object. The running instance is kept alive.
+The data structure is freed and should not be used thereafter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterGetName"/>virNWFilterGetName ()</h3><pre class="programlisting">const char *	virNWFilterGetName	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
+</pre><p>Get the public name for the network filter</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the name or NULL, the string need not be deallocated its lifetime will be the same as the nwfilter object.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterGetUUID"/>virNWFilterGetUUID ()</h3><pre class="programlisting">int	virNWFilterGetUUID		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 unsigned char * uuid)<br/>
+</pre><p>Get the UUID for a network filter</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt-host.html#VIR_UUID_BUFLEN">VIR_UUID_BUFLEN</a> bytes array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterGetUUIDString"/>virNWFilterGetUUIDString ()</h3><pre class="programlisting">int	virNWFilterGetUUIDString	(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 char * buf)<br/>
+</pre><p>Get the UUID for a network filter as string. For more information about
+UUID see RFC4122.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>buf</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt-host.html#VIR_UUID_STRING_BUFLEN">VIR_UUID_STRING_BUFLEN</a> bytes array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterGetXMLDesc"/>virNWFilterGetXMLDesc ()</h3><pre class="programlisting">char *	virNWFilterGetXMLDesc		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter, <br/>					 unsigned int flags)<br/>
+</pre><p>Provide an XML description of the network filter. The description may be
+reused later to redefine the network filter with virNWFilterCreateXML().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. The caller must free() the returned value.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterLookupByName"/>virNWFilterLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterLookupByName	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name)<br/>
+</pre><p>Try to lookup a network filter on the given hypervisor based on its name.
+
+virNWFilterFree should be used to free the resources after the
+nwfilter object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the network filter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure. If the network filter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterLookupByUUID"/>virNWFilterLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterLookupByUUID	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid)<br/>
+</pre><p>Try to lookup a network filter on the given hypervisor based on its UUID.
+
+virNWFilterFree should be used to free the resources after the
+nwfilter object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>the raw UUID for the network filter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure. If the nwfdilter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterLookupByUUIDString"/>virNWFilterLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a>	virNWFilterLookupByUUIDString	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr)<br/>
+</pre><p>Try to lookup an nwfilter on the given hypervisor based on its UUID.
+
+virNWFilterFree should be used to free the resources after the
+nwfilter object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>the string UUID for the nwfilter</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new nwfilter object or NULL in case of failure. If the nwfilter cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NWFILTER">VIR_ERR_NO_NWFILTER</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterRef"/>virNWFilterRef ()</h3><pre class="programlisting">int	virNWFilterRef			(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
+</pre><p>Increment the reference count on the nwfilter. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt-nwfilter.html#virNWFilterFree">virNWFilterFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection remain open until all threads have finished using
+it. ie, each new thread using an nwfilter would increment
+the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>the nwfilter to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNWFilterUndefine"/>virNWFilterUndefine ()</h3><pre class="programlisting">int	virNWFilterUndefine		(<a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> nwfilter)<br/>
+</pre><p>Undefine the nwfilter object. This call will not succeed if
+a running VM is referencing the filter. This does not free the
+associated <a href="libvirt-libvirt-nwfilter.html#virNWFilterPtr">virNWFilterPtr</a> object.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nwfilter</tt></i>:</span></td><td>a nwfilter object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+      </div>
+    </div>
+  </body>
+</html>

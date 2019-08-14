@@ -29,6 +29,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_IOTHREAD_INFO_MAX 16384
 #define REMOTE_MIGRATE_COOKIE_MAX 4194304
 #define REMOTE_NETWORK_LIST_MAX 16384
+#define REMOTE_NETWORK_PORT_LIST_MAX 16384
 #define REMOTE_INTERFACE_LIST_MAX 16384
 #define REMOTE_STORAGE_POOL_LIST_MAX 16384
 #define REMOTE_STORAGE_VOL_LIST_MAX 16384
@@ -50,6 +51,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_AUTH_SASL_DATA_MAX 65536
 #define REMOTE_AUTH_TYPE_LIST_MAX 20
 #define REMOTE_DOMAIN_MEMORY_STATS_MAX 1024
+#define REMOTE_DOMAIN_CHECKPOINT_LIST_MAX 16384
 #define REMOTE_DOMAIN_SNAPSHOT_LIST_MAX 16384
 #define REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX 4194304
 #define REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX 4194304
@@ -81,6 +83,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_DOMAIN_IOTHREAD_PARAMS_MAX 64
 #define REMOTE_NODE_SEV_INFO_MAX 64
 #define REMOTE_DOMAIN_LAUNCH_SECURITY_INFO_PARAMS_MAX 64
+#define REMOTE_NETWORK_PORT_PARAMETERS_MAX 16
 
 typedef char remote_uuid[VIR_UUID_BUFLEN];
 
@@ -96,6 +99,12 @@ struct remote_nonnull_network {
         remote_uuid uuid;
 };
 typedef struct remote_nonnull_network remote_nonnull_network;
+
+struct remote_nonnull_network_port {
+        remote_nonnull_network net;
+        remote_uuid uuid;
+};
+typedef struct remote_nonnull_network_port remote_nonnull_network_port;
 
 struct remote_nonnull_nwfilter {
         remote_nonnull_string name;
@@ -140,6 +149,12 @@ struct remote_nonnull_secret {
 };
 typedef struct remote_nonnull_secret remote_nonnull_secret;
 
+struct remote_nonnull_domain_checkpoint {
+        remote_nonnull_string name;
+        remote_nonnull_domain dom;
+};
+typedef struct remote_nonnull_domain_checkpoint remote_nonnull_domain_checkpoint;
+
 struct remote_nonnull_domain_snapshot {
         remote_nonnull_string name;
         remote_nonnull_domain dom;
@@ -149,6 +164,8 @@ typedef struct remote_nonnull_domain_snapshot remote_nonnull_domain_snapshot;
 typedef remote_nonnull_domain *remote_domain;
 
 typedef remote_nonnull_network *remote_network;
+
+typedef remote_nonnull_network_port *remote_network_port;
 
 typedef remote_nonnull_nwfilter *remote_nwfilter;
 
@@ -4325,6 +4342,172 @@ struct remote_connect_get_storage_pool_capabilities_ret {
         remote_nonnull_string capabilities;
 };
 typedef struct remote_connect_get_storage_pool_capabilities_ret remote_connect_get_storage_pool_capabilities_ret;
+
+struct remote_network_list_all_ports_args {
+        remote_nonnull_network network;
+        int need_results;
+        u_int flags;
+};
+typedef struct remote_network_list_all_ports_args remote_network_list_all_ports_args;
+
+struct remote_network_list_all_ports_ret {
+        struct {
+                u_int ports_len;
+                remote_nonnull_network_port *ports_val;
+        } ports;
+        u_int ret;
+};
+typedef struct remote_network_list_all_ports_ret remote_network_list_all_ports_ret;
+
+struct remote_network_port_lookup_by_uuid_args {
+        remote_nonnull_network network;
+        remote_uuid uuid;
+};
+typedef struct remote_network_port_lookup_by_uuid_args remote_network_port_lookup_by_uuid_args;
+
+struct remote_network_port_lookup_by_uuid_ret {
+        remote_nonnull_network_port port;
+};
+typedef struct remote_network_port_lookup_by_uuid_ret remote_network_port_lookup_by_uuid_ret;
+
+struct remote_network_port_create_xml_args {
+        remote_nonnull_network network;
+        remote_nonnull_string xml;
+        u_int flags;
+};
+typedef struct remote_network_port_create_xml_args remote_network_port_create_xml_args;
+
+struct remote_network_port_create_xml_ret {
+        remote_nonnull_network_port port;
+};
+typedef struct remote_network_port_create_xml_ret remote_network_port_create_xml_ret;
+
+struct remote_network_port_set_parameters_args {
+        remote_nonnull_network_port port;
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+        u_int flags;
+};
+typedef struct remote_network_port_set_parameters_args remote_network_port_set_parameters_args;
+
+struct remote_network_port_get_parameters_args {
+        remote_nonnull_network_port port;
+        int nparams;
+        u_int flags;
+};
+typedef struct remote_network_port_get_parameters_args remote_network_port_get_parameters_args;
+
+struct remote_network_port_get_parameters_ret {
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+        int nparams;
+};
+typedef struct remote_network_port_get_parameters_ret remote_network_port_get_parameters_ret;
+
+struct remote_network_port_get_xml_desc_args {
+        remote_nonnull_network_port port;
+        u_int flags;
+};
+typedef struct remote_network_port_get_xml_desc_args remote_network_port_get_xml_desc_args;
+
+struct remote_network_port_get_xml_desc_ret {
+        remote_nonnull_string xml;
+};
+typedef struct remote_network_port_get_xml_desc_ret remote_network_port_get_xml_desc_ret;
+
+struct remote_network_port_delete_args {
+        remote_nonnull_network_port port;
+        u_int flags;
+};
+typedef struct remote_network_port_delete_args remote_network_port_delete_args;
+
+struct remote_domain_checkpoint_create_xml_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string xml_desc;
+        u_int flags;
+};
+typedef struct remote_domain_checkpoint_create_xml_args remote_domain_checkpoint_create_xml_args;
+
+struct remote_domain_checkpoint_create_xml_ret {
+        remote_nonnull_domain_checkpoint checkpoint;
+};
+typedef struct remote_domain_checkpoint_create_xml_ret remote_domain_checkpoint_create_xml_ret;
+
+struct remote_domain_checkpoint_get_xml_desc_args {
+        remote_nonnull_domain_checkpoint checkpoint;
+        u_int flags;
+};
+typedef struct remote_domain_checkpoint_get_xml_desc_args remote_domain_checkpoint_get_xml_desc_args;
+
+struct remote_domain_checkpoint_get_xml_desc_ret {
+        remote_nonnull_string xml;
+};
+typedef struct remote_domain_checkpoint_get_xml_desc_ret remote_domain_checkpoint_get_xml_desc_ret;
+
+struct remote_domain_list_all_checkpoints_args {
+        remote_nonnull_domain dom;
+        int need_results;
+        u_int flags;
+};
+typedef struct remote_domain_list_all_checkpoints_args remote_domain_list_all_checkpoints_args;
+
+struct remote_domain_list_all_checkpoints_ret {
+        struct {
+                u_int checkpoints_len;
+                remote_nonnull_domain_checkpoint *checkpoints_val;
+        } checkpoints;
+        int ret;
+};
+typedef struct remote_domain_list_all_checkpoints_ret remote_domain_list_all_checkpoints_ret;
+
+struct remote_domain_checkpoint_list_all_children_args {
+        remote_nonnull_domain_checkpoint checkpoint;
+        int need_results;
+        u_int flags;
+};
+typedef struct remote_domain_checkpoint_list_all_children_args remote_domain_checkpoint_list_all_children_args;
+
+struct remote_domain_checkpoint_list_all_children_ret {
+        struct {
+                u_int checkpoints_len;
+                remote_nonnull_domain_checkpoint *checkpoints_val;
+        } checkpoints;
+        int ret;
+};
+typedef struct remote_domain_checkpoint_list_all_children_ret remote_domain_checkpoint_list_all_children_ret;
+
+struct remote_domain_checkpoint_lookup_by_name_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string name;
+        u_int flags;
+};
+typedef struct remote_domain_checkpoint_lookup_by_name_args remote_domain_checkpoint_lookup_by_name_args;
+
+struct remote_domain_checkpoint_lookup_by_name_ret {
+        remote_nonnull_domain_checkpoint checkpoint;
+};
+typedef struct remote_domain_checkpoint_lookup_by_name_ret remote_domain_checkpoint_lookup_by_name_ret;
+
+struct remote_domain_checkpoint_get_parent_args {
+        remote_nonnull_domain_checkpoint checkpoint;
+        u_int flags;
+};
+typedef struct remote_domain_checkpoint_get_parent_args remote_domain_checkpoint_get_parent_args;
+
+struct remote_domain_checkpoint_get_parent_ret {
+        remote_nonnull_domain_checkpoint parent;
+};
+typedef struct remote_domain_checkpoint_get_parent_ret remote_domain_checkpoint_get_parent_ret;
+
+struct remote_domain_checkpoint_delete_args {
+        remote_nonnull_domain_checkpoint checkpoint;
+        u_int flags;
+};
+typedef struct remote_domain_checkpoint_delete_args remote_domain_checkpoint_delete_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -4732,6 +4915,20 @@ enum remote_procedure {
         REMOTE_PROC_CONNECT_LIST_ALL_NWFILTER_BINDINGS = 401,
         REMOTE_PROC_DOMAIN_SET_IOTHREAD_PARAMS = 402,
         REMOTE_PROC_CONNECT_GET_STORAGE_POOL_CAPABILITIES = 403,
+        REMOTE_PROC_NETWORK_LIST_ALL_PORTS = 404,
+        REMOTE_PROC_NETWORK_PORT_LOOKUP_BY_UUID = 405,
+        REMOTE_PROC_NETWORK_PORT_CREATE_XML = 406,
+        REMOTE_PROC_NETWORK_PORT_GET_PARAMETERS = 407,
+        REMOTE_PROC_NETWORK_PORT_SET_PARAMETERS = 408,
+        REMOTE_PROC_NETWORK_PORT_GET_XML_DESC = 409,
+        REMOTE_PROC_NETWORK_PORT_DELETE = 410,
+        REMOTE_PROC_DOMAIN_CHECKPOINT_CREATE_XML = 411,
+        REMOTE_PROC_DOMAIN_CHECKPOINT_GET_XML_DESC = 412,
+        REMOTE_PROC_DOMAIN_LIST_ALL_CHECKPOINTS = 413,
+        REMOTE_PROC_DOMAIN_CHECKPOINT_LIST_ALL_CHILDREN = 414,
+        REMOTE_PROC_DOMAIN_CHECKPOINT_LOOKUP_BY_NAME = 415,
+        REMOTE_PROC_DOMAIN_CHECKPOINT_GET_PARENT = 416,
+        REMOTE_PROC_DOMAIN_CHECKPOINT_DELETE = 417,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -4743,6 +4940,7 @@ extern  bool_t xdr_remote_string (XDR *, remote_string*);
 extern  bool_t xdr_remote_uuid (XDR *, remote_uuid);
 extern  bool_t xdr_remote_nonnull_domain (XDR *, remote_nonnull_domain*);
 extern  bool_t xdr_remote_nonnull_network (XDR *, remote_nonnull_network*);
+extern  bool_t xdr_remote_nonnull_network_port (XDR *, remote_nonnull_network_port*);
 extern  bool_t xdr_remote_nonnull_nwfilter (XDR *, remote_nonnull_nwfilter*);
 extern  bool_t xdr_remote_nonnull_nwfilter_binding (XDR *, remote_nonnull_nwfilter_binding*);
 extern  bool_t xdr_remote_nonnull_interface (XDR *, remote_nonnull_interface*);
@@ -4750,9 +4948,11 @@ extern  bool_t xdr_remote_nonnull_storage_pool (XDR *, remote_nonnull_storage_po
 extern  bool_t xdr_remote_nonnull_storage_vol (XDR *, remote_nonnull_storage_vol*);
 extern  bool_t xdr_remote_nonnull_node_device (XDR *, remote_nonnull_node_device*);
 extern  bool_t xdr_remote_nonnull_secret (XDR *, remote_nonnull_secret*);
+extern  bool_t xdr_remote_nonnull_domain_checkpoint (XDR *, remote_nonnull_domain_checkpoint*);
 extern  bool_t xdr_remote_nonnull_domain_snapshot (XDR *, remote_nonnull_domain_snapshot*);
 extern  bool_t xdr_remote_domain (XDR *, remote_domain*);
 extern  bool_t xdr_remote_network (XDR *, remote_network*);
+extern  bool_t xdr_remote_network_port (XDR *, remote_network_port*);
 extern  bool_t xdr_remote_nwfilter (XDR *, remote_nwfilter*);
 extern  bool_t xdr_remote_nwfilter_binding (XDR *, remote_nwfilter_binding*);
 extern  bool_t xdr_remote_storage_pool (XDR *, remote_storage_pool*);
@@ -5375,6 +5575,31 @@ extern  bool_t xdr_remote_connect_list_all_nwfilter_bindings_args (XDR *, remote
 extern  bool_t xdr_remote_connect_list_all_nwfilter_bindings_ret (XDR *, remote_connect_list_all_nwfilter_bindings_ret*);
 extern  bool_t xdr_remote_connect_get_storage_pool_capabilities_args (XDR *, remote_connect_get_storage_pool_capabilities_args*);
 extern  bool_t xdr_remote_connect_get_storage_pool_capabilities_ret (XDR *, remote_connect_get_storage_pool_capabilities_ret*);
+extern  bool_t xdr_remote_network_list_all_ports_args (XDR *, remote_network_list_all_ports_args*);
+extern  bool_t xdr_remote_network_list_all_ports_ret (XDR *, remote_network_list_all_ports_ret*);
+extern  bool_t xdr_remote_network_port_lookup_by_uuid_args (XDR *, remote_network_port_lookup_by_uuid_args*);
+extern  bool_t xdr_remote_network_port_lookup_by_uuid_ret (XDR *, remote_network_port_lookup_by_uuid_ret*);
+extern  bool_t xdr_remote_network_port_create_xml_args (XDR *, remote_network_port_create_xml_args*);
+extern  bool_t xdr_remote_network_port_create_xml_ret (XDR *, remote_network_port_create_xml_ret*);
+extern  bool_t xdr_remote_network_port_set_parameters_args (XDR *, remote_network_port_set_parameters_args*);
+extern  bool_t xdr_remote_network_port_get_parameters_args (XDR *, remote_network_port_get_parameters_args*);
+extern  bool_t xdr_remote_network_port_get_parameters_ret (XDR *, remote_network_port_get_parameters_ret*);
+extern  bool_t xdr_remote_network_port_get_xml_desc_args (XDR *, remote_network_port_get_xml_desc_args*);
+extern  bool_t xdr_remote_network_port_get_xml_desc_ret (XDR *, remote_network_port_get_xml_desc_ret*);
+extern  bool_t xdr_remote_network_port_delete_args (XDR *, remote_network_port_delete_args*);
+extern  bool_t xdr_remote_domain_checkpoint_create_xml_args (XDR *, remote_domain_checkpoint_create_xml_args*);
+extern  bool_t xdr_remote_domain_checkpoint_create_xml_ret (XDR *, remote_domain_checkpoint_create_xml_ret*);
+extern  bool_t xdr_remote_domain_checkpoint_get_xml_desc_args (XDR *, remote_domain_checkpoint_get_xml_desc_args*);
+extern  bool_t xdr_remote_domain_checkpoint_get_xml_desc_ret (XDR *, remote_domain_checkpoint_get_xml_desc_ret*);
+extern  bool_t xdr_remote_domain_list_all_checkpoints_args (XDR *, remote_domain_list_all_checkpoints_args*);
+extern  bool_t xdr_remote_domain_list_all_checkpoints_ret (XDR *, remote_domain_list_all_checkpoints_ret*);
+extern  bool_t xdr_remote_domain_checkpoint_list_all_children_args (XDR *, remote_domain_checkpoint_list_all_children_args*);
+extern  bool_t xdr_remote_domain_checkpoint_list_all_children_ret (XDR *, remote_domain_checkpoint_list_all_children_ret*);
+extern  bool_t xdr_remote_domain_checkpoint_lookup_by_name_args (XDR *, remote_domain_checkpoint_lookup_by_name_args*);
+extern  bool_t xdr_remote_domain_checkpoint_lookup_by_name_ret (XDR *, remote_domain_checkpoint_lookup_by_name_ret*);
+extern  bool_t xdr_remote_domain_checkpoint_get_parent_args (XDR *, remote_domain_checkpoint_get_parent_args*);
+extern  bool_t xdr_remote_domain_checkpoint_get_parent_ret (XDR *, remote_domain_checkpoint_get_parent_ret*);
+extern  bool_t xdr_remote_domain_checkpoint_delete_args (XDR *, remote_domain_checkpoint_delete_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -5383,6 +5608,7 @@ extern bool_t xdr_remote_string ();
 extern bool_t xdr_remote_uuid ();
 extern bool_t xdr_remote_nonnull_domain ();
 extern bool_t xdr_remote_nonnull_network ();
+extern bool_t xdr_remote_nonnull_network_port ();
 extern bool_t xdr_remote_nonnull_nwfilter ();
 extern bool_t xdr_remote_nonnull_nwfilter_binding ();
 extern bool_t xdr_remote_nonnull_interface ();
@@ -5390,9 +5616,11 @@ extern bool_t xdr_remote_nonnull_storage_pool ();
 extern bool_t xdr_remote_nonnull_storage_vol ();
 extern bool_t xdr_remote_nonnull_node_device ();
 extern bool_t xdr_remote_nonnull_secret ();
+extern bool_t xdr_remote_nonnull_domain_checkpoint ();
 extern bool_t xdr_remote_nonnull_domain_snapshot ();
 extern bool_t xdr_remote_domain ();
 extern bool_t xdr_remote_network ();
+extern bool_t xdr_remote_network_port ();
 extern bool_t xdr_remote_nwfilter ();
 extern bool_t xdr_remote_nwfilter_binding ();
 extern bool_t xdr_remote_storage_pool ();
@@ -6015,6 +6243,31 @@ extern bool_t xdr_remote_connect_list_all_nwfilter_bindings_args ();
 extern bool_t xdr_remote_connect_list_all_nwfilter_bindings_ret ();
 extern bool_t xdr_remote_connect_get_storage_pool_capabilities_args ();
 extern bool_t xdr_remote_connect_get_storage_pool_capabilities_ret ();
+extern bool_t xdr_remote_network_list_all_ports_args ();
+extern bool_t xdr_remote_network_list_all_ports_ret ();
+extern bool_t xdr_remote_network_port_lookup_by_uuid_args ();
+extern bool_t xdr_remote_network_port_lookup_by_uuid_ret ();
+extern bool_t xdr_remote_network_port_create_xml_args ();
+extern bool_t xdr_remote_network_port_create_xml_ret ();
+extern bool_t xdr_remote_network_port_set_parameters_args ();
+extern bool_t xdr_remote_network_port_get_parameters_args ();
+extern bool_t xdr_remote_network_port_get_parameters_ret ();
+extern bool_t xdr_remote_network_port_get_xml_desc_args ();
+extern bool_t xdr_remote_network_port_get_xml_desc_ret ();
+extern bool_t xdr_remote_network_port_delete_args ();
+extern bool_t xdr_remote_domain_checkpoint_create_xml_args ();
+extern bool_t xdr_remote_domain_checkpoint_create_xml_ret ();
+extern bool_t xdr_remote_domain_checkpoint_get_xml_desc_args ();
+extern bool_t xdr_remote_domain_checkpoint_get_xml_desc_ret ();
+extern bool_t xdr_remote_domain_list_all_checkpoints_args ();
+extern bool_t xdr_remote_domain_list_all_checkpoints_ret ();
+extern bool_t xdr_remote_domain_checkpoint_list_all_children_args ();
+extern bool_t xdr_remote_domain_checkpoint_list_all_children_ret ();
+extern bool_t xdr_remote_domain_checkpoint_lookup_by_name_args ();
+extern bool_t xdr_remote_domain_checkpoint_lookup_by_name_ret ();
+extern bool_t xdr_remote_domain_checkpoint_get_parent_args ();
+extern bool_t xdr_remote_domain_checkpoint_get_parent_ret ();
+extern bool_t xdr_remote_domain_checkpoint_delete_args ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

@@ -19,12 +19,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRCGROUP_H
-# define LIBVIRT_VIRCGROUP_H
+#pragma once
 
-# include "virutil.h"
-# include "virbitmap.h"
-# include "virenum.h"
+#include "virutil.h"
+#include "virbitmap.h"
+#include "virenum.h"
 
 struct _virCgroup;
 typedef struct _virCgroup virCgroup;
@@ -99,6 +98,7 @@ int virCgroupNewMachine(const char *name,
                         int *nicindexes,
                         const char *partition,
                         int controllers,
+                        unsigned int maxthreads,
                         virCgroupPtr *group)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
     ATTRIBUTE_NONNULL(3);
@@ -285,4 +285,3 @@ int virCgroupSetOwner(virCgroupPtr cgroup,
 int virCgroupHasEmptyTasks(virCgroupPtr cgroup, int controller);
 
 bool virCgroupControllerAvailable(int controller);
-#endif /* LIBVIRT_VIRCGROUP_H */

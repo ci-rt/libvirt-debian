@@ -965,7 +965,11 @@ virStorageFileGetEncryptionPayloadOffset(const struct FileEncryptionInfo *info,
  * assuming it has the given FORMAT, populate information into META
  * with information about the file and its backing store. Return format
  * of the backing store as BACKING_FORMAT. PATH and FORMAT have to be
- * pre-populated in META */
+ * pre-populated in META.
+ *
+ * Note that this function may be called repeatedly on @meta, so it must
+ * clean up any existing allocated memory which would be overwritten.
+ */
 int
 virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
                                   char *buf,
@@ -973,7 +977,6 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
                                   int *backingFormat)
 {
     int dummy;
-    int ret = -1;
     size_t i;
 
     if (!backingFormat)
@@ -989,7 +992,7 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
         meta->format >= VIR_STORAGE_FILE_LAST) {
         virReportSystemError(EINVAL, _("unknown storage file meta->format %d"),
                              meta->format);
-        goto cleanup;
+        return -1;
     }
 
     if (fileTypeInfo[meta->format].cryptInfo != NULL) {
@@ -999,7 +1002,7 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
                 int expt_fmt = fileTypeInfo[meta->format].cryptInfo[i].format;
                 if (!meta->encryption) {
                     if (VIR_ALLOC(meta->encryption) < 0)
-                        goto cleanup;
+                        return -1;
 
                     meta->encryption->format = expt_fmt;
                 } else {
@@ -1008,7 +1011,7 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
                                        _("encryption format %d doesn't match "
                                          "expected format %d"),
                                        meta->encryption->format, expt_fmt);
-                        goto cleanup;
+                        return -1;
                     }
                 }
                 meta->encryption->payload_offset =
@@ -1021,12 +1024,12 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
      * code into this method, for non-magic files
      */
     if (!fileTypeInfo[meta->format].magic)
-        goto done;
+        return 0;
 
     /* Optionally extract capacity from file */
     if (fileTypeInfo[meta->format].sizeOffset != -1) {
         if ((fileTypeInfo[meta->format].sizeOffset + 8) > len)
-            goto done;
+            return 0;
 
         if (fileTypeInfo[meta->format].endian == LV_LITTLE_ENDIAN)
             meta->capacity = virReadBufInt64LE(buf +
@@ -1037,7 +1040,7 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
         /* Avoid unlikely, but theoretically possible overflow */
         if (meta->capacity > (ULLONG_MAX /
                               fileTypeInfo[meta->format].sizeMultiplier))
-            goto done;
+            return 0;
         meta->capacity *= fileTypeInfo[meta->format].sizeMultiplier;
     }
 
@@ -1047,25 +1050,24 @@ virStorageFileGetMetadataInternal(virStorageSourcePtr meta,
                                                                backingFormat,
                                                                buf, len);
         if (store == BACKING_STORE_INVALID)
-            goto done;
+            return 0;
 
         if (store == BACKING_STORE_ERROR)
-            goto cleanup;
+            return -1;
     }
 
+    virBitmapFree(meta->features);
+    meta->features = NULL;
     if (fileTypeInfo[meta->format].getFeatures != NULL &&
         fileTypeInfo[meta->format].getFeatures(&meta->features, meta->format, buf, len) < 0)
-        goto cleanup;
+        return -1;
 
+    VIR_FREE(meta->compat);
     if (meta->format == VIR_STORAGE_FILE_QCOW2 && meta->features &&
         VIR_STRDUP(meta->compat, "1.1") < 0)
-        goto cleanup;
+        return -1;
 
- done:
-    ret = 0;
-
- cleanup:
-    return ret;
+    return 0;
 }
 
 
@@ -2083,7 +2085,7 @@ virStorageSourceChainHasManagedPR(virStorageSourcePtr src)
     virStorageSourcePtr n;
 
     for (n = src; virStorageSourceIsBacking(n); n = n->backingStore) {
-        if (virStoragePRDefIsManaged(src->pr))
+        if (virStoragePRDefIsManaged(n->pr))
             return true;
     }
 
@@ -2430,10 +2432,20 @@ virStorageSourcePoolDefFree(virStorageSourcePoolDefPtr def)
 }
 
 
+/**
+ * virStorageSourceGetActualType:
+ * @def: storage source definition
+ *
+ * Returns type of @def. In case when the type is VIR_STORAGE_TYPE_VOLUME
+ * and virDomainDiskTranslateSourcePool was called on @def the actual type
+ * of the storage volume is returned rather than VIR_STORAGE_TYPE_VOLUME.
+ */
 int
 virStorageSourceGetActualType(const virStorageSource *def)
 {
-    if (def->type == VIR_STORAGE_TYPE_VOLUME && def->srcpool)
+    if (def->type == VIR_STORAGE_TYPE_VOLUME &&
+        def->srcpool &&
+        def->srcpool->actualtype != VIR_STORAGE_TYPE_NONE)
         return def->srcpool->actualtype;
 
     return def->type;

@@ -3,7 +3,7 @@
 # This spec file assumes you are building on a Fedora version
 # that's still supported by the vendor. It may work on other distros
 # or versions, but no effort will be made to ensure that going forward.
-%define min_fedora 28
+%define min_fedora 29
 
 %if 0%{?fedora} && 0%{?fedora} >= %{min_fedora}
     %define supported_platform 1
@@ -167,7 +167,6 @@ autoreconf -if
   --without-vbox \
   %{?_without_xenapi} \
   --without-sasl \
-  --without-avahi \
   --without-polkit \
   --without-libvirtd \
   %{?_without_phyp} \
@@ -233,11 +232,13 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt-guests.sh
 %{mingw32_datadir}/libvirt/schemas/cputypes.rng
 %{mingw32_datadir}/libvirt/schemas/domain.rng
 %{mingw32_datadir}/libvirt/schemas/domaincaps.rng
+%{mingw32_datadir}/libvirt/schemas/domaincheckpoint.rng
 %{mingw32_datadir}/libvirt/schemas/domaincommon.rng
 %{mingw32_datadir}/libvirt/schemas/domainsnapshot.rng
 %{mingw32_datadir}/libvirt/schemas/interface.rng
 %{mingw32_datadir}/libvirt/schemas/network.rng
 %{mingw32_datadir}/libvirt/schemas/networkcommon.rng
+%{mingw32_datadir}/libvirt/schemas/networkport.rng
 %{mingw32_datadir}/libvirt/schemas/nodedev.rng
 %{mingw32_datadir}/libvirt/schemas/nwfilter.rng
 %{mingw32_datadir}/libvirt/schemas/nwfilter_params.rng
@@ -263,6 +264,7 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt-guests.sh
 %{mingw32_includedir}/libvirt/libvirt.h
 %{mingw32_includedir}/libvirt/libvirt-common.h
 %{mingw32_includedir}/libvirt/libvirt-domain.h
+%{mingw32_includedir}/libvirt/libvirt-domain-checkpoint.h
 %{mingw32_includedir}/libvirt/libvirt-domain-snapshot.h
 %{mingw32_includedir}/libvirt/libvirt-event.h
 %{mingw32_includedir}/libvirt/libvirt-host.h
@@ -321,11 +323,13 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt-guests.sh
 %{mingw64_datadir}/libvirt/schemas/cputypes.rng
 %{mingw64_datadir}/libvirt/schemas/domain.rng
 %{mingw64_datadir}/libvirt/schemas/domaincaps.rng
+%{mingw64_datadir}/libvirt/schemas/domaincheckpoint.rng
 %{mingw64_datadir}/libvirt/schemas/domaincommon.rng
 %{mingw64_datadir}/libvirt/schemas/domainsnapshot.rng
 %{mingw64_datadir}/libvirt/schemas/interface.rng
 %{mingw64_datadir}/libvirt/schemas/network.rng
 %{mingw64_datadir}/libvirt/schemas/networkcommon.rng
+%{mingw64_datadir}/libvirt/schemas/networkport.rng
 %{mingw64_datadir}/libvirt/schemas/nodedev.rng
 %{mingw64_datadir}/libvirt/schemas/nwfilter.rng
 %{mingw64_datadir}/libvirt/schemas/nwfilter_params.rng
@@ -351,6 +355,7 @@ rm -rf $RPM_BUILD_ROOT%{mingw64_libexecdir}/libvirt-guests.sh
 %{mingw64_includedir}/libvirt/libvirt.h
 %{mingw64_includedir}/libvirt/libvirt-common.h
 %{mingw64_includedir}/libvirt/libvirt-domain.h
+%{mingw64_includedir}/libvirt/libvirt-domain-checkpoint.h
 %{mingw64_includedir}/libvirt/libvirt-domain-snapshot.h
 %{mingw64_includedir}/libvirt/libvirt-event.h
 %{mingw64_includedir}/libvirt/libvirt-host.h

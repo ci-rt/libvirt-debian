@@ -1,0 +1,14 @@
+[Unit]
+Description=Libvirt non-TLS IP socket
+Before=libvirtd.service
+BindsTo=libvirtd.socket
+After=libvirtd.socket
+
+[Socket]
+# This must match the /etc/libvirt/libvirtd.conf tcp_port setting
+# when using systemd version < 227
+ListenStream=16509
+Service=libvirtd.service
+
+[Install]
+WantedBy=sockets.target

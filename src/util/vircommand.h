@@ -19,12 +19,11 @@
  *
  */
 
-#ifndef LIBVIRT_VIRCOMMAND_H
-# define LIBVIRT_VIRCOMMAND_H
+#pragma once
 
-# include "internal.h"
-# include "virbuffer.h"
-# include "virautoclean.h"
+#include "internal.h"
+#include "virbuffer.h"
+#include "virautoclean.h"
 
 typedef struct _virCommand virCommand;
 typedef virCommand *virCommandPtr;
@@ -60,8 +59,6 @@ typedef enum {
 void virCommandPassFD(virCommandPtr cmd,
                       int fd,
                       unsigned int flags) ATTRIBUTE_NOINLINE;
-
-void virCommandPassListenFDs(virCommandPtr cmd);
 
 int virCommandPassFDGetFDIndex(virCommandPtr cmd,
                                int fd);
@@ -149,6 +146,11 @@ void virCommandAddArgList(virCommandPtr cmd,
 void virCommandSetWorkingDirectory(virCommandPtr cmd,
                                    const char *pwd) ATTRIBUTE_NONNULL(2);
 
+int virCommandSetSendBuffer(virCommandPtr cmd,
+                            int fd,
+                            unsigned char *buffer, size_t buflen)
+    ATTRIBUTE_NONNULL(3);
+
 void virCommandSetInputBuffer(virCommandPtr cmd,
                               const char *inbuf) ATTRIBUTE_NONNULL(2);
 
@@ -222,5 +224,3 @@ int virCommandRunNul(virCommandPtr cmd,
                      void *data);
 
 VIR_DEFINE_AUTOPTR_FUNC(virCommand, virCommandFree);
-
-#endif /* LIBVIRT_VIRCOMMAND_H */

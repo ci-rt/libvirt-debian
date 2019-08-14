@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>libvirt-network: APIs for management of networks</title>
+    <meta name="generator" content="Libvirt devhelp stylesheet"/>
+    <link rel="start" href="index.html" title="libvirt Reference Manual"/>
+    <link rel="up" href="general.html" title="API"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="chapter" href="general.html" title="API"/>
+  </head>
+  <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+    <table class="navigation" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+      <tr valign="middle">
+        <td>
+          <a accesskey="p" href="libvirt-libvirt-interface.html">
+            <img src="left.png" width="24" height="24" border="0" alt="Prev"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="u" href="general.html">
+            <img src="up.png" width="24" height="24" border="0" alt="Up"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="h" href="index.html">
+            <img src="home.png" width="24" height="24" border="0" alt="Home"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="n" href="libvirt-libvirt-nodedev.html">
+            <img src="right.png" width="24" height="24" border="0" alt="Next"/>
+          </a>
+        </td>
+        <th width="100%" align="center">libvirt Reference Manual</th>
+      </tr>
+    </table>
+    <h2>
+      <span class="refentrytitle">libvirt-network</span>
+    </h2>
+    <p>libvirt-network - APIs for management of networks</p>
+    <p>Provides APIs for the management of networks  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <div class="refsynopsisdiv">
+      <h2>Synopsis</h2>
+      <pre class="synopsis">#define <a href="#VIR_NETWORK_EVENT_CALLBACK">VIR_NETWORK_EVENT_CALLBACK</a>;
+#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_IN_AVERAGE">VIR_NETWORK_PORT_BANDWIDTH_IN_AVERAGE</a>;
+#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_IN_BURST">VIR_NETWORK_PORT_BANDWIDTH_IN_BURST</a>;
+#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_IN_FLOOR">VIR_NETWORK_PORT_BANDWIDTH_IN_FLOOR</a>;
+#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_IN_PEAK">VIR_NETWORK_PORT_BANDWIDTH_IN_PEAK</a>;
+#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_OUT_AVERAGE">VIR_NETWORK_PORT_BANDWIDTH_OUT_AVERAGE</a>;
+#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_OUT_BURST">VIR_NETWORK_PORT_BANDWIDTH_OUT_BURST</a>;
+#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_OUT_PEAK">VIR_NETWORK_PORT_BANDWIDTH_OUT_PEAK</a>;
+typedef enum <a href="#virConnectListAllNetworksFlags">virConnectListAllNetworksFlags</a>;
+typedef enum <a href="#virIPAddrType">virIPAddrType</a>;
+typedef struct _virNetwork <a href="#virNetwork">virNetwork</a>;
+typedef struct _virNetworkDHCPLease <a href="#virNetworkDHCPLease">virNetworkDHCPLease</a>;
+typedef <a href="libvirt-libvirt-network.html#virNetworkDHCPLease">virNetworkDHCPLease</a> * <a href="#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a>;
+typedef enum <a href="#virNetworkEventID">virNetworkEventID</a>;
+typedef enum <a href="#virNetworkEventLifecycleType">virNetworkEventLifecycleType</a>;
+typedef struct _virNetworkPort <a href="#virNetworkPort">virNetworkPort</a>;
+typedef enum <a href="#virNetworkPortCreateFlags">virNetworkPortCreateFlags</a>;
+typedef <a href="libvirt-libvirt-network.html#virNetworkPort">virNetworkPort</a> * <a href="#virNetworkPortPtr">virNetworkPortPtr</a>;
+typedef <a href="libvirt-libvirt-network.html#virNetwork">virNetwork</a> * <a href="#virNetworkPtr">virNetworkPtr</a>;
+typedef enum <a href="#virNetworkUpdateCommand">virNetworkUpdateCommand</a>;
+typedef enum <a href="#virNetworkUpdateFlags">virNetworkUpdateFlags</a>;
+typedef enum <a href="#virNetworkUpdateSection">virNetworkUpdateSection</a>;
+typedef enum <a href="#virNetworkXMLFlags">virNetworkXMLFlags</a>;
+int	<a href="#virConnectListAllNetworks">virConnectListAllNetworks</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> ** nets, <br/>					 unsigned int flags);
+int	<a href="#virConnectListDefinedNetworks">virConnectListDefinedNetworks</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
+int	<a href="#virConnectListNetworks">virConnectListNetworks</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
+int	<a href="#virConnectNetworkEventDeregisterAny">virConnectNetworkEventDeregisterAny</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 int callbackID);
+typedef void <a href="#virConnectNetworkEventGenericCallback">virConnectNetworkEventGenericCallback</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 void * opaque);
+typedef void <a href="#virConnectNetworkEventLifecycleCallback">virConnectNetworkEventLifecycleCallback</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 int event, <br/>						 int detail, <br/>						 void * opaque);
+int	<a href="#virConnectNetworkEventRegisterAny">virConnectNetworkEventRegisterAny</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt-network.html#virConnectNetworkEventGenericCallback">virConnectNetworkEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> freecb);
+int	<a href="#virConnectNumOfDefinedNetworks">virConnectNumOfDefinedNetworks</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectNumOfNetworks">virConnectNumOfNetworks</a>		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virNetworkCreate">virNetworkCreate</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network);
+<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkCreateXML">virNetworkCreateXML</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc);
+void	<a href="#virNetworkDHCPLeaseFree">virNetworkDHCPLeaseFree</a>		(<a href="libvirt-libvirt-network.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> lease);
+<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkDefineXML">virNetworkDefineXML</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml);
+int	<a href="#virNetworkDestroy">virNetworkDestroy</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network);
+int	<a href="#virNetworkFree">virNetworkFree</a>			(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network);
+int	<a href="#virNetworkGetAutostart">virNetworkGetAutostart</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 int * autostart);
+char *	<a href="#virNetworkGetBridgeName">virNetworkGetBridgeName</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network);
+<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	<a href="#virNetworkGetConnect">virNetworkGetConnect</a>	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net);
+int	<a href="#virNetworkGetDHCPLeases">virNetworkGetDHCPLeases</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 const char * mac, <br/>					 <a href="libvirt-libvirt-network.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> ** leases, <br/>					 unsigned int flags);
+const char *	<a href="#virNetworkGetName">virNetworkGetName</a>	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network);
+int	<a href="#virNetworkGetUUID">virNetworkGetUUID</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 unsigned char * uuid);
+int	<a href="#virNetworkGetUUIDString">virNetworkGetUUIDString</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 char * buf);
+char *	<a href="#virNetworkGetXMLDesc">virNetworkGetXMLDesc</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 unsigned int flags);
+int	<a href="#virNetworkIsActive">virNetworkIsActive</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net);
+int	<a href="#virNetworkIsPersistent">virNetworkIsPersistent</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net);
+int	<a href="#virNetworkListAllPorts">virNetworkListAllPorts</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 <a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> ** ports, <br/>					 unsigned int flags);
+<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkLookupByName">virNetworkLookupByName</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name);
+<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkLookupByUUID">virNetworkLookupByUUID</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid);
+<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkLookupByUUIDString">virNetworkLookupByUUIDString</a>	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr);
+<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a>	<a href="#virNetworkPortCreateXML">virNetworkPortCreateXML</a>	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 const char * xmldesc, <br/>						 unsigned int flags);
+int	<a href="#virNetworkPortDelete">virNetworkPortDelete</a>		(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 unsigned int flags);
+int	<a href="#virNetworkPortFree">virNetworkPortFree</a>		(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port);
+<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	<a href="#virNetworkPortGetNetwork">virNetworkPortGetNetwork</a>	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port);
+int	<a href="#virNetworkPortGetParameters">virNetworkPortGetParameters</a>	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 unsigned int flags);
+int	<a href="#virNetworkPortGetUUID">virNetworkPortGetUUID</a>		(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 unsigned char * uuid);
+int	<a href="#virNetworkPortGetUUIDString">virNetworkPortGetUUIDString</a>	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 char * buf);
+char *	<a href="#virNetworkPortGetXMLDesc">virNetworkPortGetXMLDesc</a>	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 unsigned int flags);
+<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a>	<a href="#virNetworkPortLookupByUUID">virNetworkPortLookupByUUID</a>	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>							 const unsigned char * uuid);
+<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a>	<a href="#virNetworkPortLookupByUUIDString">virNetworkPortLookupByUUIDString</a>	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>							 const char * uuidstr);
+int	<a href="#virNetworkPortRef">virNetworkPortRef</a>		(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port);
+int	<a href="#virNetworkPortSetParameters">virNetworkPortSetParameters</a>	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
+int	<a href="#virNetworkRef">virNetworkRef</a>			(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network);
+int	<a href="#virNetworkSetAutostart">virNetworkSetAutostart</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 int autostart);
+int	<a href="#virNetworkUndefine">virNetworkUndefine</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network);
+int	<a href="#virNetworkUpdate">virNetworkUpdate</a>		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 unsigned int command, <br/>					 unsigned int section, <br/>					 int parentIndex, <br/>					 const char * xml, <br/>					 unsigned int flags);
+</pre>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Description</h2>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Details</h2>
+      <div class="refsect2" lang="en">
+        <div class="refsect2" lang="en"><h3><a name="VIR_NETWORK_EVENT_CALLBACK">Macro </a>VIR_NETWORK_EVENT_CALLBACK</h3><pre class="programlisting">#define <a href="#VIR_NETWORK_EVENT_CALLBACK">VIR_NETWORK_EVENT_CALLBACK</a>;
+</pre><p>Used to cast the event specific callback into the generic one for use for virConnectNetworkEventRegisterAny()</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NETWORK_PORT_BANDWIDTH_IN_AVERAGE">Macro </a>VIR_NETWORK_PORT_BANDWIDTH_IN_AVERAGE</h3><pre class="programlisting">#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_IN_AVERAGE">VIR_NETWORK_PORT_BANDWIDTH_IN_AVERAGE</a>;
+</pre><p>Macro represents the inbound average of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NETWORK_PORT_BANDWIDTH_IN_BURST">Macro </a>VIR_NETWORK_PORT_BANDWIDTH_IN_BURST</h3><pre class="programlisting">#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_IN_BURST">VIR_NETWORK_PORT_BANDWIDTH_IN_BURST</a>;
+</pre><p>Macro represents the inbound burst of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NETWORK_PORT_BANDWIDTH_IN_FLOOR">Macro </a>VIR_NETWORK_PORT_BANDWIDTH_IN_FLOOR</h3><pre class="programlisting">#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_IN_FLOOR">VIR_NETWORK_PORT_BANDWIDTH_IN_FLOOR</a>;
+</pre><p>Macro represents the inbound floor of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NETWORK_PORT_BANDWIDTH_IN_PEAK">Macro </a>VIR_NETWORK_PORT_BANDWIDTH_IN_PEAK</h3><pre class="programlisting">#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_IN_PEAK">VIR_NETWORK_PORT_BANDWIDTH_IN_PEAK</a>;
+</pre><p>Macro represents the inbound peak of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NETWORK_PORT_BANDWIDTH_OUT_AVERAGE">Macro </a>VIR_NETWORK_PORT_BANDWIDTH_OUT_AVERAGE</h3><pre class="programlisting">#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_OUT_AVERAGE">VIR_NETWORK_PORT_BANDWIDTH_OUT_AVERAGE</a>;
+</pre><p>Macro represents the outbound average of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NETWORK_PORT_BANDWIDTH_OUT_BURST">Macro </a>VIR_NETWORK_PORT_BANDWIDTH_OUT_BURST</h3><pre class="programlisting">#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_OUT_BURST">VIR_NETWORK_PORT_BANDWIDTH_OUT_BURST</a>;
+</pre><p>Macro represents the outbound burst of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_NETWORK_PORT_BANDWIDTH_OUT_PEAK">Macro </a>VIR_NETWORK_PORT_BANDWIDTH_OUT_PEAK</h3><pre class="programlisting">#define <a href="#VIR_NETWORK_PORT_BANDWIDTH_OUT_PEAK">VIR_NETWORK_PORT_BANDWIDTH_OUT_PEAK</a>;
+</pre><p>Macro represents the outbound peak of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllNetworksFlags">Enum </a>virConnectListAllNetworksFlags</h3><pre class="programlisting">enum <a href="#virConnectListAllNetworksFlags">virConnectListAllNetworksFlags</a> {
+    <a name="VIR_CONNECT_LIST_NETWORKS_INACTIVE">VIR_CONNECT_LIST_NETWORKS_INACTIVE</a> = 1
+    <a name="VIR_CONNECT_LIST_NETWORKS_ACTIVE">VIR_CONNECT_LIST_NETWORKS_ACTIVE</a> = 2
+    <a name="VIR_CONNECT_LIST_NETWORKS_PERSISTENT">VIR_CONNECT_LIST_NETWORKS_PERSISTENT</a> = 4
+    <a name="VIR_CONNECT_LIST_NETWORKS_TRANSIENT">VIR_CONNECT_LIST_NETWORKS_TRANSIENT</a> = 8
+    <a name="VIR_CONNECT_LIST_NETWORKS_AUTOSTART">VIR_CONNECT_LIST_NETWORKS_AUTOSTART</a> = 16
+    <a name="VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART">VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART</a> = 32
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virIPAddrType">Enum </a>virIPAddrType</h3><pre class="programlisting">enum <a href="#virIPAddrType">virIPAddrType</a> {
+    <a name="VIR_IP_ADDR_TYPE_IPV4">VIR_IP_ADDR_TYPE_IPV4</a> = 0
+    <a name="VIR_IP_ADDR_TYPE_IPV6">VIR_IP_ADDR_TYPE_IPV6</a> = 1
+    <a name="VIR_IP_ADDR_TYPE_LAST">VIR_IP_ADDR_TYPE_LAST</a> = 2
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetwork">Structure </a>virNetwork</h3><pre class="programlisting">struct _virNetwork {
+The content of this structure is not made public by the API.
+} virNetwork;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkDHCPLease">Structure </a>virNetworkDHCPLease</h3><pre class="programlisting">struct _virNetworkDHCPLease {
+    char *	iface	: Network interface name
+    long long	expirytime	: Seconds since epoch
+    int	type	: <a href="libvirt-libvirt-network.html#virIPAddrType">virIPAddrType</a>
+    char *	mac	: MAC address
+    char *	iaid	: IAID
+    char *	ipaddr	: IP address
+    unsigned int	prefix	: IP address prefix
+    char *	hostname	: Hostname
+    char *	clientid	: Client ID or DUID
+} virNetworkDHCPLease;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkDHCPLeasePtr">Typedef </a>virNetworkDHCPLeasePtr</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkDHCPLease">virNetworkDHCPLease</a> * virNetworkDHCPLeasePtr;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkEventID">Enum </a>virNetworkEventID</h3><pre class="programlisting">enum <a href="#virNetworkEventID">virNetworkEventID</a> {
+    <a name="VIR_NETWORK_EVENT_ID_LIFECYCLE">VIR_NETWORK_EVENT_ID_LIFECYCLE</a> = 0 /* virConnectNetworkEventLifecycleCallback */
+    <a name="VIR_NETWORK_EVENT_ID_LAST">VIR_NETWORK_EVENT_ID_LAST</a> = 1 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkEventLifecycleType">Enum </a>virNetworkEventLifecycleType</h3><pre class="programlisting">enum <a href="#virNetworkEventLifecycleType">virNetworkEventLifecycleType</a> {
+    <a name="VIR_NETWORK_EVENT_DEFINED">VIR_NETWORK_EVENT_DEFINED</a> = 0
+    <a name="VIR_NETWORK_EVENT_UNDEFINED">VIR_NETWORK_EVENT_UNDEFINED</a> = 1
+    <a name="VIR_NETWORK_EVENT_STARTED">VIR_NETWORK_EVENT_STARTED</a> = 2
+    <a name="VIR_NETWORK_EVENT_STOPPED">VIR_NETWORK_EVENT_STOPPED</a> = 3
+    <a name="VIR_NETWORK_EVENT_LAST">VIR_NETWORK_EVENT_LAST</a> = 4
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPort">Structure </a>virNetworkPort</h3><pre class="programlisting">struct _virNetworkPort {
+The content of this structure is not made public by the API.
+} virNetworkPort;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortCreateFlags">Enum </a>virNetworkPortCreateFlags</h3><pre class="programlisting">enum <a href="#virNetworkPortCreateFlags">virNetworkPortCreateFlags</a> {
+    <a name="VIR_NETWORK_PORT_CREATE_RECLAIM">VIR_NETWORK_PORT_CREATE_RECLAIM</a> = 1 /* reclaim existing used resources */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortPtr">Typedef </a>virNetworkPortPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPort">virNetworkPort</a> * virNetworkPortPtr;
+</pre><p>a <a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> is pointer to a <a href="libvirt-libvirt-network.html#virNetworkPort">virNetworkPort</a> private structure, this is the type used to reference a virtual network port in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPtr">Typedef </a>virNetworkPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetwork">virNetwork</a> * virNetworkPtr;
+</pre><p>a <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> is pointer to a <a href="libvirt-libvirt-network.html#virNetwork">virNetwork</a> private structure, this is the type used to reference a virtual network in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkUpdateCommand">Enum </a>virNetworkUpdateCommand</h3><pre class="programlisting">enum <a href="#virNetworkUpdateCommand">virNetworkUpdateCommand</a> {
+    <a name="VIR_NETWORK_UPDATE_COMMAND_NONE">VIR_NETWORK_UPDATE_COMMAND_NONE</a> = 0 /* (invalid) */
+    <a name="VIR_NETWORK_UPDATE_COMMAND_MODIFY">VIR_NETWORK_UPDATE_COMMAND_MODIFY</a> = 1 /* modify an existing element */
+    <a name="VIR_NETWORK_UPDATE_COMMAND_DELETE">VIR_NETWORK_UPDATE_COMMAND_DELETE</a> = 2 /* delete an existing element */
+    <a name="VIR_NETWORK_UPDATE_COMMAND_ADD_LAST">VIR_NETWORK_UPDATE_COMMAND_ADD_LAST</a> = 3 /* add an element at end of list */
+    <a name="VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST">VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST</a> = 4 /* add an element at start of list */
+    <a name="VIR_NETWORK_UPDATE_COMMAND_LAST">VIR_NETWORK_UPDATE_COMMAND_LAST</a> = 5
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkUpdateFlags">Enum </a>virNetworkUpdateFlags</h3><pre class="programlisting">enum <a href="#virNetworkUpdateFlags">virNetworkUpdateFlags</a> {
+    <a name="VIR_NETWORK_UPDATE_AFFECT_CURRENT">VIR_NETWORK_UPDATE_AFFECT_CURRENT</a> = 0 /* affect live if network is active, config if it's not active */
+    <a name="VIR_NETWORK_UPDATE_AFFECT_LIVE">VIR_NETWORK_UPDATE_AFFECT_LIVE</a> = 1 /* affect live state of network only */
+    <a name="VIR_NETWORK_UPDATE_AFFECT_CONFIG">VIR_NETWORK_UPDATE_AFFECT_CONFIG</a> = 2 /* affect persistent config only */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkUpdateSection">Enum </a>virNetworkUpdateSection</h3><pre class="programlisting">enum <a href="#virNetworkUpdateSection">virNetworkUpdateSection</a> {
+    <a name="VIR_NETWORK_SECTION_NONE">VIR_NETWORK_SECTION_NONE</a> = 0 /* (invalid) */
+    <a name="VIR_NETWORK_SECTION_BRIDGE">VIR_NETWORK_SECTION_BRIDGE</a> = 1 /* &lt;bridge&gt; */
+    <a name="VIR_NETWORK_SECTION_DOMAIN">VIR_NETWORK_SECTION_DOMAIN</a> = 2 /* &lt;domain&gt; */
+    <a name="VIR_NETWORK_SECTION_IP">VIR_NETWORK_SECTION_IP</a> = 3 /* &lt;ip&gt; */
+    <a name="VIR_NETWORK_SECTION_IP_DHCP_HOST">VIR_NETWORK_SECTION_IP_DHCP_HOST</a> = 4 /* &lt;ip&gt;/&lt;dhcp&gt;/&lt;host&gt; */
+    <a name="VIR_NETWORK_SECTION_IP_DHCP_RANGE">VIR_NETWORK_SECTION_IP_DHCP_RANGE</a> = 5 /* &lt;ip&gt;/&lt;dhcp&gt;/&lt;range&gt; */
+    <a name="VIR_NETWORK_SECTION_FORWARD">VIR_NETWORK_SECTION_FORWARD</a> = 6 /* &lt;forward&gt; */
+    <a name="VIR_NETWORK_SECTION_FORWARD_INTERFACE">VIR_NETWORK_SECTION_FORWARD_INTERFACE</a> = 7 /* &lt;forward&gt;/&lt;interface&gt; */
+    <a name="VIR_NETWORK_SECTION_FORWARD_PF">VIR_NETWORK_SECTION_FORWARD_PF</a> = 8 /* &lt;forward&gt;/&lt;pf&gt; */
+    <a name="VIR_NETWORK_SECTION_PORTGROUP">VIR_NETWORK_SECTION_PORTGROUP</a> = 9 /* &lt;portgroup&gt; */
+    <a name="VIR_NETWORK_SECTION_DNS_HOST">VIR_NETWORK_SECTION_DNS_HOST</a> = 10 /* &lt;dns&gt;/&lt;host&gt; */
+    <a name="VIR_NETWORK_SECTION_DNS_TXT">VIR_NETWORK_SECTION_DNS_TXT</a> = 11 /* &lt;dns&gt;/&lt;txt&gt; */
+    <a name="VIR_NETWORK_SECTION_DNS_SRV">VIR_NETWORK_SECTION_DNS_SRV</a> = 12 /* &lt;dns&gt;/&lt;srv&gt; */
+    <a name="VIR_NETWORK_SECTION_LAST">VIR_NETWORK_SECTION_LAST</a> = 13
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkXMLFlags">Enum </a>virNetworkXMLFlags</h3><pre class="programlisting">enum <a href="#virNetworkXMLFlags">virNetworkXMLFlags</a> {
+    <a name="VIR_NETWORK_XML_INACTIVE">VIR_NETWORK_XML_INACTIVE</a> = 1 /* dump inactive network information */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNetworkEventGenericCallback"/>Function type virConnectNetworkEventGenericCallback</h3><pre class="programlisting">void	virConnectNetworkEventGenericCallback	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 void * opaque)<br/>
+</pre><p>A generic network event callback handler, for use with
+virConnectNetworkEventRegisterAny(). Specific events usually
+have a customization with extra parameters, often with @opaque being
+passed in a different parameter position; use VIR_NETWORK_EVENT_CALLBACK()
+when registering an appropriate handler.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection pointer</td></tr><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>the network pointer</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNetworkEventLifecycleCallback"/>Function type virConnectNetworkEventLifecycleCallback</h3><pre class="programlisting">void	virConnectNetworkEventLifecycleCallback	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 int event, <br/>						 int detail, <br/>						 void * opaque)<br/>
+</pre><p>This callback occurs when the network is started or stopped.
+
+The callback signature to use when registering for an event of type
+VIR_NETWORK_EVENT_ID_LIFECYCLE with virConnectNetworkEventRegisterAny()</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>network on which the event occurred</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>The specific virNetworkEventLifeCycleType which occurred</td></tr><tr><td><span class="term"><i><tt>detail</tt></i>:</span></td><td>contains some details on the reason of the event. It will be 0 for the while.</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllNetworks"/>virConnectListAllNetworks ()</h3><pre class="programlisting">int	virConnectListAllNetworks	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> ** nets, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect the list of networks, and allocate an array to store those
+objects. This API solves the race inherent between virConnectListNetworks
+and virConnectListDefinedNetworks.
+
+Normally, all networks are returned; however, @flags can be used to
+filter the results for a smaller list of targeted networks. The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a network, and where all bits
+within a group describe all possible networks.
+
+The first group of @flags is <a href="libvirt-libvirt-network.html#VIR_CONNECT_LIST_NETWORKS_ACTIVE">VIR_CONNECT_LIST_NETWORKS_ACTIVE</a> (up) and
+VIR_CONNECT_LIST_NETWORKS_INACTIVE (down) to filter the networks by state.
+
+The second group of @flags is <a href="libvirt-libvirt-network.html#VIR_CONNECT_LIST_NETWORKS_PERSISTENT">VIR_CONNECT_LIST_NETWORKS_PERSISTENT</a> (defined)
+and <a href="libvirt-libvirt-network.html#VIR_CONNECT_LIST_NETWORKS_TRANSIENT">VIR_CONNECT_LIST_NETWORKS_TRANSIENT</a> (running but not defined), to filter
+the networks by whether they have persistent config or not.
+
+The third group of @flags is VIR_CONNECT_LIST_NETWORKS_AUTOSTART
+and VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART, to filter the networks by
+whether they are marked as autostart or not.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>nets</tt></i>:</span></td><td>Pointer to a variable to store the array containing the network objects or NULL if the list is not required (just returns number of networks).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of virConnectListAllNetworksFlags.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of networks found or -1 and sets @nets to NULL in case of error. On success, the array stored into @nets is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virNetworkFree() on each array element, then calling free() on @nets.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListDefinedNetworks"/>virConnectListDefinedNetworks ()</h3><pre class="programlisting">int	virConnectListDefinedNetworks	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
+</pre><p>list the inactive networks, stores the pointers to the names in @names
+
+For more control over the results, see virConnectListAllNetworks().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>pointer to an array to store the names</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of the array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of names provided in the array or -1 in case of error. Note that this command is inherently racy; a network can be defined between a call to virConnectNumOfDefinedNetworks() and this call; you are only guaranteed that all currently defined networks were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListNetworks"/>virConnectListNetworks ()</h3><pre class="programlisting">int	virConnectListNetworks		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
+</pre><p>Collect the list of active networks, and store their names in @names
+
+For more control over the results, see virConnectListAllNetworks().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of active networks</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of networks found or -1 in case of error. Note that this command is inherently racy; a network can be started between a call to virConnectNumOfNetworks() and this call; you are only guaranteed that all currently active networks were listed if the return is less than @maxnames. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNetworkEventDeregisterAny"/>virConnectNetworkEventDeregisterAny ()</h3><pre class="programlisting">int	virConnectNetworkEventDeregisterAny	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 int callbackID)<br/>
+</pre><p>Removes an event callback. The callbackID parameter should be the
+value obtained from a previous virConnectNetworkEventRegisterAny() method.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>callbackID</tt></i>:</span></td><td>the callback identifier</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNetworkEventRegisterAny"/>virConnectNetworkEventRegisterAny ()</h3><pre class="programlisting">int	virConnectNetworkEventRegisterAny	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt-network.html#virConnectNetworkEventGenericCallback">virConnectNetworkEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt-common.html#virFreeCallback">virFreeCallback</a> freecb)<br/>
+</pre><p>Adds a callback to receive notifications of arbitrary network events
+occurring on a network. This function requires that an event loop
+has been previously registered with virEventRegisterImpl() or
+virEventRegisterDefaultImpl().
+
+If @net is NULL, then events will be monitored for any network. If @net
+is non-NULL, then only the specific network will be monitored.
+
+Most types of event have a callback providing a custom set of parameters
+for the event. When registering an event, it is thus necessary to use
+the VIR_NETWORK_EVENT_CALLBACK() macro to cast the supplied function pointer
+to match the signature of this method.
+
+The <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> object handle passed into the callback upon delivery
+of an event is only valid for the duration of execution of the callback.
+If the callback wishes to keep the network object after the callback
+returns, it shall take a reference to it, by calling virNetworkRef().
+The reference can be released once the object is no longer required
+by calling virNetworkFree().
+
+The return value from this method is a positive integer identifier
+for the callback. To unregister a callback, this callback ID should
+be passed to the virConnectNetworkEventDeregisterAny() method.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to the network</td></tr><tr><td><span class="term"><i><tt>eventID</tt></i>:</span></td><td>the event type to receive</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling network events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a callback identifier on success, -1 on failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNumOfDefinedNetworks"/>virConnectNumOfDefinedNetworks ()</h3><pre class="programlisting">int	virConnectNumOfDefinedNetworks	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Provides the number of inactive networks.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of networks found or -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectNumOfNetworks"/>virConnectNumOfNetworks ()</h3><pre class="programlisting">int	virConnectNumOfNetworks		(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Provides the number of active networks.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of network found or -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkCreate"/>virNetworkCreate ()</h3><pre class="programlisting">int	virNetworkCreate		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
+</pre><p>Create and start a defined network. If the call succeed the network
+moves from the defined to the running networks pools.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>pointer to a defined network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkCreateXML"/>virNetworkCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	virNetworkCreateXML	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc)<br/>
+</pre><p>Create and start a new virtual network, based on an XML description
+similar to the one returned by virNetworkGetXMLDesc()
+
+virNetworkFree should be used to free the resources after the
+network object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>an XML description of the network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network object or NULL in case of failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkDHCPLeaseFree"/>virNetworkDHCPLeaseFree ()</h3><pre class="programlisting">void	virNetworkDHCPLeaseFree		(<a href="libvirt-libvirt-network.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> lease)<br/>
+</pre><p>Frees all the memory occupied by @lease.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>lease</tt></i>:</span></td><td>pointer to a leases object</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkDefineXML"/>virNetworkDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	virNetworkDefineXML	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml)<br/>
+</pre><p>Define an inactive persistent virtual network or modify an existing
+persistent one from the XML description.
+
+virNetworkFree should be used to free the resources after the
+network object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>the XML description for the network, preferably in UTF-8</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, a pointer to the network otherwise</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkDestroy"/>virNetworkDestroy ()</h3><pre class="programlisting">int	virNetworkDestroy		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
+</pre><p>Destroy the network object. The running instance is shutdown if not down
+already and all resources used by it are given back to the hypervisor. This
+does not free the associated <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> object.
+This function may require privileged access</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>a network object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkFree"/>virNetworkFree ()</h3><pre class="programlisting">int	virNetworkFree			(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
+</pre><p>Free the network object. The running instance is kept alive.
+The data structure is freed and should not be used thereafter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>a network object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkGetAutostart"/>virNetworkGetAutostart ()</h3><pre class="programlisting">int	virNetworkGetAutostart		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 int * autostart)<br/>
+</pre><p>Provides a boolean value indicating whether the network
+configured to be automatically started when the host
+machine boots.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>a network object</td></tr><tr><td><span class="term"><i><tt>autostart</tt></i>:</span></td><td>the value returned</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkGetBridgeName"/>virNetworkGetBridgeName ()</h3><pre class="programlisting">char *	virNetworkGetBridgeName		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
+</pre><p>Provides a bridge interface name to which a domain may connect
+a network interface in order to join the network.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>a network object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated interface name, or NULL in case of error. The caller must free() the returned value.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkGetConnect"/>virNetworkGetConnect ()</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	virNetworkGetConnect	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net)<br/>
+</pre><p>Provides the connection pointer associated with a network. The
+reference counter on the connection is not increased by this
+call.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to a network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the <a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> or NULL in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkGetDHCPLeases"/>virNetworkGetDHCPLeases ()</h3><pre class="programlisting">int	virNetworkGetDHCPLeases		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 const char * mac, <br/>					 <a href="libvirt-libvirt-network.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> ** leases, <br/>					 unsigned int flags)<br/>
+</pre><p>For DHCPv4, the information returned:
+- Network Interface Name
+- Expiry Time
+- MAC address
+- IAID (NULL)
+- IPv4 address (with type and prefix)
+- Hostname (can be NULL)
+- Client ID (can be NULL)
+
+For DHCPv6, the information returned:
+- Network Interface Name
+- Expiry Time
+- MAC address
+- IAID (can be NULL, only in rare cases)
+- IPv6 address (with type and prefix)
+- Hostname (can be NULL)
+- Client DUID
+
+Note: @mac, @iaid, @ipaddr, @clientid are in ASCII form, not raw bytes.
+Note: @expirytime can 0, in case the lease is for infinite time.
+
+The API fetches leases info of guests in the specified network. If the
+optional parameter @mac is specified, the returned list will contain only
+lease info about a specific guest interface with @mac. There can be
+multiple leases for a single @mac because this API supports DHCPv6 too.
+
+On success, the array stored into @leases is guaranteed to
+have an extra allocated element set to NULL but not included in the return
+count, to make iteration easier. The caller is responsible for calling
+virNetworkDHCPLeaseFree() on each array element, then calling free() on @leases.
+
+See also virNetworkGetDHCPLeasesForMAC() as a convenience for filtering
+the list to a single MAC address.
+
+Example of usage:
+
+ <a href="libvirt-libvirt-network.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> *leases = NULL;
+ <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network = ... obtain a network pointer here ...;
+ size_t i;
+ int nleases;
+ unsigned int flags = 0;
+
+ nleases = virNetworkGetDHCPLeases(network, NULL, &amp;leases, flags);
+ if (nleases &lt; 0)
+ error();
+
+ ... do something with returned values, for example:
+
+ for (i = 0; i &lt; nleases; i++) {
+ <a href="libvirt-libvirt-network.html#virNetworkDHCPLeasePtr">virNetworkDHCPLeasePtr</a> lease = leases[i];
+
+ printf("Time(epoch): %lu, MAC address: %s, "
+ "IP address: %s, Hostname: %s, ClientID: %s\n",
+ lease-&gt;expirytime, lease-&gt;mac, lease-&gt;ipaddr,
+ lease-&gt;hostname, lease-&gt;clientid);
+
+ virNetworkDHCPLeaseFree(leases[i]);
+ }
+
+ free(leases);</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>Pointer to network object</td></tr><tr><td><span class="term"><i><tt>mac</tt></i>:</span></td><td>Optional ASCII formatted MAC address of an interface</td></tr><tr><td><span class="term"><i><tt>leases</tt></i>:</span></td><td>Pointer to a variable to store the array containing details on obtained leases, or NULL if the list is not required (just returns number of leases).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>Extra flags, not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of leases found or -1 and sets @leases to NULL in case of error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkGetName"/>virNetworkGetName ()</h3><pre class="programlisting">const char *	virNetworkGetName	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
+</pre><p>Get the public name for that network</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>a network object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the name or NULL, the string need not be deallocated its lifetime will be the same as the network object.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkGetUUID"/>virNetworkGetUUID ()</h3><pre class="programlisting">int	virNetworkGetUUID		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 unsigned char * uuid)<br/>
+</pre><p>Get the UUID for a network</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>a network object</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt-host.html#VIR_UUID_BUFLEN">VIR_UUID_BUFLEN</a> bytes array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkGetUUIDString"/>virNetworkGetUUIDString ()</h3><pre class="programlisting">int	virNetworkGetUUIDString		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 char * buf)<br/>
+</pre><p>Get the UUID for a network as string. For more information about
+UUID see RFC4122.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>a network object</td></tr><tr><td><span class="term"><i><tt>buf</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt-host.html#VIR_UUID_STRING_BUFLEN">VIR_UUID_STRING_BUFLEN</a> bytes array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkGetXMLDesc"/>virNetworkGetXMLDesc ()</h3><pre class="programlisting">char *	virNetworkGetXMLDesc		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 unsigned int flags)<br/>
+</pre><p>Provide an XML description of the network. The description may be reused
+later to relaunch the network with virNetworkCreateXML().
+
+Normally, if a network included a physical function, the output includes
+all virtual functions tied to that physical interface. If @flags includes
+VIR_NETWORK_XML_INACTIVE, then the expansion of virtual interfaces is
+not performed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>a network object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt-network.html#virNetworkXMLFlags">virNetworkXMLFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. The caller must free() the returned value.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkIsActive"/>virNetworkIsActive ()</h3><pre class="programlisting">int	virNetworkIsActive		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net)<br/>
+</pre><p>Determine if the network is currently running</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to the network object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if running, 0 if inactive, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkIsPersistent"/>virNetworkIsPersistent ()</h3><pre class="programlisting">int	virNetworkIsPersistent		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net)<br/>
+</pre><p>Determine if the network has a persistent configuration
+which means it will still exist after shutting down</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to the network object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if persistent, 0 if transient, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkListAllPorts"/>virNetworkListAllPorts ()</h3><pre class="programlisting">int	virNetworkListAllPorts		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 <a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> ** ports, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect the list of network ports, and allocate an array to store those
+objects.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>pointer to a network object</td></tr><tr><td><span class="term"><i><tt>ports</tt></i>:</span></td><td>Pointer to a variable to store the array containing network port objects or NULL if the list is not required (just returns number of ports).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of network ports found or -1 and sets @ports to NULL in case of error. On success, the array stored into @ports is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virNetworkPortFree() on each array element, then calling free() on @ports.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkLookupByName"/>virNetworkLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	virNetworkLookupByName	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name)<br/>
+</pre><p>Try to lookup a network on the given hypervisor based on its name.
+
+virNetworkFree should be used to free the resources after the
+network object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network object or NULL in case of failure. If the network cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NETWORK">VIR_ERR_NO_NETWORK</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkLookupByUUID"/>virNetworkLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	virNetworkLookupByUUID	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid)<br/>
+</pre><p>Try to lookup a network on the given hypervisor based on its UUID.
+
+virNetworkFree should be used to free the resources after the
+network object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>the raw UUID for the network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network object or NULL in case of failure. If the network cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NETWORK">VIR_ERR_NO_NETWORK</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkLookupByUUIDString"/>virNetworkLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	virNetworkLookupByUUIDString	(<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 const char * uuidstr)<br/>
+</pre><p>Try to lookup a network on the given hypervisor based on its UUID.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>the string UUID for the network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network object or NULL in case of failure. If the network cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NETWORK">VIR_ERR_NO_NETWORK</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortCreateXML"/>virNetworkPortCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a>	virNetworkPortCreateXML	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>						 const char * xmldesc, <br/>						 unsigned int flags)<br/>
+</pre><p>Create a new network port, based on an XML description
+similar to the one returned by virNetworkPortGetXMLDesc()
+
+virNetworkPortFree should be used to free the resources after the
+network port object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to the network object</td></tr><tr><td><span class="term"><i><tt>xmldesc</tt></i>:</span></td><td>an XML description of the port</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network port object or NULL in case of failure</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortDelete"/>virNetworkPortDelete ()</h3><pre class="programlisting">int	virNetworkPortDelete		(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 unsigned int flags)<br/>
+</pre><p>Delete the network port. This does not free the
+associated <a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> object. It is the
+caller's responsibility to ensure the port is not
+still in use by a virtual machine before deleting
+port.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>port</tt></i>:</span></td><td>a port object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortFree"/>virNetworkPortFree ()</h3><pre class="programlisting">int	virNetworkPortFree		(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port)<br/>
+</pre><p>Free the network port object.
+The data structure is freed and should not be used thereafter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>port</tt></i>:</span></td><td>a network port object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortGetNetwork"/>virNetworkPortGetNetwork ()</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a>	virNetworkPortGetNetwork	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port)<br/>
+</pre><p>Provides the network pointer associated with a port. The
+reference counter on the connection is not increased by this
+call.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>port</tt></i>:</span></td><td>pointer to a network port</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the <a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> or NULL in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortGetParameters"/>virNetworkPortGetParameters ()</h3><pre class="programlisting">int	virNetworkPortGetParameters	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> * params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Get all interface parameters. On input, @params should be initialized
+to NULL. On return @params will be allocated with the size large
+enough to hold all parameters, and @nparams will be updated to say
+how many parameters are present. @params should be freed by the caller
+on success.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>port</tt></i>:</span></td><td>a network port object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to pointer of interface parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to received number of interface parameter</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortGetUUID"/>virNetworkPortGetUUID ()</h3><pre class="programlisting">int	virNetworkPortGetUUID		(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 unsigned char * uuid)<br/>
+</pre><p>Get the UUID for a network port</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>port</tt></i>:</span></td><td>a network port object</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt-host.html#VIR_UUID_BUFLEN">VIR_UUID_BUFLEN</a> bytes array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortGetUUIDString"/>virNetworkPortGetUUIDString ()</h3><pre class="programlisting">int	virNetworkPortGetUUIDString	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 char * buf)<br/>
+</pre><p>Get the UUID for a network as string. For more information about
+UUID see RFC4122.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>port</tt></i>:</span></td><td>a network port object</td></tr><tr><td><span class="term"><i><tt>buf</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt-host.html#VIR_UUID_STRING_BUFLEN">VIR_UUID_STRING_BUFLEN</a> bytes array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortGetXMLDesc"/>virNetworkPortGetXMLDesc ()</h3><pre class="programlisting">char *	virNetworkPortGetXMLDesc	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 unsigned int flags)<br/>
+</pre><p>Provide an XML description of the network port. The description may be reused
+later to recreate the port with virNetworkPortCreateXML().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>port</tt></i>:</span></td><td>a network port object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortLookupByUUID"/>virNetworkPortLookupByUUID ()</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a>	virNetworkPortLookupByUUID	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>							 const unsigned char * uuid)<br/>
+</pre><p>Try to lookup a port on the given network based on its UUID.
+
+virNetworkPortFree should be used to free the resources after the
+network port object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to the network object</td></tr><tr><td><span class="term"><i><tt>uuid</tt></i>:</span></td><td>the raw UUID for the network port</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network port object or NULL in case of failure. If the network port cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NETWORK_PORT">VIR_ERR_NO_NETWORK_PORT</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortLookupByUUIDString"/>virNetworkPortLookupByUUIDString ()</h3><pre class="programlisting"><a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a>	virNetworkPortLookupByUUIDString	(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> net, <br/>							 const char * uuidstr)<br/>
+</pre><p>Try to lookup a port on the given network based on its UUID.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>net</tt></i>:</span></td><td>pointer to the network object</td></tr><tr><td><span class="term"><i><tt>uuidstr</tt></i>:</span></td><td>the string UUID for the port</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a new network port object or NULL in case of failure. If the network port cannot be found, then <a href="libvirt-virterror.html#VIR_ERR_NO_NETWORK_PORT">VIR_ERR_NO_NETWORK_PORT</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortRef"/>virNetworkPortRef ()</h3><pre class="programlisting">int	virNetworkPortRef		(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port)<br/>
+</pre><p>Increment the reference count on the network port. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt-network.html#virNetworkPortFree">virNetworkPortFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a network port, and it is required that the
+port remain resident until all threads have finished using
+it. ie, each new thread using a network port would increment
+the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>port</tt></i>:</span></td><td>a network port object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkPortSetParameters"/>virNetworkPortSetParameters ()</h3><pre class="programlisting">int	virNetworkPortSetParameters	(<a href="libvirt-libvirt-network.html#virNetworkPortPtr">virNetworkPortPtr</a> port, <br/>					 <a href="libvirt-libvirt-common.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Change a subset or all parameters of the network port; currently this
+includes bandwidth parameters.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>port</tt></i>:</span></td><td>a network port object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to interface parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of interface parameter (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkRef"/>virNetworkRef ()</h3><pre class="programlisting">int	virNetworkRef			(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
+</pre><p>Increment the reference count on the network. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt-network.html#virNetworkFree">virNetworkFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection remain open until all threads have finished using
+it. ie, each new thread using a network would increment
+the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>the network to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkSetAutostart"/>virNetworkSetAutostart ()</h3><pre class="programlisting">int	virNetworkSetAutostart		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 int autostart)<br/>
+</pre><p>Configure the network to be automatically started
+when the host machine boots.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>a network object</td></tr><tr><td><span class="term"><i><tt>autostart</tt></i>:</span></td><td>whether the network should be automatically started 0 or 1</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkUndefine"/>virNetworkUndefine ()</h3><pre class="programlisting">int	virNetworkUndefine		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network)<br/>
+</pre><p>Undefine a network but does not stop it if it is running</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>pointer to a defined network</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNetworkUpdate"/>virNetworkUpdate ()</h3><pre class="programlisting">int	virNetworkUpdate		(<a href="libvirt-libvirt-network.html#virNetworkPtr">virNetworkPtr</a> network, <br/>					 unsigned int command, <br/>					 unsigned int section, <br/>					 int parentIndex, <br/>					 const char * xml, <br/>					 unsigned int flags)<br/>
+</pre><p>Update the definition of an existing network, either its live
+running state, its persistent configuration, or both.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>network</tt></i>:</span></td><td>pointer to a defined network</td></tr><tr><td><span class="term"><i><tt>command</tt></i>:</span></td><td>what action to perform (add/delete/modify) (see <a href="libvirt-libvirt-network.html#virNetworkUpdateCommand">virNetworkUpdateCommand</a> for descriptions)</td></tr><tr><td><span class="term"><i><tt>section</tt></i>:</span></td><td>which section of the network to update (see <a href="libvirt-libvirt-network.html#virNetworkUpdateSection">virNetworkUpdateSection</a> for descriptions)</td></tr><tr><td><span class="term"><i><tt>parentIndex</tt></i>:</span></td><td>which parent element, if there are multiple parents of the same type (e.g. which &lt;ip&gt; element when modifying a &lt;dhcp&gt;/&lt;host&gt; element), or "-1" for "don't care" or "automatically find appropriate one".</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>the XML description for the network, preferably in UTF-8</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise OR of virNetworkUpdateFlags.</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error <a href="libvirt-libvirt-network.html#virNetworkUpdateCommand">virNetworkUpdateCommand</a> <a href="libvirt-libvirt-network.html#virNetworkUpdateSection">virNetworkUpdateSection</a></td></tr></tbody></table></div></div>
+        <hr/>
+      </div>
+    </div>
+  </body>
+</html>

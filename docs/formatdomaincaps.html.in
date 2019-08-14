@@ -514,10 +514,9 @@
     encrypted with a key unique to that VM.</p>
 
     <p>
-    For more details on SEV feature see:
-      <a href="https://support.amd.com/TechDocs/55766_SEV-KM_API_Specification.pdf">
-        SEV API spec</a> and <a href="http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf">
-        SEV White Paper</a>
+      For more details on the SEV feature, please follow resources in the
+      AMD developer's document store. In order to use SEV with libvirt have
+      a look at <a href="formatdomain.html#launchSecurity">SEV in domain XML</a>
     </p>
 
     <dl>

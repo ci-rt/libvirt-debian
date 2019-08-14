@@ -1984,7 +1984,9 @@ esxDomainSetMaxMemory(virDomainPtr domain, unsigned long memory)
 
 
 static int
-esxDomainSetMemory(virDomainPtr domain, unsigned long memory)
+esxDomainSetMemoryFlags(virDomainPtr domain,
+                        unsigned long memory,
+                        unsigned int flags)
 {
     int result = -1;
     esxPrivate *priv = domain->conn->privateData;
@@ -1993,6 +1995,8 @@ esxDomainSetMemory(virDomainPtr domain, unsigned long memory)
     esxVI_ManagedObjectReference *task = NULL;
     esxVI_TaskInfoState taskInfoState;
     char *taskInfoErrorMessage = NULL;
+
+    virCheckFlags(0, -1);
 
     if (esxVI_EnsureSession(priv->primary) < 0)
         return -1;
@@ -2036,6 +2040,12 @@ esxDomainSetMemory(virDomainPtr domain, unsigned long memory)
     return result;
 }
 
+
+static int
+esxDomainSetMemory(virDomainPtr domain, unsigned long memory)
+{
+    return esxDomainSetMemoryFlags(domain, memory, 0);
+}
 
 
 /*
@@ -4081,7 +4091,6 @@ esxDomainSnapshotCreateXML(virDomainPtr domain, const char *xmlDesc,
                            unsigned int flags)
 {
     esxPrivate *priv = domain->conn->privateData;
-    virDomainSnapshotDefPtr def = NULL;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_VirtualMachineSnapshotTree *rootSnapshotList = NULL;
     esxVI_VirtualMachineSnapshotTree *snapshotTree = NULL;
@@ -4091,18 +4100,24 @@ esxDomainSnapshotCreateXML(virDomainPtr domain, const char *xmlDesc,
     virDomainSnapshotPtr snapshot = NULL;
     bool diskOnly = (flags & VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY) != 0;
     bool quiesce = (flags & VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE) != 0;
+    VIR_AUTOUNREF(virDomainSnapshotDefPtr) def = NULL;
+    unsigned int parse_flags = 0;
 
     /* ESX supports disk-only and quiesced snapshots; libvirt tracks no
      * snapshot metadata so supporting that flag is trivial.  */
     virCheckFlags(VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY |
                   VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE |
-                  VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA, NULL);
+                  VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA |
+                  VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE, NULL);
+
+    if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE)
+        parse_flags = VIR_DOMAIN_SNAPSHOT_PARSE_VALIDATE;
 
     if (esxVI_EnsureSession(priv->primary) < 0)
         return NULL;
 
     def = virDomainSnapshotDefParseString(xmlDesc, priv->caps,
-                                          priv->xmlopt, NULL, 0);
+                                          priv->xmlopt, NULL, parse_flags);
 
     if (!def)
         return NULL;
@@ -4118,7 +4133,7 @@ esxDomainSnapshotCreateXML(virDomainPtr domain, const char *xmlDesc,
            priv->parsedUri->autoAnswer) < 0 ||
         esxVI_LookupRootSnapshotTreeList(priv->primary, domain->uuid,
                                          &rootSnapshotList) < 0 ||
-        esxVI_GetSnapshotTreeByName(rootSnapshotList, def->common.name,
+        esxVI_GetSnapshotTreeByName(rootSnapshotList, def->parent.name,
                                     &snapshotTree, NULL,
                                     esxVI_Occurrence_OptionalItem) < 0) {
         goto cleanup;
@@ -4126,12 +4141,12 @@ esxDomainSnapshotCreateXML(virDomainPtr domain, const char *xmlDesc,
 
     if (snapshotTree) {
         virReportError(VIR_ERR_OPERATION_INVALID,
-                       _("Snapshot '%s' already exists"), def->common.name);
+                       _("Snapshot '%s' already exists"), def->parent.name);
         goto cleanup;
     }
 
     if (esxVI_CreateSnapshot_Task(priv->primary, virtualMachine->obj,
-                                  def->common.name, def->common.description,
+                                  def->parent.name, def->parent.description,
                                   diskOnly ? esxVI_Boolean_False : esxVI_Boolean_True,
                                   quiesce ? esxVI_Boolean_True : esxVI_Boolean_False,
                                   &task) < 0 ||
@@ -4148,10 +4163,9 @@ esxDomainSnapshotCreateXML(virDomainPtr domain, const char *xmlDesc,
         goto cleanup;
     }
 
-    snapshot = virGetDomainSnapshot(domain, def->common.name);
+    snapshot = virGetDomainSnapshot(domain, def->parent.name);
 
  cleanup:
-    virDomainSnapshotDefFree(def);
     esxVI_ObjectContent_Free(&virtualMachine);
     esxVI_VirtualMachineSnapshotTree_Free(&rootSnapshotList);
     esxVI_ManagedObjectReference_Free(&task);
@@ -4189,12 +4203,12 @@ esxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
         goto cleanup;
     }
 
-    def.common.name = snapshot->name;
-    def.common.description = snapshotTree->description;
-    def.common.parent = snapshotTreeParent ? snapshotTreeParent->name : NULL;
+    def.parent.name = snapshot->name;
+    def.parent.description = snapshotTree->description;
+    def.parent.parent_name = snapshotTreeParent ? snapshotTreeParent->name : NULL;
 
     if (esxVI_DateTime_ConvertToCalendarTime(snapshotTree->createTime,
-                                             &def.common.creationTime) < 0) {
+                                             &def.parent.creationTime) < 0) {
         goto cleanup;
     }
 
@@ -5123,6 +5137,7 @@ static virHypervisorDriver esxHypervisorDriver = {
     .domainGetMaxMemory = esxDomainGetMaxMemory, /* 0.7.0 */
     .domainSetMaxMemory = esxDomainSetMaxMemory, /* 0.7.0 */
     .domainSetMemory = esxDomainSetMemory, /* 0.7.0 */
+    .domainSetMemoryFlags = esxDomainSetMemoryFlags, /* 5.6.0 */
     .domainSetMemoryParameters = esxDomainSetMemoryParameters, /* 0.8.6 */
     .domainGetMemoryParameters = esxDomainGetMemoryParameters, /* 0.8.6 */
     .domainGetInfo = esxDomainGetInfo, /* 0.7.0 */

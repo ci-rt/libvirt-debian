@@ -18,15 +18,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRCGROUPBACKEND_H
-# define LIBVIRT_VIRCGROUPBACKEND_H
+#pragma once
 
-# include "internal.h"
+#include "internal.h"
 
-# include "vircgroup.h"
-# include "virhash.h"
+#include "vircgroup.h"
+#include "virhash.h"
 
-# define CGROUP_MAX_VAL 512
+#define CGROUP_MAX_VAL 512
 
 typedef enum {
     VIR_CGROUP_NONE = 0, /* create subdir under each cgroup if possible. */
@@ -35,6 +34,9 @@ typedef enum {
                                        * attaching tasks
                                        */
     VIR_CGROUP_THREAD = 1 << 1, /* cgroup v2 handles threads differently */
+    VIR_CGROUP_SYSTEMD = 1 << 2, /* with systemd and cgroups v2 we cannot
+                                  * manually enable controllers that systemd
+                                  * doesn't know how to delegate */
 } virCgroupBackendFlags;
 
 typedef enum {
@@ -96,7 +98,8 @@ typedef char *
 
 typedef int
 (*virCgroupDetectControllersCB)(virCgroupPtr group,
-                                int controllers);
+                                int controllers,
+                                virCgroupPtr parent);
 
 typedef bool
 (*virCgroupHasControllerCB)(virCgroupPtr cgroup,
@@ -447,7 +450,7 @@ virCgroupBackendPtr
 virCgroupBackendForController(virCgroupPtr group,
                               unsigned int controller);
 
-# define VIR_CGROUP_BACKEND_CALL(group, controller, func, ret, ...) \
+#define VIR_CGROUP_BACKEND_CALL(group, controller, func, ret, ...) \
     virCgroupBackendPtr backend = virCgroupBackendForController(group, controller); \
     if (!backend) { \
         virReportError(VIR_ERR_INTERNAL_ERROR, \
@@ -460,5 +463,3 @@ virCgroupBackendForController(virCgroupPtr group,
         return ret; \
     } \
     return backend->func(group, ##__VA_ARGS__);
-
-#endif /* LIBVIRT_VIRCGROUPBACKEND_H */

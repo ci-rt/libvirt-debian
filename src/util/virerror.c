@@ -142,6 +142,8 @@ VIR_ENUM_IMPL(virErrorDomain,
               "Resource control",
               "FirewallD",
               "Domain Checkpoint",
+
+              "TPM", /* 70 */
 );
 
 
@@ -1226,6 +1228,15 @@ const virErrorMsgTuple virErrorMsgStrings[VIR_ERR_NUMBER_LAST] = {
     [VIR_ERR_NO_DOMAIN_BACKUP] = {
         N_("Domain backup job id not found"),
         N_("Domain backup job id not found: %s") },
+    [VIR_ERR_INVALID_NETWORK_PORT] = {
+        N_("Invalid network port pointer"),
+        N_("Invalid network port pointer: %s") },
+    [VIR_ERR_NETWORK_PORT_EXIST] = {
+        N_("this network port exists already"),
+        N_("network port %s exists already") },
+    [VIR_ERR_NO_NETWORK_PORT] = {
+        N_("network port not found"),
+        N_("network port not found: %s") },
 };
 
 
@@ -1451,4 +1462,42 @@ bool virLastErrorIsSystemErrno(int errnum)
     if (errnum != 0 && err->int1 != errnum)
         return false;
     return true;
+}
+
+
+/**
+ * virLastErrorPrefixMessage:
+ * @fmt: printf-style formatting string
+ * @...: Arguments for @fmt
+ *
+ * Prefixes last error reported with message formatted from @fmt. This is useful
+ * if the low level error message does not convey enough information to describe
+ * the problem.
+ */
+void
+virLastErrorPrefixMessage(const char *fmt, ...)
+{
+    int save_errno = errno;
+    virErrorPtr err = virGetLastError();
+    VIR_AUTOFREE(char *) fmtmsg = NULL;
+    VIR_AUTOFREE(char *) newmsg = NULL;
+    va_list args;
+
+    if (!err)
+        return;
+
+    va_start(args, fmt);
+
+    if (virVasprintfQuiet(&fmtmsg, fmt, args) < 0)
+        goto cleanup;
+
+    if (virAsprintfQuiet(&newmsg, "%s: %s", fmtmsg, err->message) < 0)
+        goto cleanup;
+
+    VIR_FREE(err->message);
+    VIR_STEAL_PTR(err->message, newmsg);
+
+ cleanup:
+    va_end(args);
+    errno = save_errno;
 }

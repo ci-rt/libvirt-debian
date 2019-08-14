@@ -202,10 +202,14 @@
   <flag name='virtio-pci-non-transitional'/>
   <flag name='overcommit'/>
   <flag name='query-current-machine'/>
-  <version>3001050</version>
+  <flag name='bitmap-merge'/>
+  <flag name='nbd-bitmap'/>
+  <flag name='x86-max-cpu'/>
+  <flag name='bochs-display'/>
+  <version>4000000</version>
   <kvmVersion>0</kvmVersion>
   <microcodeVersion>43100758</microcodeVersion>
-  <package>v3.1.0-1445-ga61faa3d02</package>
+  <package>v4.0.0</package>
   <arch>x86_64</arch>
   <hostCPU type='kvm' model='base' migratability='yes'>
     <property name='phys-bits' type='number' value='0'/>
@@ -226,6 +230,7 @@
     <property name='hv-frequencies' type='boolean' value='false'/>
     <property name='tsc-frequency' type='number' value='0'/>
     <property name='xd' type='boolean' value='true' migratable='yes'/>
+    <property name='x-intel-pt-auto-level' type='boolean' value='true' migratable='yes'/>
     <property name='hv-vendor-id' type='string' value=''/>
     <property name='kvm-asyncpf' type='boolean' value='true' migratable='yes'/>
     <property name='kvm_asyncpf' type='boolean' value='true' migratable='yes'/>
@@ -364,7 +369,6 @@
     <property name='fma' type='boolean' value='true' migratable='yes'/>
     <property name='cx16' type='boolean' value='true' migratable='yes'/>
     <property name='de' type='boolean' value='true' migratable='yes'/>
-    <property name='pconfig' type='boolean' value='false'/>
     <property name='enforce' type='boolean' value='false'/>
     <property name='stepping' type='number' value='3'/>
     <property name='xsave' type='boolean' value='true' migratable='yes'/>
@@ -440,7 +444,7 @@
     <property name='avx512er' type='boolean' value='false'/>
     <property name='pmm-en' type='boolean' value='false'/>
     <property name='pcid' type='boolean' value='true' migratable='yes'/>
-    <property name='arch-capabilities' type='boolean' value='true' migratable='no'/>
+    <property name='arch-capabilities' type='boolean' value='false'/>
     <property name='3dnow' type='boolean' value='false'/>
     <property name='erms' type='boolean' value='true' migratable='yes'/>
     <property name='lahf-lm' type='boolean' value='true' migratable='yes'/>
@@ -461,7 +465,7 @@
     <property name='rdrand' type='boolean' value='true' migratable='yes'/>
     <property name='rdseed' type='boolean' value='true' migratable='yes'/>
     <property name='avx512-4vnniw' type='boolean' value='false'/>
-    <property name='vmx' type='boolean' value='false'/>
+    <property name='vmx' type='boolean' value='true' migratable='yes'/>
     <property name='vme' type='boolean' value='true' migratable='yes'/>
     <property name='dtes64' type='boolean' value='false'/>
     <property name='mtrr' type='boolean' value='true' migratable='yes'/>
@@ -496,6 +500,7 @@
     <property name='hv-frequencies' type='boolean' value='false'/>
     <property name='tsc-frequency' type='number' value='0'/>
     <property name='xd' type='boolean' value='true' migratable='yes'/>
+    <property name='x-intel-pt-auto-level' type='boolean' value='true' migratable='yes'/>
     <property name='hv-vendor-id' type='string' value=''/>
     <property name='kvm-asyncpf' type='boolean' value='false'/>
     <property name='kvm_asyncpf' type='boolean' value='false'/>
@@ -634,7 +639,6 @@
     <property name='fma' type='boolean' value='false'/>
     <property name='cx16' type='boolean' value='true' migratable='yes'/>
     <property name='de' type='boolean' value='true' migratable='yes'/>
-    <property name='pconfig' type='boolean' value='false'/>
     <property name='enforce' type='boolean' value='false'/>
     <property name='stepping' type='number' value='3'/>
     <property name='xsave' type='boolean' value='true' migratable='yes'/>
@@ -849,13 +853,11 @@
     <blocker name='avx512f'/>
     <blocker name='avx512dq'/>
     <blocker name='clwb'/>
-    <blocker name='intel-pt'/>
     <blocker name='avx512cd'/>
     <blocker name='avx512bw'/>
     <blocker name='avx512vl'/>
     <blocker name='avx512vbmi'/>
     <blocker name='pku'/>
-    <blocker name=''/>
     <blocker name='avx512vbmi2'/>
     <blocker name='gfni'/>
     <blocker name='vaes'/>
@@ -864,7 +866,6 @@
     <blocker name='avx512bitalg'/>
     <blocker name='avx512-vpopcntdq'/>
     <blocker name='la57'/>
-    <blocker name='pconfig'/>
     <blocker name='wbnoinvd'/>
     <blocker name='avx512f'/>
     <blocker name='avx512f'/>
@@ -872,10 +873,8 @@
     <blocker name='pku'/>
   </cpu>
   <cpu type='kvm' name='Icelake-Client' usable='no'>
-    <blocker name='intel-pt'/>
     <blocker name='avx512vbmi'/>
     <blocker name='pku'/>
-    <blocker name=''/>
     <blocker name='avx512vbmi2'/>
     <blocker name='gfni'/>
     <blocker name='vaes'/>
@@ -918,12 +917,10 @@
     <blocker name='avx512f'/>
     <blocker name='avx512dq'/>
     <blocker name='clwb'/>
-    <blocker name='intel-pt'/>
     <blocker name='avx512cd'/>
     <blocker name='avx512bw'/>
     <blocker name='avx512vl'/>
     <blocker name='pku'/>
-    <blocker name=''/>
     <blocker name='avx512vnni'/>
     <blocker name='avx512f'/>
     <blocker name='avx512f'/>
@@ -1122,13 +1119,11 @@
     <blocker name='avx512f'/>
     <blocker name='avx512dq'/>
     <blocker name='rdseed'/>
-    <blocker name='intel-pt'/>
     <blocker name='avx512cd'/>
     <blocker name='avx512bw'/>
     <blocker name='avx512vl'/>
     <blocker name='avx512vbmi'/>
     <blocker name='umip'/>
-    <blocker name=''/>
     <blocker name='avx512vbmi2'/>
     <blocker name='gfni'/>
     <blocker name='vaes'/>
@@ -1136,7 +1131,6 @@
     <blocker name='avx512vnni'/>
     <blocker name='avx512bitalg'/>
     <blocker name='avx512-vpopcntdq'/>
-    <blocker name='pconfig'/>
     <blocker name='spec-ctrl'/>
     <blocker name='ssbd'/>
     <blocker name='3dnowprefetch'/>
@@ -1156,10 +1150,8 @@
     <blocker name='invpcid'/>
     <blocker name='rtm'/>
     <blocker name='rdseed'/>
-    <blocker name='intel-pt'/>
     <blocker name='avx512vbmi'/>
     <blocker name='umip'/>
-    <blocker name=''/>
     <blocker name='avx512vbmi2'/>
     <blocker name='gfni'/>
     <blocker name='vaes'/>
@@ -1272,11 +1264,9 @@
     <blocker name='avx512f'/>
     <blocker name='avx512dq'/>
     <blocker name='rdseed'/>
-    <blocker name='intel-pt'/>
     <blocker name='avx512cd'/>
     <blocker name='avx512bw'/>
     <blocker name='avx512vl'/>
-    <blocker name=''/>
     <blocker name='avx512vnni'/>
     <blocker name='spec-ctrl'/>
     <blocker name='ssbd'/>

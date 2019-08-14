@@ -19,17 +19,16 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_QEMU_CAPABILITIES_H
-# define LIBVIRT_QEMU_CAPABILITIES_H
+#pragma once
 
-# include "virobject.h"
-# include "capabilities.h"
-# include "vircommand.h"
-# include "qemu_monitor.h"
-# include "domain_capabilities.h"
-# include "virfirmware.h"
-# include "virfilecache.h"
-# include "virenum.h"
+#include "virobject.h"
+#include "capabilities.h"
+#include "vircommand.h"
+#include "qemu_monitor.h"
+#include "domain_capabilities.h"
+#include "virfirmware.h"
+#include "virfilecache.h"
+#include "virenum.h"
 
 /*
  * Internal flags to keep track of qemu command line capabilities
@@ -507,6 +506,17 @@ typedef enum { /* virQEMUCapsFlags grouping marker for syntax-check */
     QEMU_CAPS_VIRTIO_PCI_TRANSITIONAL, /* virtio *-pci-{non-}transitional devices */
     QEMU_CAPS_OVERCOMMIT, /* -overcommit */
     QEMU_CAPS_QUERY_CURRENT_MACHINE, /* query-current-machine command */
+    QEMU_CAPS_MACHINE_VIRT_IOMMU, /* -machine virt,iommu */
+
+    /* 330 */
+    QEMU_CAPS_BITMAP_MERGE, /* block-dirty-bitmap-merge */
+    QEMU_CAPS_NBD_BITMAP, /* nbd-server-add supports bitmap */
+    QEMU_CAPS_X86_MAX_CPU, /* max-x86_64-cpu type exists */
+    QEMU_CAPS_CPU_UNAVAILABLE_FEATURES, /* "unavailable-features" CPU property */
+    QEMU_CAPS_CANONICAL_CPU_FEATURES, /* avoid CPU feature aliases */
+
+    /* 335 */
+    QEMU_CAPS_DEVICE_BOCHS_DISPLAY, /* -device bochs-display */
 
     QEMU_CAPS_LAST /* this must always be the last item */
 } virQEMUCapsFlags;
@@ -641,10 +651,16 @@ bool virQEMUCapsGuestIsNative(virArch host,
 bool virQEMUCapsCPUFilterFeatures(const char *name,
                                   void *opaque);
 
+const char *
+virQEMUCapsCPUFeatureToQEMU(virQEMUCapsPtr qemuCaps,
+                            const char *feature);
+
+const char *
+virQEMUCapsCPUFeatureFromQEMU(virQEMUCapsPtr qemuCaps,
+                              const char *feature);
+
 virSEVCapabilityPtr
 virQEMUCapsGetSEVCapabilities(virQEMUCapsPtr qemuCaps);
 
 virArch virQEMUCapsArchFromString(const char *arch);
 const char *virQEMUCapsArchToString(virArch arch);
-
-#endif /* LIBVIRT_QEMU_CAPABILITIES_H */

@@ -235,6 +235,57 @@ virSocketAddrParseIPv6(virSocketAddrPtr addr, const char *val)
     return virSocketAddrParse(addr, val, AF_INET6);
 }
 
+/**
+ * virSocketAddrResolveService:
+ * @service: a service name or port number
+ *
+ * Resolve a service, which might be a plain port or service name,
+ * into a port number for IPv4/IPv6 usage
+ *
+ * Returns a numeric port number, or -1 on error
+ */
+int virSocketAddrResolveService(const char *service)
+{
+    struct addrinfo *res, *tmp;
+    struct addrinfo hints;
+    int err;
+    int port = -1;
+
+    memset(&hints, 0, sizeof(hints));
+
+    if ((err = getaddrinfo(NULL, service, &hints, &res)) != 0) {
+        virReportError(VIR_ERR_SYSTEM_ERROR,
+                       _("Cannot parse socket service '%s': %s"),
+                       service, gai_strerror(err));
+        return -1;
+    }
+
+    tmp = res;
+    while (tmp) {
+        if (tmp->ai_family == AF_INET) {
+            struct sockaddr_in in;
+            memcpy(&in, tmp->ai_addr, sizeof(in));
+            port = in.sin_port;
+            goto cleanup;
+        } else if (tmp->ai_family == AF_INET6) {
+            struct sockaddr_in6 in;
+            memcpy(&in, tmp->ai_addr, sizeof(in));
+            port = in.sin6_port;
+            goto cleanup;
+        }
+        tmp++;
+    }
+
+    virReportError(VIR_ERR_SYSTEM_ERROR,
+                   _("No matches for socket service '%s': %s"),
+                   service, gai_strerror(err));
+
+ cleanup:
+    freeaddrinfo(res);
+
+    return port;
+}
+
 /*
  * virSocketAddrSetIPv4AddrNetOrder:
  * @addr: the location to store the result
@@ -521,6 +572,47 @@ virSocketAddrGetPort(virSocketAddrPtr addr)
 
     return -1;
 }
+
+
+/*
+ * virSocketGetPath:
+ * @addr: an initialized virSocketAddrPtr
+ *
+ * Returns the UNIX socket path of the given virtSocketAddr
+ *
+ * Returns -1 if @addr is invalid or does not refer to an
+ * address of type AF_UNIX;
+ */
+char *
+virSocketAddrGetPath(virSocketAddrPtr addr ATTRIBUTE_UNUSED)
+{
+#ifndef WIN32
+    char *path = NULL;
+    if (addr == NULL) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("No socket address provided"));
+        return NULL;
+    }
+
+    if (addr->data.sa.sa_family != AF_UNIX) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("UNIX socket address is required"));
+        return NULL;
+    }
+
+    if (VIR_STRNDUP(path,
+                    addr->data.un.sun_path,
+                    sizeof(addr->data.un.sun_path)) < 0)
+        return NULL;
+
+    return path;
+#else
+    virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                   _("UNIX sockets not supported on this platform"));
+    return NULL;
+#endif
+}
+
 
 /**
  * virSocketAddrIsNetmask:

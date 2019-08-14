@@ -48,6 +48,41 @@
      <exports symbol='virTypedParamsGetUInt' type='function'/>
      <exports symbol='virTypedParamsGetULLong' type='function'/>
     </file>
+    <file name='libvirt-domain-checkpoint'>
+     <summary>APIs for management of domain checkpoints</summary>
+     <description>Provides APIs for the management of domain checkpoints  Copyright (C) 2006-2019 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_CREATE_QUIESCE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN_ONLY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_DELETE_METADATA_ONLY' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_LIST_DESCENDANTS' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_LIST_LEAVES' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_LIST_NO_LEAVES' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_LIST_ROOTS' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_XML_NO_DOMAIN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_XML_SECURE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CHECKPOINT_XML_SIZE' type='enum'/>
+     <exports symbol='virDomainCheckpoint' type='typedef'/>
+     <exports symbol='virDomainCheckpointCreateFlags' type='typedef'/>
+     <exports symbol='virDomainCheckpointDeleteFlags' type='typedef'/>
+     <exports symbol='virDomainCheckpointListFlags' type='typedef'/>
+     <exports symbol='virDomainCheckpointPtr' type='typedef'/>
+     <exports symbol='virDomainCheckpointXMLFlags' type='typedef'/>
+     <exports symbol='virDomainCheckpointCreateXML' type='function'/>
+     <exports symbol='virDomainCheckpointDelete' type='function'/>
+     <exports symbol='virDomainCheckpointFree' type='function'/>
+     <exports symbol='virDomainCheckpointGetConnect' type='function'/>
+     <exports symbol='virDomainCheckpointGetDomain' type='function'/>
+     <exports symbol='virDomainCheckpointGetName' type='function'/>
+     <exports symbol='virDomainCheckpointGetParent' type='function'/>
+     <exports symbol='virDomainCheckpointGetXMLDesc' type='function'/>
+     <exports symbol='virDomainCheckpointListAllChildren' type='function'/>
+     <exports symbol='virDomainCheckpointLookupByName' type='function'/>
+     <exports symbol='virDomainCheckpointRef' type='function'/>
+     <exports symbol='virDomainListAllCheckpoints' type='function'/>
+    </file>
     <file name='libvirt-domain-snapshot'>
      <summary>APIs for management of domain snapshots</summary>
      <description>Provides APIs for the management of domain snapshots  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
@@ -60,6 +95,7 @@
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY' type='enum'/>
@@ -326,10 +362,12 @@
      <exports symbol='VIR_CONNECT_GET_ALL_DOMAINS_STATS_TRANSIENT' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_ACTIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_AUTOSTART' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_HAS_CHECKPOINT' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_INACTIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_NO_CHECKPOINT' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_OTHER' type='enum'/>
@@ -566,6 +604,8 @@
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_DISK_CACHES' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGALLOC' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGFAIL' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' type='enum'/>
@@ -746,6 +786,7 @@
      <exports symbol='VIR_DOMAIN_STATS_STATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_STATS_VCPU' type='enum'/>
      <exports symbol='VIR_DOMAIN_TIME_SYNC' type='enum'/>
+     <exports symbol='VIR_DOMAIN_UNDEFINE_CHECKPOINTS_METADATA' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_KEEP_NVRAM' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_UNDEFINE_NVRAM' type='enum'/>
@@ -1346,6 +1387,13 @@
      <summary>APIs for management of networks</summary>
      <description>Provides APIs for the management of networks  Copyright (C) 2006-2014 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </description>
      <exports symbol='VIR_NETWORK_EVENT_CALLBACK' type='macro'/>
+     <exports symbol='VIR_NETWORK_PORT_BANDWIDTH_IN_AVERAGE' type='macro'/>
+     <exports symbol='VIR_NETWORK_PORT_BANDWIDTH_IN_BURST' type='macro'/>
+     <exports symbol='VIR_NETWORK_PORT_BANDWIDTH_IN_FLOOR' type='macro'/>
+     <exports symbol='VIR_NETWORK_PORT_BANDWIDTH_IN_PEAK' type='macro'/>
+     <exports symbol='VIR_NETWORK_PORT_BANDWIDTH_OUT_AVERAGE' type='macro'/>
+     <exports symbol='VIR_NETWORK_PORT_BANDWIDTH_OUT_BURST' type='macro'/>
+     <exports symbol='VIR_NETWORK_PORT_BANDWIDTH_OUT_PEAK' type='macro'/>
      <exports symbol='VIR_CONNECT_LIST_NETWORKS_ACTIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NETWORKS_AUTOSTART' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_NETWORKS_INACTIVE' type='enum'/>
@@ -1362,6 +1410,7 @@
      <exports symbol='VIR_NETWORK_EVENT_STARTED' type='enum'/>
      <exports symbol='VIR_NETWORK_EVENT_STOPPED' type='enum'/>
      <exports symbol='VIR_NETWORK_EVENT_UNDEFINED' type='enum'/>
+     <exports symbol='VIR_NETWORK_PORT_CREATE_RECLAIM' type='enum'/>
      <exports symbol='VIR_NETWORK_SECTION_BRIDGE' type='enum'/>
      <exports symbol='VIR_NETWORK_SECTION_DNS_HOST' type='enum'/>
      <exports symbol='VIR_NETWORK_SECTION_DNS_SRV' type='enum'/>
@@ -1393,6 +1442,9 @@
      <exports symbol='virNetworkDHCPLeasePtr' type='typedef'/>
      <exports symbol='virNetworkEventID' type='typedef'/>
      <exports symbol='virNetworkEventLifecycleType' type='typedef'/>
+     <exports symbol='virNetworkPort' type='typedef'/>
+     <exports symbol='virNetworkPortCreateFlags' type='typedef'/>
+     <exports symbol='virNetworkPortPtr' type='typedef'/>
      <exports symbol='virNetworkPtr' type='typedef'/>
      <exports symbol='virNetworkUpdateCommand' type='typedef'/>
      <exports symbol='virNetworkUpdateFlags' type='typedef'/>
@@ -1424,9 +1476,22 @@
      <exports symbol='virNetworkGetXMLDesc' type='function'/>
      <exports symbol='virNetworkIsActive' type='function'/>
      <exports symbol='virNetworkIsPersistent' type='function'/>
+     <exports symbol='virNetworkListAllPorts' type='function'/>
      <exports symbol='virNetworkLookupByName' type='function'/>
      <exports symbol='virNetworkLookupByUUID' type='function'/>
      <exports symbol='virNetworkLookupByUUIDString' type='function'/>
+     <exports symbol='virNetworkPortCreateXML' type='function'/>
+     <exports symbol='virNetworkPortDelete' type='function'/>
+     <exports symbol='virNetworkPortFree' type='function'/>
+     <exports symbol='virNetworkPortGetNetwork' type='function'/>
+     <exports symbol='virNetworkPortGetParameters' type='function'/>
+     <exports symbol='virNetworkPortGetUUID' type='function'/>
+     <exports symbol='virNetworkPortGetUUIDString' type='function'/>
+     <exports symbol='virNetworkPortGetXMLDesc' type='function'/>
+     <exports symbol='virNetworkPortLookupByUUID' type='function'/>
+     <exports symbol='virNetworkPortLookupByUUIDString' type='function'/>
+     <exports symbol='virNetworkPortRef' type='function'/>
+     <exports symbol='virNetworkPortSetParameters' type='function'/>
      <exports symbol='virNetworkRef' type='function'/>
      <exports symbol='virNetworkSetAutostart' type='function'/>
      <exports symbol='virNetworkUndefine' type='function'/>
@@ -1537,6 +1602,7 @@
      <exports symbol='VIR_SECRET_USAGE_TYPE_NONE' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_TLS' type='enum'/>
      <exports symbol='VIR_SECRET_USAGE_TYPE_VOLUME' type='enum'/>
+     <exports symbol='VIR_SECRET_USAGE_TYPE_VTPM' type='enum'/>
      <exports symbol='virConnectListAllSecretsFlags' type='typedef'/>
      <exports symbol='virSecret' type='typedef'/>
      <exports symbol='virSecretEventID' type='typedef'/>
@@ -1578,6 +1644,7 @@
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI_DIRECT' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_MPATH' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_NETFS' type='enum'/>
@@ -1804,6 +1871,7 @@
      <exports symbol='VIR_ERR_INVALID_INTERFACE' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_MAC' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_NETWORK' type='enum'/>
+     <exports symbol='VIR_ERR_INVALID_NETWORK_PORT' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_NODE_DEVICE' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_NWFILTER' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_NWFILTER_BINDING' type='enum'/>
@@ -1817,6 +1885,7 @@
      <exports symbol='VIR_ERR_MIGRATE_UNSAFE' type='enum'/>
      <exports symbol='VIR_ERR_MULTIPLE_INTERFACES' type='enum'/>
      <exports symbol='VIR_ERR_NETWORK_EXIST' type='enum'/>
+     <exports symbol='VIR_ERR_NETWORK_PORT_EXIST' type='enum'/>
      <exports symbol='VIR_ERR_NONE' type='enum'/>
      <exports symbol='VIR_ERR_NO_CLIENT' type='enum'/>
      <exports symbol='VIR_ERR_NO_CONNECT' type='enum'/>
@@ -1831,6 +1900,7 @@
      <exports symbol='VIR_ERR_NO_MEMORY' type='enum'/>
      <exports symbol='VIR_ERR_NO_NAME' type='enum'/>
      <exports symbol='VIR_ERR_NO_NETWORK' type='enum'/>
+     <exports symbol='VIR_ERR_NO_NETWORK_PORT' type='enum'/>
      <exports symbol='VIR_ERR_NO_NODE_DEVICE' type='enum'/>
      <exports symbol='VIR_ERR_NO_NWFILTER' type='enum'/>
      <exports symbol='VIR_ERR_NO_NWFILTER_BINDING' type='enum'/>
@@ -1934,6 +2004,7 @@
      <exports symbol='VIR_FROM_SYSTEMD' type='enum'/>
      <exports symbol='VIR_FROM_TEST' type='enum'/>
      <exports symbol='VIR_FROM_THREAD' type='enum'/>
+     <exports symbol='VIR_FROM_TPM' type='enum'/>
      <exports symbol='VIR_FROM_UML' type='enum'/>
      <exports symbol='VIR_FROM_URI' type='enum'/>
      <exports symbol='VIR_FROM_VBOX' type='enum'/>
@@ -2507,6 +2578,27 @@
     <macro name='VIR_NETWORK_EVENT_CALLBACK' file='libvirt-network'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virConnectNetworkEventRegisterAny()]]></info>
     </macro>
+    <macro name='VIR_NETWORK_PORT_BANDWIDTH_IN_AVERAGE' file='libvirt-network' string='inbound.average'>
+      <info><![CDATA[Macro represents the inbound average of NIC bandwidth, as a uint.]]></info>
+    </macro>
+    <macro name='VIR_NETWORK_PORT_BANDWIDTH_IN_BURST' file='libvirt-network' string='inbound.burst'>
+      <info><![CDATA[Macro represents the inbound burst of NIC bandwidth, as a uint.]]></info>
+    </macro>
+    <macro name='VIR_NETWORK_PORT_BANDWIDTH_IN_FLOOR' file='libvirt-network' string='inbound.floor'>
+      <info><![CDATA[Macro represents the inbound floor of NIC bandwidth, as a uint.]]></info>
+    </macro>
+    <macro name='VIR_NETWORK_PORT_BANDWIDTH_IN_PEAK' file='libvirt-network' string='inbound.peak'>
+      <info><![CDATA[Macro represents the inbound peak of NIC bandwidth, as a uint.]]></info>
+    </macro>
+    <macro name='VIR_NETWORK_PORT_BANDWIDTH_OUT_AVERAGE' file='libvirt-network' string='outbound.average'>
+      <info><![CDATA[Macro represents the outbound average of NIC bandwidth, as a uint.]]></info>
+    </macro>
+    <macro name='VIR_NETWORK_PORT_BANDWIDTH_OUT_BURST' file='libvirt-network' string='outbound.burst'>
+      <info><![CDATA[Macro represents the outbound burst of NIC bandwidth, as a uint.]]></info>
+    </macro>
+    <macro name='VIR_NETWORK_PORT_BANDWIDTH_OUT_PEAK' file='libvirt-network' string='outbound.peak'>
+      <info><![CDATA[Macro represents the outbound peak of NIC bandwidth, as a uint.]]></info>
+    </macro>
     <macro name='VIR_NODEINFO_MAXCPUS' file='libvirt-host'>
       <info><![CDATA[This macro is to calculate the total number of CPUs supported but not necessary active in the host.]]></info>
       <arg name='nodeinfo' info='virNodeInfo instance'/>
@@ -2722,10 +2814,12 @@ immediately without any blocking'/>
     <enum name='VIR_CONNECT_GET_ALL_DOMAINS_STATS_TRANSIENT' file='libvirt-domain' value='VIR_CONNECT_LIST_DOMAINS_TRANSIENT' type='virConnectGetAllDomainStatsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_ACTIVE' file='libvirt-domain' value='1' value_hex='0x1' value_bitshift='0' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_AUTOSTART' file='libvirt-domain' value='1024' value_hex='0x400' value_bitshift='10' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_HAS_CHECKPOINT' file='libvirt-domain' value='16384' value_hex='0x4000' value_bitshift='14' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT' file='libvirt-domain' value='4096' value_hex='0x1000' value_bitshift='12' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_INACTIVE' file='libvirt-domain' value='2' value_hex='0x2' value_bitshift='1' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE' file='libvirt-domain' value='256' value_hex='0x100' value_bitshift='8' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART' file='libvirt-domain' value='2048' value_hex='0x800' value_bitshift='11' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_NO_CHECKPOINT' file='libvirt-domain' value='32768' value_hex='0x8000' value_bitshift='15' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE' file='libvirt-domain' value='512' value_hex='0x200' value_bitshift='9' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT' file='libvirt-domain' value='8192' value_hex='0x2000' value_bitshift='13' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_OTHER' file='libvirt-domain' value='128' value_hex='0x80' value_bitshift='7' type='virConnectListAllDomainsFlags'/>
@@ -2773,6 +2867,7 @@ node'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER' file='libvirt-storage' value='65536' value_hex='0x10000' value_bitshift='16' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE' file='libvirt-storage' value='1' value_hex='0x1' value_bitshift='0' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI' file='libvirt-storage' value='2048' value_hex='0x800' value_bitshift='11' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI_DIRECT' file='libvirt-storage' value='524288' value_hex='0x80000' value_bitshift='19' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL' file='libvirt-storage' value='512' value_hex='0x200' value_bitshift='9' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_MPATH' file='libvirt-storage' value='8192' value_hex='0x2000' value_bitshift='13' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_NETFS' file='libvirt-storage' value='256' value_hex='0x100' value_bitshift='8' type='virConnectListAllStoragePoolsFlags'/>
@@ -2872,6 +2967,33 @@ backing chain'/>
     <enum name='VIR_DOMAIN_CHANNEL_FORCE' file='libvirt-domain' value='1' value_hex='0x1' value_bitshift='0' type='virDomainChannelFlags' info='abort a (possibly) active channel
 connection to force a new
 connection'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_CREATE_QUIESCE' file='libvirt-domain-checkpoint' value='2' value_hex='0x2' value_bitshift='1' type='virDomainCheckpointCreateFlags' info='use guest agent to
+quiesce all mounted
+file systems within
+the domain'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE' file='libvirt-domain-checkpoint' value='1' value_hex='0x1' value_bitshift='0' type='virDomainCheckpointCreateFlags' info='Restore or alter
+metadata'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN' file='libvirt-domain-checkpoint' value='1' value_hex='0x1' value_bitshift='0' type='virDomainCheckpointDeleteFlags' info='Also delete children'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN_ONLY' file='libvirt-domain-checkpoint' value='4' value_hex='0x4' value_bitshift='2' type='virDomainCheckpointDeleteFlags' info='Delete just children'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_DELETE_METADATA_ONLY' file='libvirt-domain-checkpoint' value='2' value_hex='0x2' value_bitshift='1' type='virDomainCheckpointDeleteFlags' info='Delete just metadata'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_LIST_DESCENDANTS' file='libvirt-domain-checkpoint' value='1' value_hex='0x1' value_bitshift='0' type='virDomainCheckpointListFlags' info='List all descendants,
+not just children, when
+listing a checkpoint'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_LIST_LEAVES' file='libvirt-domain-checkpoint' value='4' value_hex='0x4' value_bitshift='2' type='virDomainCheckpointListFlags' info='Filter by checkpoints
+with no children'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_LIST_NO_LEAVES' file='libvirt-domain-checkpoint' value='8' value_hex='0x8' value_bitshift='3' type='virDomainCheckpointListFlags' info='Filter by checkpoints
+that have children'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_LIST_ROOTS' file='libvirt-domain-checkpoint' value='1' value_hex='0x1' value_bitshift='0' type='virDomainCheckpointListFlags' info='Filter by checkpoints
+with no parents, when
+listing a domain'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL' file='libvirt-domain-checkpoint' value='2' value_hex='0x2' value_bitshift='1' type='virDomainCheckpointListFlags' info='Ensure parents occur
+before children in
+the resulting list'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_XML_NO_DOMAIN' file='libvirt-domain-checkpoint' value='2' value_hex='0x2' value_bitshift='1' type='virDomainCheckpointXMLFlags' info='Suppress &lt;domain&gt;
+subelement'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_XML_SECURE' file='libvirt-domain-checkpoint' value='1' value_hex='0x1' value_bitshift='0' type='virDomainCheckpointXMLFlags' info='Include sensitive data'/>
+    <enum name='VIR_DOMAIN_CHECKPOINT_XML_SIZE' file='libvirt-domain-checkpoint' value='4' value_hex='0x4' value_bitshift='2' type='virDomainCheckpointXMLFlags' info='Include dynamic
+per-&lt;disk&gt; size'/>
     <enum name='VIR_DOMAIN_CONSOLE_FORCE' file='libvirt-domain' value='1' value_hex='0x1' value_bitshift='0' type='virDomainConsoleFlags' info='abort a (possibly) active console
 connection to force a new
 connection'/>
@@ -3086,6 +3208,10 @@ running in post-copy mode'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_DISK_CACHES' file='libvirt-domain' value='10' value_hex='0xa' type='virDomainMemoryStatTags' info='The amount of memory, that can be quickly reclaimed without
  additional I/O (in kB). Typically these pages are used for caching files
  from disk.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGALLOC' file='libvirt-domain' value='11' value_hex='0xb' type='virDomainMemoryStatTags' info='The amount of successful huge page allocations from inside the domain via
+ virtio balloon.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGFAIL' file='libvirt-domain' value='12' value_hex='0xc' type='virDomainMemoryStatTags' info='The amount of failed huge page allocations from inside the domain via
+ virtio balloon.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_LAST' file='libvirt-domain' value='VIR_DOMAIN_MEMORY_STAT_NR' type='virDomainMemoryStatTags'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE' file='libvirt-domain' value='9' value_hex='0x9' type='virDomainMemoryStatTags' info='Timestamp of the last update of statistics, in seconds.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' file='libvirt-domain' value='2' value_hex='0x2' type='virDomainMemoryStatTags' info='Page faults occur when a process makes a valid access to virtual memory
@@ -3093,7 +3219,7 @@ running in post-copy mode'/>
  required, it is considered a major fault.  If not, it is a minor fault.
  These are expressed as the number of faults that have occurred.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' file='libvirt-domain' value='3' value_hex='0x3' type='virDomainMemoryStatTags'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt-domain' value='11' value_hex='0xb' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
+    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt-domain' value='13' value_hex='0xd' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
  To add new statistics, add them to the enum and increase this value.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_RSS' file='libvirt-domain' value='7' value_hex='0x7' type='virDomainMemoryStatTags' info='Resident Set Size of the process running the domain. This value
  is in kB'/>
@@ -3285,6 +3411,8 @@ the domain'/>
 metadata'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT' file='libvirt-domain-snapshot' value='32' value_hex='0x20' value_bitshift='5' type='virDomainSnapshotCreateFlags' info='reuse any existing
 external files'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE' file='libvirt-domain-snapshot' value='512' value_hex='0x200' value_bitshift='9' type='virDomainSnapshotCreateFlags' info='validate the XML
+against the schema'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN' file='libvirt-domain-snapshot' value='1' value_hex='0x1' value_bitshift='0' type='virDomainSnapshotDeleteFlags' info='Also delete children'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY' file='libvirt-domain-snapshot' value='4' value_hex='0x4' value_bitshift='2' type='virDomainSnapshotDeleteFlags' info='Delete just children'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY' file='libvirt-domain-snapshot' value='2' value_hex='0x2' value_bitshift='1' type='virDomainSnapshotDeleteFlags' info='Delete just metadata'/>
@@ -3340,7 +3468,10 @@ the resulting list'/>
     <enum name='VIR_DOMAIN_STATS_STATE' file='libvirt-domain' value='1' value_hex='0x1' value_bitshift='0' type='virDomainStatsTypes' info='return domain state'/>
     <enum name='VIR_DOMAIN_STATS_VCPU' file='libvirt-domain' value='8' value_hex='0x8' value_bitshift='3' type='virDomainStatsTypes' info='return domain virtual CPU info'/>
     <enum name='VIR_DOMAIN_TIME_SYNC' file='libvirt-domain' value='1' value_hex='0x1' value_bitshift='0' type='virDomainSetTimeFlags' info='Re-sync domain time from domain&apos;s RTC'/>
-    <enum name='VIR_DOMAIN_UNDEFINE_KEEP_NVRAM' file='libvirt-domain' value='8' value_hex='0x8' value_bitshift='3' type='virDomainUndefineFlagsValues' info='Keep nvram file Future undefine control flags should come here.'/>
+    <enum name='VIR_DOMAIN_UNDEFINE_CHECKPOINTS_METADATA' file='libvirt-domain' value='16' value_hex='0x10' value_bitshift='4' type='virDomainUndefineFlagsValues' info='If last use of domain,
+then also remove any
+checkpoint metadata Future undefine control flags should come here.'/>
+    <enum name='VIR_DOMAIN_UNDEFINE_KEEP_NVRAM' file='libvirt-domain' value='8' value_hex='0x8' value_bitshift='3' type='virDomainUndefineFlagsValues' info='Keep nvram file'/>
     <enum name='VIR_DOMAIN_UNDEFINE_MANAGED_SAVE' file='libvirt-domain' value='1' value_hex='0x1' value_bitshift='0' type='virDomainUndefineFlagsValues' info='Also remove any
 managed save'/>
     <enum name='VIR_DOMAIN_UNDEFINE_NVRAM' file='libvirt-domain' value='4' value_hex='0x4' value_bitshift='2' type='virDomainUndefineFlagsValues' info='Also remove any
@@ -3386,7 +3517,7 @@ conf file'/>
 CP'/>
     <enum name='VIR_ERR_DBUS_SERVICE' file='virterror' value='89' value_hex='0x59' type='virErrorNumber' info='error from a dbus service'/>
     <enum name='VIR_ERR_DEVICE_MISSING' file='virterror' value='99' value_hex='0x63' type='virErrorNumber' info='fail to find the desired device'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='70' value_hex='0x46' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='71' value_hex='0x47' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' value_hex='0x1c' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' value_hex='0x19' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' value_hex='0x2' type='virErrorLevel' info='An error'/>
@@ -3403,6 +3534,7 @@ CP'/>
     <enum name='VIR_ERR_INVALID_INTERFACE' file='virterror' value='58' value_hex='0x3a' type='virErrorNumber' info='invalid interface object'/>
     <enum name='VIR_ERR_INVALID_MAC' file='virterror' value='44' value_hex='0x2c' type='virErrorNumber' info='invalid MAC address'/>
     <enum name='VIR_ERR_INVALID_NETWORK' file='virterror' value='36' value_hex='0x24' type='virErrorNumber' info='invalid network object'/>
+    <enum name='VIR_ERR_INVALID_NETWORK_PORT' file='virterror' value='105' value_hex='0x69' type='virErrorNumber' info='invalid network port object'/>
     <enum name='VIR_ERR_INVALID_NODE_DEVICE' file='virterror' value='52' value_hex='0x34' type='virErrorNumber' info='invalid node device object'/>
     <enum name='VIR_ERR_INVALID_NWFILTER' file='virterror' value='61' value_hex='0x3d' type='virErrorNumber' info='invalid nwfilter object'/>
     <enum name='VIR_ERR_INVALID_NWFILTER_BINDING' file='virterror' value='100' value_hex='0x64' type='virErrorNumber' info='invalid nwfilter binding'/>
@@ -3418,6 +3550,7 @@ VM persist on the dest host failed'/>
     <enum name='VIR_ERR_MULTIPLE_INTERFACES' file='virterror' value='59' value_hex='0x3b' type='virErrorNumber' info='more than one matching interface
 found'/>
     <enum name='VIR_ERR_NETWORK_EXIST' file='virterror' value='37' value_hex='0x25' type='virErrorNumber' info='the network already exist'/>
+    <enum name='VIR_ERR_NETWORK_PORT_EXIST' file='virterror' value='106' value_hex='0x6a' type='virErrorNumber' info='the network port already exist'/>
     <enum name='VIR_ERR_NONE' file='virterror' value='0' value_hex='0x0' type='virErrorLevel'/>
     <enum name='VIR_ERR_NO_CLIENT' file='virterror' value='96' value_hex='0x60' type='virErrorNumber' info='Client was not found'/>
     <enum name='VIR_ERR_NO_CONNECT' file='virterror' value='5' value_hex='0x5' type='virErrorNumber' info='can&apos;t connect to hypervisor'/>
@@ -3433,6 +3566,7 @@ disappeared'/>
     <enum name='VIR_ERR_NO_MEMORY' file='virterror' value='2' value_hex='0x2' type='virErrorNumber' info='memory allocation failure'/>
     <enum name='VIR_ERR_NO_NAME' file='virterror' value='21' value_hex='0x15' type='virErrorNumber' info='missing domain name information'/>
     <enum name='VIR_ERR_NO_NETWORK' file='virterror' value='43' value_hex='0x2b' type='virErrorNumber' info='network not found'/>
+    <enum name='VIR_ERR_NO_NETWORK_PORT' file='virterror' value='107' value_hex='0x6b' type='virErrorNumber' info='network port not found'/>
     <enum name='VIR_ERR_NO_NODE_DEVICE' file='virterror' value='53' value_hex='0x35' type='virErrorNumber' info='node device not found'/>
     <enum name='VIR_ERR_NO_NWFILTER' file='virterror' value='62' value_hex='0x3e' type='virErrorNumber' info='nw filter pool not found'/>
     <enum name='VIR_ERR_NO_NWFILTER_BINDING' file='virterror' value='101' value_hex='0x65' type='virErrorNumber' info='no nwfilter binding'/>
@@ -3449,7 +3583,7 @@ disappeared'/>
     <enum name='VIR_ERR_NO_XEN' file='virterror' value='14' value_hex='0xe' type='virErrorNumber' info='could not open Xen hypervisor
 control'/>
     <enum name='VIR_ERR_NO_XENSTORE' file='virterror' value='24' value_hex='0x18' type='virErrorNumber' info='could not open Xen Store control'/>
-    <enum name='VIR_ERR_NUMBER_LAST' file='virterror' value='105' value_hex='0x69' type='virErrorNumber'/>
+    <enum name='VIR_ERR_NUMBER_LAST' file='virterror' value='108' value_hex='0x6c' type='virErrorNumber'/>
     <enum name='VIR_ERR_OK' file='virterror' value='0' value_hex='0x0' type='virErrorNumber'/>
     <enum name='VIR_ERR_OPEN_FAILED' file='virterror' value='30' value_hex='0x1e' type='virErrorNumber' info='failed to open a conf file'/>
     <enum name='VIR_ERR_OPERATION_ABORTED' file='virterror' value='78' value_hex='0x4e' type='virErrorNumber' info='operation on a domain was
@@ -3549,6 +3683,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_FROM_SYSTEMD' file='virterror' value='56' value_hex='0x38' type='virErrorDomain' info='Error from systemd code'/>
     <enum name='VIR_FROM_TEST' file='virterror' value='12' value_hex='0xc' type='virErrorDomain' info='Error from test driver'/>
     <enum name='VIR_FROM_THREAD' file='virterror' value='61' value_hex='0x3d' type='virErrorDomain' info='Error from thread utils'/>
+    <enum name='VIR_FROM_TPM' file='virterror' value='70' value_hex='0x46' type='virErrorDomain' info='Error from TPM'/>
     <enum name='VIR_FROM_UML' file='virterror' value='21' value_hex='0x15' type='virErrorDomain' info='Error at the UML driver; unused since 5.0.0'/>
     <enum name='VIR_FROM_URI' file='virterror' value='45' value_hex='0x2d' type='virErrorDomain' info='Error from URI handling'/>
     <enum name='VIR_FROM_VBOX' file='virterror' value='25' value_hex='0x19' type='virErrorDomain' info='Error from VirtualBox driver'/>
@@ -3681,6 +3816,7 @@ Retained for ABI/API compat only'/>
     <enum name='VIR_NETWORK_EVENT_STARTED' file='libvirt-network' value='2' value_hex='0x2' type='virNetworkEventLifecycleType'/>
     <enum name='VIR_NETWORK_EVENT_STOPPED' file='libvirt-network' value='3' value_hex='0x3' type='virNetworkEventLifecycleType'/>
     <enum name='VIR_NETWORK_EVENT_UNDEFINED' file='libvirt-network' value='1' value_hex='0x1' type='virNetworkEventLifecycleType'/>
+    <enum name='VIR_NETWORK_PORT_CREATE_RECLAIM' file='libvirt-network' value='1' value_hex='0x1' value_bitshift='0' type='virNetworkPortCreateFlags' info='reclaim existing used resources'/>
     <enum name='VIR_NETWORK_SECTION_BRIDGE' file='libvirt-network' value='1' value_hex='0x1' type='virNetworkUpdateSection' info='&lt;bridge&gt;'/>
     <enum name='VIR_NETWORK_SECTION_DNS_HOST' file='libvirt-network' value='10' value_hex='0xa' type='virNetworkUpdateSection' info='&lt;dns&gt;/&lt;host&gt;'/>
     <enum name='VIR_NETWORK_SECTION_DNS_SRV' file='libvirt-network' value='12' value_hex='0xc' type='virNetworkUpdateSection' info='&lt;dns&gt;/&lt;srv&gt;'/>
@@ -3735,12 +3871,13 @@ used to free allocated pages.'/>
     <enum name='VIR_SECRET_EVENT_UNDEFINED' file='libvirt-secret' value='1' value_hex='0x1' type='virSecretEventLifecycleType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_CEPH' file='libvirt-secret' value='2' value_hex='0x2' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_ISCSI' file='libvirt-secret' value='3' value_hex='0x3' type='virSecretUsageType'/>
-    <enum name='VIR_SECRET_USAGE_TYPE_LAST' file='libvirt-secret' value='5' value_hex='0x5' type='virSecretUsageType' info='NB: this enum value will increase over time as new events are
+    <enum name='VIR_SECRET_USAGE_TYPE_LAST' file='libvirt-secret' value='6' value_hex='0x6' type='virSecretUsageType' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last secret owner ID
  supported by this version of the libvirt API.'/>
     <enum name='VIR_SECRET_USAGE_TYPE_NONE' file='libvirt-secret' value='0' value_hex='0x0' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_TLS' file='libvirt-secret' value='4' value_hex='0x4' type='virSecretUsageType'/>
     <enum name='VIR_SECRET_USAGE_TYPE_VOLUME' file='libvirt-secret' value='1' value_hex='0x1' type='virSecretUsageType'/>
+    <enum name='VIR_SECRET_USAGE_TYPE_VTPM' file='libvirt-secret' value='5' value_hex='0x5' type='virSecretUsageType'/>
     <enum name='VIR_STORAGE_POOL_BUILDING' file='libvirt-storage' value='1' value_hex='0x1' type='virStoragePoolState' info='Initializing pool, not available'/>
     <enum name='VIR_STORAGE_POOL_BUILD_NEW' file='libvirt-storage' value='0' value_hex='0x0' type='virStoragePoolBuildFlags' info='Regular build from scratch'/>
     <enum name='VIR_STORAGE_POOL_BUILD_NO_OVERWRITE' file='libvirt-storage' value='4' value_hex='0x4' value_bitshift='2' type='virStoragePoolBuildFlags' info='Do not overwrite existing pool'/>
@@ -3950,6 +4087,14 @@ volume by using TRIM or DISCARD'/>
     </struct>
     <typedef name='virDomainBlockedReason' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainChannelFlags' file='libvirt-domain' type='enum'/>
+    <struct name='virDomainCheckpoint' file='libvirt-domain-checkpoint' type='struct _virDomainCheckpoint'/>
+    <typedef name='virDomainCheckpointCreateFlags' file='libvirt-domain-checkpoint' type='enum'/>
+    <typedef name='virDomainCheckpointDeleteFlags' file='libvirt-domain-checkpoint' type='enum'/>
+    <typedef name='virDomainCheckpointListFlags' file='libvirt-domain-checkpoint' type='enum'/>
+    <typedef name='virDomainCheckpointPtr' file='libvirt-domain-checkpoint' type='virDomainCheckpoint *'>
+      <info><![CDATA[A virDomainCheckpointPtr is pointer to a virDomainCheckpoint private structure, and is the type used to reference a domain checkpoint in the API.]]></info>
+    </typedef>
+    <typedef name='virDomainCheckpointXMLFlags' file='libvirt-domain-checkpoint' type='enum'/>
     <typedef name='virDomainConsoleFlags' file='libvirt-domain' type='enum'/>
     <typedef name='virDomainControlErrorReason' file='libvirt-domain' type='enum'/>
     <struct name='virDomainControlInfo' file='libvirt-domain' type='struct _virDomainControlInfo'>
@@ -4211,6 +4356,11 @@ see note above'/>
     <typedef name='virNetworkDHCPLeasePtr' file='libvirt-network' type='virNetworkDHCPLease *'/>
     <typedef name='virNetworkEventID' file='libvirt-network' type='enum'/>
     <typedef name='virNetworkEventLifecycleType' file='libvirt-network' type='enum'/>
+    <struct name='virNetworkPort' file='libvirt-network' type='struct _virNetworkPort'/>
+    <typedef name='virNetworkPortCreateFlags' file='libvirt-network' type='enum'/>
+    <typedef name='virNetworkPortPtr' file='libvirt-network' type='virNetworkPort *'>
+      <info><![CDATA[a virNetworkPortPtr is pointer to a virNetworkPort private structure, this is the type used to reference a virtual network port in the API.]]></info>
+    </typedef>
     <typedef name='virNetworkPtr' file='libvirt-network' type='virNetwork *'>
       <info><![CDATA[a virNetworkPtr is pointer to a virNetwork private structure, this is the type used to reference a virtual network in the API.]]></info>
     </typedef>
@@ -5310,7 +5460,7 @@ name; for example, both KVM and QEMU guests are serviced by the
 driver for the qemu:// URI, so a return of "QEMU" does not indicate
 whether KVM acceleration is present.  For more details about the
 hypervisor, use virConnectGetCapabilities().]]></info>
-      <return type='const char *' info='NULL in case of error, a static zero terminated string otherwise.  See also: http://www.redhat.com/archives/libvir-list/2007-February/msg00096.html'/>
+      <return type='const char *' info='NULL in case of error, a static zero terminated string otherwise.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
     <function name='virConnectGetURI' file='libvirt-host' module='libvirt-host'>
@@ -5392,7 +5542,9 @@ a managed save image exists; VIR_CONNECT_LIST_DOMAINS_AUTOSTART and
 VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART, for filtering based on autostart;
 VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT and
 VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT, for filtering based on whether
-a domain has snapshots.
+a domain has snapshots; VIR_CONNECT_LIST_DOMAINS_HAS_CHECKPOINT and
+VIR_CONNECT_LIST_DOMAINS_NO_CHECKPOINT, for filtering based on whether
+a domain has checkpoints.
 
 Example of usage:
 
@@ -5566,7 +5718,11 @@ VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI
 VIR_CONNECT_LIST_STORAGE_POOLS_SCSI
 VIR_CONNECT_LIST_STORAGE_POOLS_MPATH
 VIR_CONNECT_LIST_STORAGE_POOLS_RBD
-VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG]]></info>
+VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG
+VIR_CONNECT_LIST_STORAGE_POOLS_GLUSTER
+VIR_CONNECT_LIST_STORAGE_POOLS_ZFS
+VIR_CONNECT_LIST_STORAGE_POOLS_VSTORAGE
+VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI_DIRECT]]></info>
       <return type='int' info='the number of storage pools found or -1 and sets @pools to NULL in case of error.  On success, the array stored into @pools is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virStoragePoolFree() on each array element, then calling free() on @pools.'/>
       <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
       <arg name='pools' type='virStoragePoolPtr **' info='Pointer to a variable to store the array containing storage pool objects or NULL if the list is not required (just returns number of pools).'/>
@@ -6678,6 +6834,162 @@ again. See virDomainGetMemoryParameters() for more details.]]></info>
       <arg name='nparams' type='int *' info='pointer to number of block stats; input and output'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virTypedParameterFlags'/>
     </function>
+    <function name='virDomainCheckpointCreateXML' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Create a new checkpoint using @xmlDesc, with a top-level
+<domaincheckpoint> element, on a running @domain.  Note that @xmlDesc
+must validate against the <domaincheckpoint> XML schema.
+
+See <a href="formatcheckpoint.html#CheckpointAttributes">Checkpoint XML</a>
+for more details on @xmlDesc. In particular, some hypervisors may require
+particular disk formats, such as qcow2, in order to support this
+command; where @xmlDesc can be used to limit the checkpoint to a working
+subset of the domain's disks.
+
+If @flags includes VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE, then this
+is a request to reinstate checkpoint metadata that was previously
+captured from virDomainCheckpointGetXMLDesc() before removing that
+metadata, rather than creating a new checkpoint.  Note that while
+original creation can omit a number of elements from @xmlDesc (and
+libvirt will supply sane defaults based on the domain state at that
+point in time), a redefinition must supply more elements (as the
+domain may have changed in the meantime, so that libvirt no longer
+has a way to resupply correct defaults).  Not all hypervisors support
+this flag.
+
+If @flags includes VIR_DOMAIN_CHECKPOINT_CREATE_QUIESCE, then the
+libvirt will attempt to use guest agent to freeze and thaw all file
+systems in use within domain OS. However, if the guest agent is not
+present, an error is thrown. This flag is incompatible with
+VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE.]]></info>
+      <return type='virDomainCheckpointPtr' info='an (opaque) new virDomainCheckpointPtr on success or NULL on failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='xmlDesc' type='const char *' info='description of the checkpoint to create'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainCheckpointCreateFlags'/>
+    </function>
+    <function name='virDomainCheckpointDelete' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Removes a checkpoint from the domain.
+
+When removing a checkpoint, the record of which portions of the
+disk were dirtied after the checkpoint will be merged into the
+record tracked by the parent checkpoint, if any.
+
+If @flags includes VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN, then any
+descendant checkpoints are also deleted. If @flags includes
+VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN_ONLY, then any descendant
+checkepoints are deleted, but this checkpoint remains. These two
+flags are mutually exclusive.
+
+If @flags includes VIR_DOMAIN_CHECKPOINT_DELETE_METADATA_ONLY, then
+any checkpoint metadata tracked by libvirt is removed while keeping
+the checkpoint contents intact; if a hypervisor does not require
+any libvirt metadata to track checkpoints, then this flag is
+silently ignored.]]></info>
+      <return type='int' info='0 on success, -1 on error.'/>
+      <arg name='checkpoint' type='virDomainCheckpointPtr' info='the checkpoint to remove'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainCheckpointDeleteFlags'/>
+    </function>
+    <function name='virDomainCheckpointFree' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Free the domain checkpoint object.  The checkpoint itself is not modified.
+The data structure is freed and should not be used thereafter.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='checkpoint' type='virDomainCheckpointPtr' info='a domain checkpoint object'/>
+    </function>
+    <function name='virDomainCheckpointGetConnect' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Provides the connection pointer associated with a checkpoint.  The
+reference counter on the connection is not increased by this
+call.]]></info>
+      <return type='virConnectPtr' info='the connection or NULL.'/>
+      <arg name='checkpoint' type='virDomainCheckpointPtr' info='a checkpoint object'/>
+    </function>
+    <function name='virDomainCheckpointGetDomain' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Provides the domain pointer associated with a checkpoint.  The
+reference counter on the domain is not increased by this
+call.]]></info>
+      <return type='virDomainPtr' info='the domain or NULL.'/>
+      <arg name='checkpoint' type='virDomainCheckpointPtr' info='a checkpoint object'/>
+    </function>
+    <function name='virDomainCheckpointGetName' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Get the public name for that checkpoint]]></info>
+      <return type='const char *' info='a pointer to the name or NULL, the string need not be deallocated as its lifetime will be the same as the checkpoint object.'/>
+      <arg name='checkpoint' type='virDomainCheckpointPtr' info='a checkpoint object'/>
+    </function>
+    <function name='virDomainCheckpointGetParent' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Get the parent checkpoint for @checkpoint, if any.
+
+virDomainCheckpointFree should be used to free the resources after the
+checkpoint object is no longer needed.]]></info>
+      <return type='virDomainCheckpointPtr' info='a domain checkpoint object or NULL in case of failure.  If the given checkpoint is a root (no parent), then the VIR_ERR_NO_DOMAIN_CHECKPOINT error is raised.'/>
+      <arg name='checkpoint' type='virDomainCheckpointPtr' info='a checkpoint object'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainCheckpointGetXMLDesc' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Provide an XML description of the domain checkpoint.
+
+No security-sensitive data will be included unless @flags contains
+VIR_DOMAIN_CHECKPOINT_XML_SECURE; this flag is rejected on read-only
+connections.
+
+Normally, the XML description includes an element giving a full
+description of the domain at the time the checkpoint was created; to
+reduce parsing time, it will be suppressed when @flags contains
+VIR_DOMAIN_CHECKPOINT_XML_NO_DOMAIN.
+
+By default, the XML description contains only static information that
+does not change over time. However, when @flags contains
+VIR_DOMAIN_CHECKPOINT_XML_SIZE, each <disk> listing adds an additional
+attribute that shows an estimate of the current size in bytes that
+have been dirtied between the time the checkpoint was created and the
+current point in time.]]></info>
+      <return type='char *' info='a 0 terminated UTF-8 encoded XML instance or NULL in case of error. The caller must free() the returned value.'/>
+      <arg name='checkpoint' type='virDomainCheckpointPtr' info='a domain checkpoint object'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainCheckpointXMLFlags'/>
+    </function>
+    <function name='virDomainCheckpointListAllChildren' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Collect the list of domain checkpoints that are children of the given
+checkpoint, and allocate an array to store those objects.
+
+If @flags contains VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL,
+@checkpoints is non-NULL, and no other connection is modifying
+checkpoints, then it is guaranteed that for any checkpoint in the
+resulting list, no checkpoints later in the list can be reached by
+a sequence of virDomainCheckpointGetParent() starting from that
+earlier checkpoint; otherwise, the order of checkpoints in the
+resulting list is unspecified.
+
+By default, this command covers only direct children. It is also
+possible to expand things to cover all descendants, when @flags
+includes VIR_DOMAIN_CHECKPOINT_LIST_DESCENDANTS.  Additional
+are provided via the remaining @flags values as documented in
+virDomainListAllCheckpoints(), with the exception that
+VIR_DOMAIN_CHECKPOINT_LIST_ROOTS is not supported (in fact,
+VIR_DOMAIN_CHECKPOINT_LIST_DESCENDANTS has the same bit value but
+opposite semantics of widening rather than narrowing the listing).]]></info>
+      <return type='int' info='the number of domain checkpoints found or -1 and sets @children to NULL in case of error.  On success, the array stored into @children is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virDomainCheckpointFree() on each array element, then calling free() on @children.'/>
+      <arg name='checkpoint' type='virDomainCheckpointPtr' info='a domain checkpoint object'/>
+      <arg name='children' type='virDomainCheckpointPtr **' info='pointer to variable to store the array containing checkpoint objects or NULL if the list is not required (just returns number of checkpoints)'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainCheckpointListFlags'/>
+    </function>
+    <function name='virDomainCheckpointLookupByName' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Try to lookup a domain checkpoint based on its name.]]></info>
+      <return type='virDomainCheckpointPtr' info='a domain checkpoint object or NULL in case of failure.  If the domain checkpoint cannot be found, then the VIR_ERR_NO_DOMAIN_CHECKPOINT error is raised.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='name' type='const char *' info='name for the domain checkpoint'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainCheckpointRef' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Increment the reference count on the checkpoint. For each
+additional call to this method, there shall be a corresponding
+call to virDomainCheckpointFree to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection and domain remain open until all threads have finished
+using the checkpoint. ie, each new thread using a checkpoint would
+increment the reference count.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='checkpoint' type='virDomainCheckpointPtr' info='the checkpoint to hold a reference on'/>
+    </function>
     <function name='virDomainCoreDump' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[This method will dump the core of a domain on a given file for analysis.
 Note that for remote Xen Daemon the file path will be interpreted in
@@ -7601,7 +7913,7 @@ Linux perf events are performance analyzing tool in Linux.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='params' type='virTypedParameterPtr *' info='where to store perf events setting'/>
       <arg name='nparams' type='int *' info='number of items in @params'/>
-      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact and virTypedParameterFlags'/>
     </function>
     <function name='virDomainGetSchedulerParameters' file='libvirt-domain' module='libvirt-domain'>
       <info><![CDATA[Get all scheduler parameters.  On input, @nparams gives the size of the
@@ -7913,6 +8225,36 @@ which means it will still exist after shutting down]]></info>
       <return type='int' info='1 if updated, 0 if not, -1 on error'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
     </function>
+    <function name='virDomainListAllCheckpoints' file='libvirt-domain-checkpoint' module='libvirt-domain-checkpoint'>
+      <info><![CDATA[Collect the list of domain checkpoints for the given domain and allocate
+an array to store those objects.
+
+If @flags contains VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL,
+@checkpoints is non-NULL, and no other connection is modifying
+checkpoints, then it is guaranteed that for any checkpoint in the
+resulting list, no checkpoints later in the list can be reached by
+a sequence of virDomainCheckpointGetParent() starting from that
+earlier checkpoint; otherwise, the order of checkpoints in the
+resulting list is unspecified.
+
+By default, this command covers all checkpoints. It is also
+possible to limit things to just checkpoints with no parents, when
+@flags includes VIR_DOMAIN_CHECKPOINT_LIST_ROOTS.  Additional
+filters are provided in groups listed below. Within a group, bits
+are mutually exclusive, where all possible checkpoints are
+described by exactly one bit from the group. Some hypervisors might
+reject particular flags where it cannot make a distinction for
+filtering. If the set of filter flags selected forms an impossible
+combination, the hypervisor may return either 0 or an error.
+
+The first group of @flags is VIR_DOMAIN_CHECKPOINT_LIST_LEAVES and
+VIR_DOMAIN_CHECKPOINT_LIST_NO_LEAVES, to filter based on checkpoints that
+have no further children (a leaf checkpoint).]]></info>
+      <return type='int' info='the number of domain checkpoints found or -1 and sets @checkpoints to NULL in case of error.  On success, the array stored into @checkpoints is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virDomainCheckpointFree() on each array element, then calling free() on @checkpoints.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='checkpoints' type='virDomainCheckpointPtr **' info='pointer to variable to store the array containing checkpoint object, or NULL if the list is not required (just returns number of checkpoints)'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainCheckpoinListFlags'/>
+    </function>
     <function name='virDomainListAllSnapshots' file='libvirt-domain-snapshot' module='libvirt-domain-snapshot'>
       <info><![CDATA[Collect the list of domain snapshots for the given domain and allocate
 an array to store those objects.  This API solves the race inherent in
@@ -8161,7 +8503,11 @@ VIR_DOMAIN_MEMORY_STAT_LAST_UPDATE
     Timestamp of the last statistic
 VIR_DOMAIN_MEMORY_STAT_DISK_CACHES
     Memory that can be reclaimed without additional I/O, typically disk
-    caches (in kb).]]></info>
+    caches (in kb).
+VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGALLOC
+    The amount of successful huge page allocations from inside the domain
+VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGFAIL
+    The amount of failed huge page allocations from inside the domain]]></info>
       <return type='int' info='The number of stats provided or -1 in case of failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
       <arg name='stats' type='virDomainMemoryStatPtr' info='nr_stats-sized array of stat structures (returned)'/>
@@ -8857,8 +9203,7 @@ a saved state file was created.  @file must be a file created
 previously by virDomainSave() or virDomainSaveFlags().
 
 No security-sensitive data will be included unless @flags contains
-VIR_DOMAIN_SAVE_IMAGE_XML_SECURE; this flag is rejected on read-only
-connections.]]></info>
+VIR_DOMAIN_SAVE_IMAGE_XML_SECURE.]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.  The caller must free() the returned value.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='file' type='const char *' info='path to saved state file'/>
@@ -9355,6 +9700,9 @@ just the disk state prior to booting.  The newly created snapshot
 becomes current (see virDomainSnapshotCurrent()), and is a child
 of any previous current snapshot.
 
+If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_VALIDATE, then @xmlDesc
+is validated against the <domainsnapshot> XML schema.
+
 If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE, then this
 is a request to reinstate snapshot metadata that was previously
 captured from virDomainSnapshotGetXMLDesc() before removing that
@@ -9706,8 +10054,9 @@ the domain configuration is removed.
 
 If the domain has a managed save image (see
 virDomainHasManagedSaveImage()), or if it is inactive and has any
-snapshot metadata (see virDomainSnapshotNum()), then the undefine will
-fail. See virDomainUndefineFlags() for more control.]]></info>
+snapshot metadata (see virDomainSnapshotNum()) or checkpoint
+metadata (see virDomainListAllCheckpoints()), then the undefine
+will fail. See virDomainUndefineFlags() for more control.]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
       <arg name='domain' type='virDomainPtr' info='pointer to a defined domain'/>
     </function>
@@ -9724,10 +10073,21 @@ If the domain is inactive and has any snapshot metadata (see
 virDomainSnapshotNum()), then including
 VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA in @flags will also remove
 that metadata.  Omitting the flag will cause the undefine of an
-inactive domain to fail.  Active snapshots will retain snapshot
-metadata until the (now-transient) domain halts, regardless of
-whether this flag is present.  On hypervisors where snapshots do
-not use libvirt metadata, this flag has no effect.
+inactive domain with snapshots to fail.  Active domains will retain
+snapshot metadata until the (now-transient) domain halts,
+regardless of whether this flag is present.  On hypervisors that
+support snapshots, but where snapshots do not use libvirt metadata,
+this flag has no effect.
+
+If the domain is inactive and has any checkpoint metadata (see
+virDomainListAllCheckpoints()), then including
+VIR_DOMAIN_UNDEFINE_CHECKPOINTS_METADATA in @flags will also remove
+that metadata. Omitting the flag will cause the undefine of an
+inactive domain with checkpoints to fail. Active domains will
+retain checkpoint metadata until the (now-transient) domain halts,
+regardless of whether this flag is present. On hypervisors that
+support checkpoints, but where checkpoints do not use libvirt
+metadata, this flag has no effect.
 
 If the domain has any nvram specified, the undefine process will fail
 unless VIR_DOMAIN_UNDEFINE_KEEP_NVRAM is specified, or if
@@ -10483,8 +10843,43 @@ Note: @expirytime can 0, in case the lease is for infinite time.
 The API fetches leases info of guests in the specified network. If the
 optional parameter @mac is specified, the returned list will contain only
 lease info about a specific guest interface with @mac. There can be
-multiple leases for a single @mac because this API supports DHCPv6 too.]]></info>
-      <return type='int' info='the number of leases found or -1 and sets @leases to NULL in case of error. On success, the array stored into @leases is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virNetworkDHCPLeaseFree() on each array element, then calling free() on @leases.  See also virNetworkGetDHCPLeasesForMAC() as a convenience for filtering the list to a single MAC address.  Example of usage:  virNetworkDHCPLeasePtr *leases = NULL; virNetworkPtr network = ... obtain a network pointer here ...; size_t i; int nleases; unsigned int flags = 0;  nleases = virNetworkGetDHCPLeases(network, NULL, &amp;leases, flags); if (nleases &lt; 0) error();  ... do something with returned values, for example:  for (i = 0; i &lt; nleases; i++) { virNetworkDHCPLeasePtr lease = leases[i];  printf(&quot;Time(epoch): %lu, MAC address: %s, &quot; &quot;IP address: %s, Hostname: %s, ClientID: %s\n&quot;, lease-&gt;expirytime, lease-&gt;mac, lease-&gt;ipaddr, lease-&gt;hostname, lease-&gt;clientid);  virNetworkDHCPLeaseFree(leases[i]); }  free(leases);'/>
+multiple leases for a single @mac because this API supports DHCPv6 too.
+
+On success, the array stored into @leases is guaranteed to
+have an extra allocated element set to NULL but not included in the return
+count, to make iteration easier. The caller is responsible for calling
+virNetworkDHCPLeaseFree() on each array element, then calling free() on @leases.
+
+See also virNetworkGetDHCPLeasesForMAC() as a convenience for filtering
+the list to a single MAC address.
+
+Example of usage:
+
+  virNetworkDHCPLeasePtr *leases = NULL;
+  virNetworkPtr network = ... obtain a network pointer here ...;
+  size_t i;
+  int nleases;
+  unsigned int flags = 0;
+
+  nleases = virNetworkGetDHCPLeases(network, NULL, &leases, flags);
+  if (nleases < 0)
+      error();
+
+  ... do something with returned values, for example:
+
+  for (i = 0; i < nleases; i++) {
+      virNetworkDHCPLeasePtr lease = leases[i];
+
+      printf("Time(epoch): %lu, MAC address: %s, "
+             "IP address: %s, Hostname: %s, ClientID: %s\n",
+             lease->expirytime, lease->mac, lease->ipaddr,
+             lease->hostname, lease->clientid);
+
+             virNetworkDHCPLeaseFree(leases[i]);
+  }
+
+  free(leases);]]></info>
+      <return type='int' info='the number of leases found or -1 and sets @leases to NULL in case of error.'/>
       <arg name='network' type='virNetworkPtr' info='Pointer to network object'/>
       <arg name='mac' type='const char *' info='Optional ASCII formatted MAC address of an interface'/>
       <arg name='leases' type='virNetworkDHCPLeasePtr **' info='Pointer to a variable to store the array containing details on obtained leases, or NULL if the list is not required (just returns number of leases).'/>
@@ -10531,6 +10926,14 @@ which means it will still exist after shutting down]]></info>
       <return type='int' info='1 if persistent, 0 if transient, -1 on error'/>
       <arg name='net' type='virNetworkPtr' info='pointer to the network object'/>
     </function>
+    <function name='virNetworkListAllPorts' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Collect the list of network ports, and allocate an array to store those
+objects.]]></info>
+      <return type='int' info='the number of network ports found or -1 and sets @ports to NULL in case of error.  On success, the array stored into @ports is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNetworkPortFree() on each array element, then calling free() on @ports.'/>
+      <arg name='network' type='virNetworkPtr' info='pointer to a network object'/>
+      <arg name='ports' type='virNetworkPortPtr **' info='Pointer to a variable to store the array containing network port objects or NULL if the list is not required (just returns number of ports).'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virNetworkLookupByName' file='libvirt-network' module='libvirt-network'>
       <info><![CDATA[Try to lookup a network on the given hypervisor based on its name.
 
@@ -10554,6 +10957,110 @@ network object is no longer needed.]]></info>
       <return type='virNetworkPtr' info='a new network object or NULL in case of failure.  If the network cannot be found, then VIR_ERR_NO_NETWORK error is raised.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='uuidstr' type='const char *' info='the string UUID for the network'/>
+    </function>
+    <function name='virNetworkPortCreateXML' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Create a new network port, based on an XML description
+similar to the one returned by virNetworkPortGetXMLDesc()
+
+virNetworkPortFree should be used to free the resources after the
+network port object is no longer needed.]]></info>
+      <return type='virNetworkPortPtr' info='a new network port object or NULL in case of failure'/>
+      <arg name='net' type='virNetworkPtr' info='pointer to the network object'/>
+      <arg name='xmldesc' type='const char *' info='an XML description of the port'/>
+      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
+    </function>
+    <function name='virNetworkPortDelete' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Delete the network port. This does not free the
+associated virNetworkPortPtr object. It is the
+caller's responsibility to ensure the port is not
+still in use by a virtual machine before deleting
+port.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='port' type='virNetworkPortPtr' info='a port object'/>
+      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
+    </function>
+    <function name='virNetworkPortFree' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Free the network port object.
+The data structure is freed and should not be used thereafter.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='port' type='virNetworkPortPtr' info='a network port object'/>
+    </function>
+    <function name='virNetworkPortGetNetwork' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Provides the network pointer associated with a port.  The
+reference counter on the connection is not increased by this
+call.]]></info>
+      <return type='virNetworkPtr' info='the virNetworkPtr or NULL in case of failure.'/>
+      <arg name='port' type='virNetworkPortPtr' info='pointer to a network port'/>
+    </function>
+    <function name='virNetworkPortGetParameters' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Get all interface parameters. On input, @params should be initialized
+to NULL. On return @params will be allocated with the size large
+enough to hold all parameters, and @nparams will be updated to say
+how many parameters are present. @params should be freed by the caller
+on success.]]></info>
+      <return type='int' info='-1 in case of error, 0 in case of success.'/>
+      <arg name='port' type='virNetworkPortPtr' info='a network port object'/>
+      <arg name='params' type='virTypedParameterPtr *' info='pointer to pointer of interface parameter objects'/>
+      <arg name='nparams' type='int *' info='pointer to received number of interface parameter'/>
+      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
+    </function>
+    <function name='virNetworkPortGetUUID' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Get the UUID for a network port]]></info>
+      <return type='int' info='-1 in case of error, 0 in case of success'/>
+      <arg name='port' type='virNetworkPortPtr' info='a network port object'/>
+      <arg name='uuid' type='unsigned char *' info='pointer to a VIR_UUID_BUFLEN bytes array'/>
+    </function>
+    <function name='virNetworkPortGetUUIDString' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Get the UUID for a network as string. For more information about
+UUID see RFC4122.]]></info>
+      <return type='int' info='-1 in case of error, 0 in case of success'/>
+      <arg name='port' type='virNetworkPortPtr' info='a network port object'/>
+      <arg name='buf' type='char *' info='pointer to a VIR_UUID_STRING_BUFLEN bytes array'/>
+    </function>
+    <function name='virNetworkPortGetXMLDesc' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Provide an XML description of the network port. The description may be reused
+later to recreate the port with virNetworkPortCreateXML().]]></info>
+      <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.'/>
+      <arg name='port' type='virNetworkPortPtr' info='a network port object'/>
+      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
+    </function>
+    <function name='virNetworkPortLookupByUUID' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Try to lookup a port on the given network based on its UUID.
+
+virNetworkPortFree should be used to free the resources after the
+network port object is no longer needed.]]></info>
+      <return type='virNetworkPortPtr' info='a new network port object or NULL in case of failure.  If the network port cannot be found, then VIR_ERR_NO_NETWORK_PORT error is raised.'/>
+      <arg name='net' type='virNetworkPtr' info='pointer to the network object'/>
+      <arg name='uuid' type='const unsigned char *' info='the raw UUID for the network port'/>
+    </function>
+    <function name='virNetworkPortLookupByUUIDString' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Try to lookup a port on the given network based on its UUID.]]></info>
+      <return type='virNetworkPortPtr' info='a new network port object or NULL in case of failure.  If the network port cannot be found, then VIR_ERR_NO_NETWORK_PORT error is raised.'/>
+      <arg name='net' type='virNetworkPtr' info='pointer to the network object'/>
+      <arg name='uuidstr' type='const char *' info='the string UUID for the port'/>
+    </function>
+    <function name='virNetworkPortRef' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Increment the reference count on the network port. For each
+additional call to this method, there shall be a corresponding
+call to virNetworkPortFree to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a network port, and it is required that the
+port remain resident until all threads have finished using
+it. ie, each new thread using a network port would increment
+the reference count.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='port' type='virNetworkPortPtr' info='a network port object'/>
+    </function>
+    <function name='virNetworkPortSetParameters' file='libvirt-network' module='libvirt-network'>
+      <info><![CDATA[Change a subset or all parameters of the network port; currently this
+includes bandwidth parameters.]]></info>
+      <return type='int' info='-1 in case of error, 0 in case of success.'/>
+      <arg name='port' type='virNetworkPortPtr' info='a network port object'/>
+      <arg name='params' type='virTypedParameterPtr' info='pointer to interface parameter objects'/>
+      <arg name='nparams' type='int' info='number of interface parameter (this value can be the same or less than the number of parameters supported)'/>
+      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
     </function>
     <function name='virNetworkRef' file='libvirt-network' module='libvirt-network'>
       <info><![CDATA[Increment the reference count on the network. For each

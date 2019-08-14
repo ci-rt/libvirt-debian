@@ -7,11 +7,15 @@ NETDEV_CONF_SOURCES = \
 	conf/netdev_vport_profile_conf.c \
 	conf/netdev_vlan_conf.h \
 	conf/netdev_vlan_conf.c \
+	conf/virnetworkportdef.h \
+	conf/virnetworkportdef.c \
 	$(NULL)
 
 DOMAIN_CONF_SOURCES = \
 	conf/capabilities.c \
 	conf/capabilities.h \
+	conf/checkpoint_conf.c \
+	conf/checkpoint_conf.h \
 	conf/domain_addr.c \
 	conf/domain_addr.h \
 	conf/domain_capabilities.c \
@@ -28,9 +32,12 @@ DOMAIN_CONF_SOURCES = \
 	conf/moment_conf.h \
 	conf/snapshot_conf.c \
 	conf/snapshot_conf.h \
+	conf/snapshot_conf_priv.h \
 	conf/numa_conf.c \
 	conf/numa_conf.h \
 	conf/virconftypes.h \
+	conf/virdomaincheckpointobjlist.c \
+	conf/virdomaincheckpointobjlist.h \
 	conf/virdomainobjlist.c \
 	conf/virdomainobjlist.h \
 	conf/virdomainmomentobjlist.c \

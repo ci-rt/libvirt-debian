@@ -1073,8 +1073,7 @@ virDomainRestoreFlags(virConnectPtr conn, const char *from, const char *dxml,
  * previously by virDomainSave() or virDomainSaveFlags().
  *
  * No security-sensitive data will be included unless @flags contains
- * VIR_DOMAIN_SAVE_IMAGE_XML_SECURE; this flag is rejected on read-only
- * connections.
+ * VIR_DOMAIN_SAVE_IMAGE_XML_SECURE.
  *
  * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of
  * error.  The caller must free() the returned value.
@@ -1090,13 +1089,7 @@ virDomainSaveImageGetXMLDesc(virConnectPtr conn, const char *file,
 
     virCheckConnectReturn(conn, NULL);
     virCheckNonNullArgGoto(file, error);
-
-    if ((conn->flags & VIR_CONNECT_RO) &&
-        (flags & VIR_DOMAIN_SAVE_IMAGE_XML_SECURE)) {
-        virReportError(VIR_ERR_OPERATION_DENIED, "%s",
-                       _("virDomainSaveImageGetXMLDesc with secure flag"));
-        goto error;
-    }
+    virCheckReadOnlyGoto(conn->flags, error);
 
     if (conn->driver->domainSaveImageGetXMLDesc) {
         char *ret;
@@ -5734,6 +5727,10 @@ virDomainGetInterfaceParameters(virDomainPtr domain,
  * VIR_DOMAIN_MEMORY_STAT_DISK_CACHES
  *     Memory that can be reclaimed without additional I/O, typically disk
  *     caches (in kb).
+ * VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGALLOC
+ *     The amount of successful huge page allocations from inside the domain
+ * VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGFAIL
+ *     The amount of failed huge page allocations from inside the domain
  *
  * Returns: The number of stats provided or -1 in case of failure.
  */
@@ -6221,8 +6218,9 @@ virDomainDefineXMLFlags(virConnectPtr conn, const char *xml, unsigned int flags)
  *
  * If the domain has a managed save image (see
  * virDomainHasManagedSaveImage()), or if it is inactive and has any
- * snapshot metadata (see virDomainSnapshotNum()), then the undefine will
- * fail. See virDomainUndefineFlags() for more control.
+ * snapshot metadata (see virDomainSnapshotNum()) or checkpoint
+ * metadata (see virDomainListAllCheckpoints()), then the undefine
+ * will fail. See virDomainUndefineFlags() for more control.
  *
  * Returns 0 in case of success, -1 in case of error
  */
@@ -6273,10 +6271,21 @@ virDomainUndefine(virDomainPtr domain)
  * virDomainSnapshotNum()), then including
  * VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA in @flags will also remove
  * that metadata.  Omitting the flag will cause the undefine of an
- * inactive domain to fail.  Active snapshots will retain snapshot
- * metadata until the (now-transient) domain halts, regardless of
- * whether this flag is present.  On hypervisors where snapshots do
- * not use libvirt metadata, this flag has no effect.
+ * inactive domain with snapshots to fail.  Active domains will retain
+ * snapshot metadata until the (now-transient) domain halts,
+ * regardless of whether this flag is present.  On hypervisors that
+ * support snapshots, but where snapshots do not use libvirt metadata,
+ * this flag has no effect.
+ *
+ * If the domain is inactive and has any checkpoint metadata (see
+ * virDomainListAllCheckpoints()), then including
+ * VIR_DOMAIN_UNDEFINE_CHECKPOINTS_METADATA in @flags will also remove
+ * that metadata. Omitting the flag will cause the undefine of an
+ * inactive domain with checkpoints to fail. Active domains will
+ * retain checkpoint metadata until the (now-transient) domain halts,
+ * regardless of whether this flag is present. On hypervisors that
+ * support checkpoints, but where checkpoints do not use libvirt
+ * metadata, this flag has no effect.
  *
  * If the domain has any nvram specified, the undefine process will fail
  * unless VIR_DOMAIN_UNDEFINE_KEEP_NVRAM is specified, or if
@@ -6438,7 +6447,9 @@ virConnectListDefinedDomains(virConnectPtr conn, char **const names,
  * VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART, for filtering based on autostart;
  * VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT and
  * VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT, for filtering based on whether
- * a domain has snapshots.
+ * a domain has snapshots; VIR_CONNECT_LIST_DOMAINS_HAS_CHECKPOINT and
+ * VIR_CONNECT_LIST_DOMAINS_NO_CHECKPOINT, for filtering based on whether
+ * a domain has checkpoints.
  *
  * Example of usage:
  *
@@ -6832,6 +6843,13 @@ virDomainSendKey(virDomainPtr domain,
     virCheckReadOnlyGoto(conn->flags, error);
     virCheckNonNullArgGoto(keycodes, error);
     virCheckPositiveArgGoto(nkeycodes, error);
+
+    if (codeset >= VIR_KEYCODE_SET_LAST) {
+        virReportInvalidArg(codeset,
+                            _("Unsupported codeset '%d'"),
+                            codeset);
+        goto error;
+    }
 
     if (nkeycodes > VIR_DOMAIN_SEND_KEY_MAX_KEYS) {
         virReportInvalidArg(nkeycodes,
@@ -9566,6 +9584,7 @@ virDomainManagedSaveDefineXML(virDomainPtr domain, const char *dxml,
 
     virCheckDomainReturn(domain, -1);
     conn = domain->conn;
+    virCheckReadOnlyGoto(conn->flags, error);
 
     if (conn->driver->domainManagedSaveDefineXML) {
         int ret;
@@ -9725,7 +9744,7 @@ virDomainOpenChannel(virDomainPtr dom,
  * @domain: a domain object
  * @params: where to store perf events setting
  * @nparams: number of items in @params
- * @flags: bitwise-OR of virDomainModificationImpact
+ * @flags: bitwise-OR of virDomainModificationImpact and virTypedParameterFlags
  *
  * Get all Linux perf events setting. Possible fields returned in
  * @params are defined by VIR_PERF_EVENT_* macros and new fields
@@ -11362,6 +11381,7 @@ virConnectGetDomainCapabilities(virConnectPtr conn,
     virResetLastError();
 
     virCheckConnectReturn(conn, NULL);
+    virCheckReadOnlyGoto(conn->flags, error);
 
     if (conn->driver->connectGetDomainCapabilities) {
         char *ret;

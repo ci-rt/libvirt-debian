@@ -19,28 +19,50 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_NETWORK_CONF_H
-# define LIBVIRT_NETWORK_CONF_H
+#pragma once
 
-# define DNS_RECORD_LENGTH_SRV  (512 - 30)  /* Limit minus overhead as mentioned in RFC-2782 */
+#define DNS_RECORD_LENGTH_SRV  (512 - 30)  /* Limit minus overhead as mentioned in RFC-2782 */
 
-# include <libxml/parser.h>
-# include <libxml/tree.h>
-# include <libxml/xpath.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+#include <libxml/xpath.h>
 
-# include "internal.h"
-# include "virthread.h"
-# include "virsocketaddr.h"
-# include "virnetdevbandwidth.h"
-# include "virnetdevvportprofile.h"
-# include "virnetdevvlan.h"
-# include "virmacaddr.h"
-# include "device_conf.h"
-# include "virbitmap.h"
-# include "networkcommon_conf.h"
-# include "virobject.h"
-# include "virmacmap.h"
-# include "virenum.h"
+#include "internal.h"
+#include "virthread.h"
+#include "virsocketaddr.h"
+#include "virnetdevbandwidth.h"
+#include "virnetdevvportprofile.h"
+#include "virnetdevvlan.h"
+#include "virmacaddr.h"
+#include "device_conf.h"
+#include "virbitmap.h"
+#include "networkcommon_conf.h"
+#include "virobject.h"
+#include "virmacmap.h"
+#include "virenum.h"
+
+typedef int (*virNetworkDefNamespaceParse)(xmlXPathContextPtr, void **);
+typedef void (*virNetworkDefNamespaceFree)(void *);
+typedef int (*virNetworkDefNamespaceXMLFormat)(virBufferPtr, void *);
+typedef const char *(*virNetworkDefNamespaceHref)(void);
+
+typedef struct _virNetworkXMLNamespace virNetworkXMLNamespace;
+typedef virNetworkXMLNamespace *virNetworkXMLNamespacePtr;
+struct _virNetworkXMLNamespace {
+    virNetworkDefNamespaceParse parse;
+    virNetworkDefNamespaceFree free;
+    virNetworkDefNamespaceXMLFormat format;
+    virNetworkDefNamespaceHref href;
+};
+
+struct _virNetworkXMLOption {
+    virObject parent;
+
+    virNetworkXMLNamespace ns;
+};
+typedef struct _virNetworkXMLOption virNetworkXMLOption;
+typedef virNetworkXMLOption *virNetworkXMLOptionPtr;
+
 
 typedef enum {
     VIR_NETWORK_FORWARD_NONE   = 0,
@@ -270,6 +292,10 @@ struct _virNetworkDef {
 
     /* Application-specific custom metadata */
     xmlNodePtr metadata;
+
+    /* Network specific XML namespace data */
+    void *namespaceData;
+    virNetworkXMLNamespace ns;
 };
 
 typedef enum {
@@ -290,29 +316,40 @@ enum {
     VIR_NETWORK_OBJ_LIST_ADD_CHECK_LIVE = (1 << 1),
 };
 
-virNetworkDefPtr
-virNetworkDefCopy(virNetworkDefPtr def, unsigned int flags);
+virNetworkXMLOptionPtr
+virNetworkXMLOptionNew(virNetworkXMLNamespacePtr xmlns);
 
 virNetworkDefPtr
-virNetworkDefParseXML(xmlXPathContextPtr ctxt);
+virNetworkDefCopy(virNetworkDefPtr def,
+                  virNetworkXMLOptionPtr xmlopt,
+                  unsigned int flags);
 
 virNetworkDefPtr
-virNetworkDefParseString(const char *xmlStr);
+virNetworkDefParseXML(xmlXPathContextPtr ctxt,
+                      virNetworkXMLOptionPtr xmlopt);
 
 virNetworkDefPtr
-virNetworkDefParseFile(const char *filename);
+virNetworkDefParseString(const char *xmlStr,
+                         virNetworkXMLOptionPtr xmlopt);
+
+virNetworkDefPtr
+virNetworkDefParseFile(const char *filename,
+                       virNetworkXMLOptionPtr xmlopt);
 
 virNetworkDefPtr
 virNetworkDefParseNode(xmlDocPtr xml,
-                       xmlNodePtr root);
+                       xmlNodePtr root,
+                       virNetworkXMLOptionPtr xmlopt);
 
 char *
 virNetworkDefFormat(const virNetworkDef *def,
+                    virNetworkXMLOptionPtr xmlopt,
                     unsigned int flags);
 
 int
 virNetworkDefFormatBuf(virBufferPtr buf,
                        const virNetworkDef *def,
+                       virNetworkXMLOptionPtr xmlopt,
                        unsigned int flags);
 
 const char *
@@ -347,7 +384,8 @@ virNetworkSaveXML(const char *configDir,
 
 int
 virNetworkSaveConfig(const char *configDir,
-                     virNetworkDefPtr def);
+                     virNetworkDefPtr def,
+                     virNetworkXMLOptionPtr xmlopt);
 
 char *
 virNetworkConfigFile(const char *dir,
@@ -358,19 +396,19 @@ virNetworkSetBridgeMacAddr(virNetworkDefPtr def);
 
 VIR_ENUM_DECL(virNetworkForward);
 
-# define VIR_CONNECT_LIST_NETWORKS_FILTERS_ACTIVE \
+#define VIR_CONNECT_LIST_NETWORKS_FILTERS_ACTIVE \
                 (VIR_CONNECT_LIST_NETWORKS_ACTIVE | \
                  VIR_CONNECT_LIST_NETWORKS_INACTIVE)
 
-# define VIR_CONNECT_LIST_NETWORKS_FILTERS_PERSISTENT \
+#define VIR_CONNECT_LIST_NETWORKS_FILTERS_PERSISTENT \
                 (VIR_CONNECT_LIST_NETWORKS_PERSISTENT | \
                  VIR_CONNECT_LIST_NETWORKS_TRANSIENT)
 
-# define VIR_CONNECT_LIST_NETWORKS_FILTERS_AUTOSTART \
+#define VIR_CONNECT_LIST_NETWORKS_FILTERS_AUTOSTART \
                 (VIR_CONNECT_LIST_NETWORKS_AUTOSTART | \
                  VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART)
 
-# define VIR_CONNECT_LIST_NETWORKS_FILTERS_ALL \
+#define VIR_CONNECT_LIST_NETWORKS_FILTERS_ALL \
                 (VIR_CONNECT_LIST_NETWORKS_FILTERS_ACTIVE     | \
                  VIR_CONNECT_LIST_NETWORKS_FILTERS_PERSISTENT | \
                  VIR_CONNECT_LIST_NETWORKS_FILTERS_AUTOSTART)
@@ -385,4 +423,3 @@ virNetworkDefUpdateSection(virNetworkDefPtr def,
                            unsigned int flags);  /* virNetworkUpdateFlags */
 
 VIR_ENUM_DECL(virNetworkTaint);
-#endif /* LIBVIRT_NETWORK_CONF_H */

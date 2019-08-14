@@ -241,6 +241,11 @@ static virStoragePoolTypeInfo poolTypeInfo[] = {
                    VIR_STORAGE_POOL_SOURCE_NETWORK |
                    VIR_STORAGE_POOL_SOURCE_NAME),
       },
+      .volOptions = {
+          .defaultFormat = VIR_STORAGE_FILE_RAW,
+          .formatFromString = virStorageVolumeFormatFromString,
+          .formatToString = virStorageFileFormatTypeToString,
+      }
     },
     {.poolType = VIR_STORAGE_POOL_SHEEPDOG,
      .poolOptions = {
@@ -533,6 +538,7 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
     VIR_AUTOFREE(char *) port = NULL;
     VIR_AUTOFREE(char *) ver = NULL;
     VIR_AUTOFREE(xmlNodePtr *) nodeset = NULL;
+    VIR_AUTOFREE(char *) sourcedir = NULL;
 
     relnode = ctxt->node;
     ctxt->node = node;
@@ -630,7 +636,9 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
 
     }
 
-    source->dir = virXPathString("string(./dir/@path)", ctxt);
+    sourcedir = virXPathString("string(./dir/@path)", ctxt);
+    if (sourcedir)
+        source->dir = virFileSanitizePath(sourcedir);
     /* In gluster, a missing dir defaults to "/" */
     if (!source->dir && pool_type == VIR_STORAGE_POOL_GLUSTER &&
         VIR_STRDUP(source->dir, "/") < 0)

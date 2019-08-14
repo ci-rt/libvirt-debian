@@ -72,6 +72,7 @@ module Libvirtd_qemu =
                  | str_entry "user"
                  | str_entry "group"
                  | bool_entry "dynamic_ownership"
+                 | bool_entry "remember_owner"
                  | str_array_entry "cgroup_controllers"
                  | str_array_entry "cgroup_device_acl"
                  | int_entry "seccomp_sandbox"
@@ -94,6 +95,7 @@ module Libvirtd_qemu =
                  | limits_entry "max_core"
                  | bool_entry "dump_guest_core"
                  | str_entry "stdio_handler"
+                 | int_entry "max_threads_per_process"
 
    let device_entry = bool_entry "mac_filter"
                  | bool_entry "relaxed_acs_check"
@@ -126,6 +128,8 @@ module Libvirtd_qemu =
    let swtpm_entry = str_entry "swtpm_user"
                 | str_entry "swtpm_group"
 
+   let capability_filters_entry = str_array_entry "capability_filters"
+
    (* Each entry in the config is one of the following ... *)
    let entry = default_tls_entry
              | vnc_entry
@@ -147,6 +151,7 @@ module Libvirtd_qemu =
              | vxhs_entry
              | nbd_entry
              | swtpm_entry
+             | capability_filters_entry
 
    let comment = [ label "#comment" . del /#[ \t]*/ "# " .  store /([^ \t\n][^\n]*)?/ . del /\n/ "\n" ]
    let empty = [ label "#empty" . eol ]

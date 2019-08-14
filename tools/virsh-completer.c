@@ -34,6 +34,7 @@
 #include "virmacaddr.h"
 #include "virstring.h"
 #include "virxml.h"
+#include "conf/node_device_conf.h"
 
 
 /**
@@ -67,6 +68,79 @@
  * Neither to stdout nor to stderr. This would harm the user
  * experience.
  */
+
+
+/**
+ * virshCommaStringListComplete:
+ * @input: user input so far
+ * @options: ALL options available for argument
+ *
+ * Some arguments to our commands accept the following form:
+ *
+ *   virsh command --arg str1,str2,str3
+ *
+ * This does not play nicely with our completer funtions, because
+ * they have to return strings prepended with user's input. For
+ * instance:
+ *
+ *   str1,str2,str3,strA
+ *   str1,str2,str3,strB
+ *   str1,str2,str3,strC
+ *
+ * This helper function takes care of that. In this specific case
+ * it would be called as follows:
+ *
+ *   virshCommaStringListComplete("str1,str2,str3",
+ *                                {"strA", "strB", "strC", NULL});
+ *
+ * Returns: string list of completions on success,
+ *          NULL otherwise.
+ */
+static char **
+virshCommaStringListComplete(const char *input,
+                             const char **options)
+{
+    const size_t optionsLen = virStringListLength(options);
+    VIR_AUTOFREE(char *) inputCopy = NULL;
+    VIR_AUTOSTRINGLIST inputList = NULL;
+    VIR_AUTOSTRINGLIST ret = NULL;
+    size_t nret = 0;
+    size_t i;
+
+    if (STREQ_NULLABLE(input, " "))
+        input = NULL;
+
+    if (input) {
+        char *comma = NULL;
+
+        if (VIR_STRDUP(inputCopy, input) < 0)
+            return NULL;
+
+        if ((comma = strrchr(inputCopy, ',')))
+            *comma = '\0';
+        else
+            VIR_FREE(inputCopy);
+    }
+
+    if (inputCopy && !(inputList = virStringSplit(inputCopy, ",", 0)))
+        return NULL;
+
+    if (VIR_ALLOC_N(ret, optionsLen + 1) < 0)
+        return NULL;
+
+    for (i = 0; i < optionsLen; i++) {
+        if (virStringListHasString((const char **)inputList, options[i]))
+            continue;
+
+        if ((inputCopy && virAsprintf(&ret[nret], "%s,%s", inputCopy, options[i]) < 0) ||
+            (!inputCopy && VIR_STRDUP(ret[nret], options[i]) < 0))
+            return NULL;
+
+        nret++;
+    }
+
+    VIR_RETURN_PTR(ret);
+}
 
 
 char **
@@ -409,6 +483,56 @@ virshNetworkEventNameCompleter(vshControl *ctl ATTRIBUTE_UNUSED,
 
 
 char **
+virshNetworkPortUUIDCompleter(vshControl *ctl,
+                              const vshCmd *cmd ATTRIBUTE_UNUSED,
+                              unsigned int flags)
+{
+    virshControlPtr priv = ctl->privData;
+    virNetworkPtr net = NULL;
+    virNetworkPortPtr *ports = NULL;
+    int nports = 0;
+    size_t i = 0;
+    char **ret = NULL;
+
+    virCheckFlags(0, NULL);
+
+    if (!priv->conn || virConnectIsAlive(priv->conn) <= 0)
+        return NULL;
+
+    if (!(net = virshCommandOptNetwork(ctl, cmd, NULL)))
+        return false;
+
+    if ((nports = virNetworkListAllPorts(net, &ports, flags)) < 0)
+        return NULL;
+
+    if (VIR_ALLOC_N(ret, nports + 1) < 0)
+        goto error;
+
+    for (i = 0; i < nports; i++) {
+        char uuid[VIR_UUID_STRING_BUFLEN];
+
+        if (virNetworkPortGetUUIDString(ports[i], uuid) < 0 ||
+            VIR_STRDUP(ret[i], uuid) < 0)
+            goto error;
+
+        virNetworkPortFree(ports[i]);
+    }
+    VIR_FREE(ports);
+
+    return ret;
+
+ error:
+    for (; i < nports; i++)
+        virNetworkPortFree(ports[i]);
+    VIR_FREE(ports);
+    for (i = 0; i < nports; i++)
+        VIR_FREE(ret[i]);
+    VIR_FREE(ret);
+    return NULL;
+}
+
+
+char **
 virshNodeDeviceNameCompleter(vshControl *ctl,
                              const vshCmd *cmd ATTRIBUTE_UNUSED,
                              unsigned int flags)
@@ -568,6 +692,57 @@ virshSecretUUIDCompleter(vshControl *ctl,
     return ret;
 }
 
+
+char **
+virshCheckpointNameCompleter(vshControl *ctl,
+                             const vshCmd *cmd,
+                             unsigned int flags)
+{
+    virshControlPtr priv = ctl->privData;
+    virDomainPtr dom = NULL;
+    virDomainCheckpointPtr *checkpoints = NULL;
+    int ncheckpoints = 0;
+    size_t i = 0;
+    char **ret = NULL;
+
+    virCheckFlags(0, NULL);
+
+    if (!priv->conn || virConnectIsAlive(priv->conn) <= 0)
+        return NULL;
+
+    if (!(dom = virshCommandOptDomain(ctl, cmd, NULL)))
+        return NULL;
+
+    if ((ncheckpoints = virDomainListAllCheckpoints(dom, &checkpoints,
+                                                    flags)) < 0)
+        goto error;
+
+    if (VIR_ALLOC_N(ret, ncheckpoints + 1) < 0)
+        goto error;
+
+    for (i = 0; i < ncheckpoints; i++) {
+        const char *name = virDomainCheckpointGetName(checkpoints[i]);
+
+        if (VIR_STRDUP(ret[i], name) < 0)
+            goto error;
+
+        virshDomainCheckpointFree(checkpoints[i]);
+    }
+    VIR_FREE(checkpoints);
+    virshDomainFree(dom);
+
+    return ret;
+
+ error:
+    for (; i < ncheckpoints; i++)
+        virshDomainCheckpointFree(checkpoints[i]);
+    VIR_FREE(checkpoints);
+    for (i = 0; i < ncheckpoints; i++)
+        VIR_FREE(ret[i]);
+    VIR_FREE(ret);
+    virshDomainFree(dom);
+    return NULL;
+}
 
 char **
 virshSnapshotNameCompleter(vshControl *ctl,
@@ -853,6 +1028,32 @@ virshNodedevEventNameCompleter(vshControl *ctl ATTRIBUTE_UNUSED,
 
 
 char **
+virshNodedevCapabilityNameCompleter(vshControl *ctl,
+                                    const vshCmd *cmd,
+                                    unsigned int flags)
+{
+    VIR_AUTOSTRINGLIST tmp = NULL;
+    const char *cap_str = NULL;
+    size_t i = 0;
+
+    virCheckFlags(0, NULL);
+
+    if (vshCommandOptStringQuiet(ctl, cmd, "cap", &cap_str) < 0)
+        return NULL;
+
+    if (VIR_ALLOC_N(tmp, VIR_NODE_DEV_CAP_LAST + 1) < 0)
+        return NULL;
+
+    for (i = 0; i < VIR_NODE_DEV_CAP_LAST; i++) {
+        if (VIR_STRDUP(tmp[i], virNodeDevCapTypeToString(i)) < 0)
+            return NULL;
+    }
+
+    return virshCommaStringListComplete(cap_str, (const char **)tmp);
+}
+
+
+char **
 virshCellnoCompleter(vshControl *ctl,
                      const vshCmd *cmd ATTRIBUTE_UNUSED,
                      unsigned int flags)
@@ -943,52 +1144,13 @@ virshDomainShutdownModeCompleter(vshControl *ctl,
                                  const vshCmd *cmd,
                                  unsigned int flags)
 {
-    const char *modes[] = {"acpi", "agent", "initctl", "signal", "paravirt"};
-    size_t i;
-    char **ret = NULL;
-    size_t ntmp = 0;
-    VIR_AUTOSTRINGLIST tmp = NULL;
-    const char *modeConst = NULL;
-    VIR_AUTOFREE(char *) mode = NULL;
-    VIR_AUTOSTRINGLIST modesSpecified = NULL;
+    const char *modes[] = {"acpi", "agent", "initctl", "signal", "paravirt", NULL};
+    const char *mode = NULL;
 
     virCheckFlags(0, NULL);
 
-    if (vshCommandOptStringQuiet(ctl, cmd, "mode", &modeConst) < 0)
+    if (vshCommandOptStringQuiet(ctl, cmd, "mode", &mode) < 0)
         return NULL;
 
-    if (STREQ_NULLABLE(modeConst, " "))
-        modeConst = NULL;
-
-    if (modeConst) {
-        char *modeTmp = NULL;
-
-        if (VIR_STRDUP(mode, modeConst) < 0)
-            return NULL;
-
-        if ((modeTmp = strrchr(mode, ',')))
-            *modeTmp = '\0';
-        else
-            VIR_FREE(mode);
-    }
-
-    if (mode && !(modesSpecified = virStringSplit(mode, ",", 0)))
-        return NULL;
-
-    if (VIR_ALLOC_N(tmp, ARRAY_CARDINALITY(modes) + 1) < 0)
-        return NULL;
-
-    for (i = 0; i < ARRAY_CARDINALITY(modes); i++) {
-        if (virStringListHasString((const char **)modesSpecified, modes[i]))
-            continue;
-
-        if ((mode && virAsprintf(&tmp[ntmp], "%s,%s", mode, modes[i]) < 0) ||
-            (!mode && VIR_STRDUP(tmp[ntmp], modes[i]) < 0))
-            return NULL;
-
-        ntmp++;
-    }
-
-    VIR_STEAL_PTR(ret, tmp);
-    return ret;
+    return virshCommaStringListComplete(mode, modes);
 }

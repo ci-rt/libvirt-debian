@@ -3434,6 +3434,9 @@ int virFilePrintf(FILE *fp, const char *msg, ...)
 # ifndef GPFS_SUPER_MAGIC
 #  define GPFS_SUPER_MAGIC 0x47504653
 # endif
+# ifndef QB_MAGIC
+#  define QB_MAGIC 0x51626d6e
+# endif
 
 # define PROC_MOUNTS "/proc/mounts"
 
@@ -3490,6 +3493,10 @@ virFileIsSharedFixFUSE(const char *path,
         VIR_DEBUG("Found gluster FUSE mountpoint=%s for path=%s. "
                   "Fixing shared FS type", mntDir, canonPath);
         *f_type = GFS2_MAGIC;
+    } else if (STREQ_NULLABLE(mntType, "fuse.quobyte")) {
+        VIR_DEBUG("Found Quobyte FUSE mountpoint=%s for path=%s. "
+                  "Fixing shared FS type", mntDir, canonPath);
+        *f_type = QB_MAGIC;
     }
 
     ret = 0;
@@ -3581,6 +3588,9 @@ virFileIsSharedFSType(const char *path,
         return 1;
     if ((fstypes & VIR_FILE_SHFS_GPFS) &&
         (f_type == GPFS_SUPER_MAGIC))
+        return 1;
+    if ((fstypes & VIR_FILE_SHFS_QB) &&
+        (f_type == QB_MAGIC))
         return 1;
 
     return 0;
@@ -3771,7 +3781,8 @@ int virFileIsSharedFS(const char *path)
                                  VIR_FILE_SHFS_SMB |
                                  VIR_FILE_SHFS_CIFS |
                                  VIR_FILE_SHFS_CEPH |
-                                 VIR_FILE_SHFS_GPFS);
+                                 VIR_FILE_SHFS_GPFS|
+                                 VIR_FILE_SHFS_QB);
 }
 
 
@@ -4364,7 +4375,7 @@ virFileWaitForExists(const char *path,
 
 #if HAVE_LIBATTR
 /**
- * virFileGetXAttr;
+ * virFileGetXAttrQuiet;
  * @path: a filename
  * @name: name of xattr
  * @value: read value
@@ -4376,9 +4387,9 @@ virFileWaitForExists(const char *path,
  *         -1 otherwise (with errno set).
  */
 int
-virFileGetXAttr(const char *path,
-                const char *name,
-                char **value)
+virFileGetXAttrQuiet(const char *path,
+                     const char *name,
+                     char **value)
 {
     char *buf = NULL;
     int ret = -1;
@@ -4421,14 +4432,21 @@ virFileGetXAttr(const char *path,
  * Sets xattr of @name and @value on @path.
  *
  * Returns: 0 on success,
- *         -1 otherwise (with errno set).
+ *         -1 otherwise (with errno set AND error reported).
  */
 int
 virFileSetXAttr(const char *path,
                 const char *name,
                 const char *value)
 {
-    return setxattr(path, name, value, strlen(value), 0);
+    if (setxattr(path, name, value, strlen(value), 0) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to set XATTR %s on %s"),
+                             name, path);
+        return -1;
+    }
+
+    return 0;
 }
 
 /**
@@ -4439,41 +4457,82 @@ virFileSetXAttr(const char *path,
  * Remove xattr of @name on @path.
  *
  * Returns: 0 on success,
- *         -1 otherwise (with errno set).
+ *         -1 otherwise (with errno set AND error reported).
  */
 int
 virFileRemoveXAttr(const char *path,
                    const char *name)
 {
-    return removexattr(path, name);
+    if (removexattr(path, name) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to remove XATTR %s on %s"),
+                             name, path);
+        return -1;
+    }
+
+    return 0;
 }
 
 #else /* !HAVE_LIBATTR */
 
 int
-virFileGetXAttr(const char *path ATTRIBUTE_UNUSED,
-                const char *name ATTRIBUTE_UNUSED,
-                char **value ATTRIBUTE_UNUSED)
+virFileGetXAttrQuiet(const char *path ATTRIBUTE_UNUSED,
+                     const char *name ATTRIBUTE_UNUSED,
+                     char **value ATTRIBUTE_UNUSED)
 {
     errno = ENOSYS;
     return -1;
 }
 
 int
-virFileSetXAttr(const char *path ATTRIBUTE_UNUSED,
-                const char *name ATTRIBUTE_UNUSED,
+virFileSetXAttr(const char *path,
+                const char *name,
                 const char *value ATTRIBUTE_UNUSED)
 {
     errno = ENOSYS;
+    virReportSystemError(errno,
+                         _("Unable to set XATTR %s on %s"),
+                         name, path);
     return -1;
 }
 
 int
-virFileRemoveXAttr(const char *path ATTRIBUTE_UNUSED,
-                   const char *name ATTRIBUTE_UNUSED)
+virFileRemoveXAttr(const char *path,
+                   const char *name)
 {
     errno = ENOSYS;
+    virReportSystemError(errno,
+                         _("Unable to remove XATTR %s on %s"),
+                         name, path);
     return -1;
 }
 
 #endif /* HAVE_LIBATTR */
+
+/**
+ * virFileGetXAttr;
+ * @path: a filename
+ * @name: name of xattr
+ * @value: read value
+ *
+ * Reads xattr with @name for given @path and stores it into
+ * @value. Caller is responsible for freeing @value.
+ *
+ * Returns: 0 on success,
+ *         -1 otherwise (with errno set AND error reported).
+ */
+int
+virFileGetXAttr(const char *path,
+                const char *name,
+                char **value)
+{
+    int ret;
+
+    if ((ret = virFileGetXAttrQuiet(path, name, value)) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to get XATTR %s on %s"),
+                             name, path);
+    }
+
+    return ret;
+}

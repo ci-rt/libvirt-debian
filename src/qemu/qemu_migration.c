@@ -380,6 +380,10 @@ qemuMigrationDstStartNBDServer(virQEMUDriverPtr driver,
     unsigned short port = 0;
     char *diskAlias = NULL;
     size_t i;
+    virStorageNetHostDef server = {
+        .name = (char *)listenAddr, /* cast away const */
+        .transport = VIR_STORAGE_NET_HOST_TRANS_TCP,
+    };
 
     if (nbdPort < 0 || nbdPort > USHRT_MAX) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -415,11 +419,12 @@ qemuMigrationDstStartNBDServer(virQEMUDriverPtr driver,
             else if (virPortAllocatorAcquire(driver->migrationPorts, &port) < 0)
                 goto exit_monitor;
 
-            if (qemuMonitorNBDServerStart(priv->mon, listenAddr, port, tls_alias) < 0)
+            server.port = port;
+            if (qemuMonitorNBDServerStart(priv->mon, &server, tls_alias) < 0)
                 goto exit_monitor;
         }
 
-        if (qemuMonitorNBDServerAdd(priv->mon, diskAlias, true) < 0)
+        if (qemuMonitorNBDServerAdd(priv->mon, diskAlias, NULL, true, NULL) < 0)
             goto exit_monitor;
         if (qemuDomainObjExitMonitor(driver, vm) < 0)
             goto cleanup;
@@ -785,7 +790,7 @@ qemuMigrationSrcNBDStorageCopyBlockdev(virQEMUDriverPtr driver,
                                        const char *host,
                                        int port,
                                        unsigned long long mirror_speed,
-                                       unsigned int mirror_flags,
+                                       unsigned int mirror_shallow,
                                        const char *tlsAlias)
 {
     VIR_AUTOPTR(qemuBlockStorageSourceAttachData) data = NULL;
@@ -825,7 +830,9 @@ qemuMigrationSrcNBDStorageCopyBlockdev(virQEMUDriverPtr driver,
         virAsprintf(&copysrc->nodeformat, "migration-%s-format", disk->dst) < 0)
         goto cleanup;
 
-    if (!(data = qemuBlockStorageSourceAttachPrepareBlockdev(copysrc)))
+    /* Migration via blockdev-mirror was supported sooner than the auto-read-only
+     * feature was added to qemu */
+    if (!(data = qemuBlockStorageSourceAttachPrepareBlockdev(copysrc, false)))
         goto cleanup;
 
     if (qemuDomainObjEnterMonitorAsync(driver, vm,
@@ -835,9 +842,9 @@ qemuMigrationSrcNBDStorageCopyBlockdev(virQEMUDriverPtr driver,
     mon_ret = qemuBlockStorageSourceAttachApply(qemuDomainGetMonitor(vm), data);
 
     if (mon_ret == 0)
-        mon_ret = qemuMonitorBlockdevMirror(qemuDomainGetMonitor(vm), NULL,
+        mon_ret = qemuMonitorBlockdevMirror(qemuDomainGetMonitor(vm), NULL, false,
                                             diskAlias, copysrc->nodeformat,
-                                            mirror_speed, 0, 0, mirror_flags);
+                                            mirror_speed, 0, 0, mirror_shallow);
 
     if (mon_ret != 0)
         qemuBlockStorageSourceAttachRollback(qemuDomainGetMonitor(vm), data);
@@ -861,7 +868,7 @@ qemuMigrationSrcNBDStorageCopyDriveMirror(virQEMUDriverPtr driver,
                                           const char *host,
                                           int port,
                                           unsigned long long mirror_speed,
-                                          unsigned int mirror_flags)
+                                          bool mirror_shallow)
 {
     char *nbd_dest = NULL;
     int mon_ret;
@@ -883,7 +890,7 @@ qemuMigrationSrcNBDStorageCopyDriveMirror(virQEMUDriverPtr driver,
 
     mon_ret = qemuMonitorDriveMirror(qemuDomainGetMonitor(vm),
                                      diskAlias, nbd_dest, "raw",
-                                     mirror_speed, 0, 0, mirror_flags);
+                                     mirror_speed, 0, 0, mirror_shallow, true);
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0 || mon_ret < 0)
         goto cleanup;
@@ -903,7 +910,7 @@ qemuMigrationSrcNBDStorageCopyOne(virQEMUDriverPtr driver,
                                   const char *host,
                                   int port,
                                   unsigned long long mirror_speed,
-                                  unsigned int mirror_flags,
+                                  bool mirror_shallow,
                                   const char *tlsAlias,
                                   unsigned int flags)
 {
@@ -916,7 +923,7 @@ qemuMigrationSrcNBDStorageCopyOne(virQEMUDriverPtr driver,
     if (!(diskAlias = qemuAliasDiskDriveFromDisk(disk)))
         goto cleanup;
 
-    if (!(job = qemuBlockJobDiskNew(disk, QEMU_BLOCKJOB_TYPE_COPY, diskAlias)))
+    if (!(job = qemuBlockJobDiskNew(vm, disk, QEMU_BLOCKJOB_TYPE_COPY, diskAlias)))
         goto cleanup;
 
     qemuBlockJobSyncBegin(job);
@@ -926,25 +933,25 @@ qemuMigrationSrcNBDStorageCopyOne(virQEMUDriverPtr driver,
                                                     disk, diskAlias,
                                                     host, port,
                                                     mirror_speed,
-                                                    mirror_flags,
+                                                    mirror_shallow,
                                                     tlsAlias);
     } else {
         rc = qemuMigrationSrcNBDStorageCopyDriveMirror(driver, vm, diskAlias,
                                                        host, port,
                                                        mirror_speed,
-                                                       mirror_flags);
+                                                       mirror_shallow);
     }
 
     if (rc < 0)
         goto cleanup;
 
     diskPriv->migrating = true;
-    qemuBlockJobStarted(job);
+    qemuBlockJobStarted(job, vm);
 
     ret = 0;
 
  cleanup:
-    qemuBlockJobStartupFinalize(job);
+    qemuBlockJobStartupFinalize(vm, job);
     VIR_FREE(diskAlias);
     return ret;
 }
@@ -987,7 +994,7 @@ qemuMigrationSrcNBDStorageCopy(virQEMUDriverPtr driver,
     int port;
     size_t i;
     unsigned long long mirror_speed = speed;
-    unsigned int mirror_flags = VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT;
+    bool mirror_shallow = *migrate_flags & QEMU_MONITOR_MIGRATE_NON_SHARED_INC;
     int rv;
     virQEMUDriverConfigPtr cfg = virQEMUDriverGetConfig(driver);
 
@@ -1005,9 +1012,6 @@ qemuMigrationSrcNBDStorageCopy(virQEMUDriverPtr driver,
     port = mig->nbd->port;
     mig->nbd->port = 0;
 
-    if (*migrate_flags & QEMU_MONITOR_MIGRATE_NON_SHARED_INC)
-        mirror_flags |= VIR_DOMAIN_BLOCK_REBASE_SHALLOW;
-
     for (i = 0; i < vm->def->ndisks; i++) {
         virDomainDiskDefPtr disk = vm->def->disks[i];
 
@@ -1016,7 +1020,7 @@ qemuMigrationSrcNBDStorageCopy(virQEMUDriverPtr driver,
             continue;
 
         if (qemuMigrationSrcNBDStorageCopyOne(driver, vm, disk, host, port,
-                                              mirror_speed, mirror_flags,
+                                              mirror_speed, mirror_shallow,
                                               tlsAlias, flags) < 0)
             goto cleanup;
 
@@ -3602,21 +3606,14 @@ qemuMigrationSrcRun(virQEMUDriverPtr driver,
     }
 
     /* When migration completed, QEMU will have paused the CPUs for us.
-     * Wait for the STOP event to be processed or explicitly stop CPUs
-     * (for old QEMU which does not send events) to release the lock state.
+     * Wait for the STOP event to be processed to release the lock state.
      */
-    if (priv->monJSON) {
-        while (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING) {
-            priv->signalStop = true;
-            rc = virDomainObjWait(vm);
-            priv->signalStop = false;
-            if (rc < 0)
-                goto error;
-        }
-    } else if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING &&
-               qemuProcessStopCPUs(driver, vm, VIR_DOMAIN_PAUSED_MIGRATION,
-                                   QEMU_ASYNC_JOB_MIGRATION_OUT) < 0) {
-        goto error;
+    while (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING) {
+        priv->signalStop = true;
+        rc = virDomainObjWait(vm);
+        priv->signalStop = false;
+        if (rc < 0)
+            goto error;
     }
 
     if (mig->nbd &&
@@ -5548,7 +5545,7 @@ qemuMigrationSrcFetchMirrorStats(virQEMUDriverPtr driver,
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) < 0)
         return -1;
 
-    blockinfo = qemuMonitorGetAllBlockJobInfo(priv->mon);
+    blockinfo = qemuMonitorGetAllBlockJobInfo(priv->mon, false);
 
     if (qemuDomainObjExitMonitor(driver, vm) < 0 || !blockinfo)
         return -1;

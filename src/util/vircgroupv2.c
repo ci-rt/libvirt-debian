@@ -242,7 +242,8 @@ virCgroupV2StealPlacement(virCgroupPtr group)
 
 
 static int
-virCgroupV2ParseControllersFile(virCgroupPtr group)
+virCgroupV2ParseControllersFile(virCgroupPtr group,
+                                virCgroupPtr parent)
 {
     int rc;
     VIR_AUTOFREE(char *) contStr = NULL;
@@ -250,9 +251,17 @@ virCgroupV2ParseControllersFile(virCgroupPtr group)
     char **contList = NULL;
     char **tmp;
 
-    if (virAsprintf(&contFile, "%s/cgroup.controllers",
-                    group->unified.mountPoint) < 0)
-        return -1;
+    if (parent) {
+        if (virAsprintf(&contFile, "%s%s/cgroup.subtree_control",
+                        parent->unified.mountPoint,
+                        NULLSTR_EMPTY(parent->unified.placement)) < 0)
+            return -1;
+    } else {
+        if (virAsprintf(&contFile, "%s%s/cgroup.controllers",
+                        group->unified.mountPoint,
+                        NULLSTR_EMPTY(group->unified.placement)) < 0)
+            return -1;
+    }
 
     rc = virFileReadAll(contFile, 1024 * 1024, &contStr);
     if (rc < 0) {
@@ -285,26 +294,27 @@ virCgroupV2ParseControllersFile(virCgroupPtr group)
 
 static int
 virCgroupV2DetectControllers(virCgroupPtr group,
-                             int controllers)
+                             int controllers,
+                             virCgroupPtr parent)
 {
     size_t i;
 
-    if (virCgroupV2ParseControllersFile(group) < 0)
+    if (virCgroupV2ParseControllersFile(group, parent) < 0)
         return -1;
 
     /* In cgroup v2 there is no cpuacct controller, the cpu.stat file always
      * exists with usage stats. */
     group->unified.controllers |= 1 << VIR_CGROUP_CONTROLLER_CPUACCT;
 
+    if (controllers >= 0)
+        group->unified.controllers &= controllers;
+
     for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++)
         VIR_DEBUG("Controller '%s' present=%s",
                   virCgroupV2ControllerTypeToString(i),
                   (group->unified.controllers & 1 << i) ? "yes" : "no");
 
-    if (controllers >= 0)
-        return controllers & group->unified.controllers;
-    else
-        return group->unified.controllers;
+    return group->unified.controllers;
 }
 
 
@@ -347,34 +357,60 @@ virCgroupV2PathOfController(virCgroupPtr group,
 }
 
 
+/**
+ * virCgroupV2EnableController:
+ *
+ * Returns: -1 on fatal error
+ *          -2 if we failed to write into cgroup.subtree_control
+ *          0 on success
+ */
 static int
-virCgroupV2EnableController(virCgroupPtr parent,
-                            int controller)
+virCgroupV2EnableController(virCgroupPtr group,
+                            virCgroupPtr parent,
+                            int controller,
+                            bool report)
 {
     VIR_AUTOFREE(char *) val = NULL;
+    VIR_AUTOFREE(char *) path = NULL;
 
     if (virAsprintf(&val, "+%s",
                     virCgroupV2ControllerTypeToString(controller)) < 0) {
         return -1;
     }
 
-    if (virCgroupSetValueStr(parent, controller,
-                             "cgroup.subtree_control", val) < 0) {
+    if (virCgroupPathOfController(parent, controller,
+                                  "cgroup.subtree_control", &path) < 0) {
         return -1;
     }
+
+    if (virFileWriteStr(path, val, 0) < 0) {
+        if (report) {
+            virReportSystemError(errno,
+                                 _("Failed to enable controller '%s' for '%s'"),
+                                 val, path);
+        }
+        return -2;
+    }
+
+    group->unified.controllers |= 1 << controller;
 
     return 0;
 }
 
 
 static int
-virCgroupV2MakeGroup(virCgroupPtr parent ATTRIBUTE_UNUSED,
+virCgroupV2MakeGroup(virCgroupPtr parent,
                      virCgroupPtr group,
                      bool create,
                      unsigned int flags)
 {
     VIR_AUTOFREE(char *) path = NULL;
     int controller;
+
+    if (flags & VIR_CGROUP_SYSTEMD) {
+        VIR_DEBUG("Running with systemd so we should not create cgroups ourselves.");
+        return 0;
+    }
 
     VIR_DEBUG("Make group %s", group->path);
 
@@ -393,24 +429,29 @@ virCgroupV2MakeGroup(virCgroupPtr parent ATTRIBUTE_UNUSED,
 
     if (create) {
         if (flags & VIR_CGROUP_THREAD) {
-            if (virCgroupSetValueStr(group, VIR_CGROUP_CONTROLLER_CPU,
+            if (virCgroupSetValueStr(group, controller,
                                      "cgroup.type", "threaded") < 0) {
                 return -1;
             }
 
-            if (virCgroupV2EnableController(parent,
-                                            VIR_CGROUP_CONTROLLER_CPU) < 0) {
+            if (virCgroupV2HasController(parent, VIR_CGROUP_CONTROLLER_CPU) &&
+                virCgroupV2EnableController(group, parent,
+                                            VIR_CGROUP_CONTROLLER_CPU,
+                                            true) < 0) {
                 return -1;
             }
 
             if (virCgroupV2HasController(parent, VIR_CGROUP_CONTROLLER_CPUSET) &&
-                virCgroupV2EnableController(parent,
-                                            VIR_CGROUP_CONTROLLER_CPUSET) < 0) {
+                virCgroupV2EnableController(group, parent,
+                                            VIR_CGROUP_CONTROLLER_CPUSET,
+                                            true) < 0) {
                 return -1;
             }
         } else {
             size_t i;
             for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
+                int rc;
+
                 if (!virCgroupV2HasController(parent, i))
                     continue;
 
@@ -418,8 +459,17 @@ virCgroupV2MakeGroup(virCgroupPtr parent ATTRIBUTE_UNUSED,
                 if (i == VIR_CGROUP_CONTROLLER_CPUACCT)
                     continue;
 
-                if (virCgroupV2EnableController(parent, i) < 0)
+                rc = virCgroupV2EnableController(group, parent, i, false);
+                if (rc < 0) {
+                    if (rc == -2) {
+                        virResetLastError();
+                        VIR_DEBUG("failed to enable '%s' controller, skipping",
+                                  virCgroupV2ControllerTypeToString(i));
+                        group->unified.controllers &= ~(1 << i);
+                        continue;
+                    }
                     return -1;
+                }
             }
         }
     }
@@ -554,15 +604,35 @@ static int
 virCgroupV2SetBlkioWeight(virCgroupPtr group,
                           unsigned int weight)
 {
+    VIR_AUTOFREE(char *) path = NULL;
     VIR_AUTOFREE(char *) value = NULL;
+    const char *format = "%u";
 
-    if (virAsprintf(&value, "default %u", weight) < 0)
+    if (virCgroupV2PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                    "io.bfq.weight", &path) < 0) {
+        return -1;
+    }
+
+    if (!virFileExists(path)) {
+        VIR_FREE(path);
+        format = "default %u";
+
+        if (virCgroupV2PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                        "io.weight", &path) < 0) {
+            return -1;
+        }
+    }
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("blkio weight is valid only for bfq or cfq scheduler"));
+        return -1;
+    }
+
+    if (virAsprintf(&value, format, weight) < 0)
         return -1;
 
-    return virCgroupSetValueStr(group,
-                                VIR_CGROUP_CONTROLLER_BLKIO,
-                                "io.weight",
-                                value);
+    return virCgroupSetValueRaw(path, value);
 }
 
 
@@ -570,20 +640,38 @@ static int
 virCgroupV2GetBlkioWeight(virCgroupPtr group,
                           unsigned int *weight)
 {
+    VIR_AUTOFREE(char *) path = NULL;
     VIR_AUTOFREE(char *) value = NULL;
     char *tmp;
 
-    if (virCgroupGetValueStr(group, VIR_CGROUP_CONTROLLER_BLKIO,
-                             "io.weight", &value) < 0) {
+    if (virCgroupV2PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                    "io.bfq.weight", &path) < 0) {
         return -1;
     }
 
-    if (!(tmp = strstr(value, "default "))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("Cannot find default io weight."));
+    if (!virFileExists(path)) {
+        VIR_FREE(path);
+
+        if (virCgroupV2PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                        "io.weight", &path) < 0) {
+            return -1;
+        }
+    }
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("blkio weight is valid only for bfq or cfq scheduler"));
         return -1;
     }
-    tmp += strlen("default ");
+
+    if (virCgroupGetValueRaw(path, &value) < 0)
+        return -1;
+
+    if ((tmp = strstr(value, "default "))) {
+        tmp += strlen("default ");
+    } else {
+        tmp = value;
+    }
 
     if (virStrToLong_ui(tmp, NULL, 10, weight) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -725,39 +813,59 @@ virCgroupV2GetBlkioIoDeviceServiced(virCgroupPtr group,
 
 static int
 virCgroupV2SetBlkioDeviceWeight(virCgroupPtr group,
-                                const char *path,
+                                const char *devPath,
                                 unsigned int weight)
 {
+    VIR_AUTOFREE(char *) path = NULL;
     VIR_AUTOFREE(char *) str = NULL;
     VIR_AUTOFREE(char *) blkstr = NULL;
 
-    if (!(blkstr = virCgroupGetBlockDevString(path)))
+    if (!(blkstr = virCgroupGetBlockDevString(devPath)))
         return -1;
 
     if (virAsprintf(&str, "%s%d", blkstr, weight) < 0)
         return -1;
 
-    return virCgroupSetValueStr(group,
-                                VIR_CGROUP_CONTROLLER_BLKIO,
-                                "io.weight",
-                                str);
+    if (virCgroupV2PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                    "io.weight", &path) < 0) {
+        return -1;
+    }
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("blkio device weight is valid only for cfq scheduler"));
+        return -1;
+    }
+
+    return virCgroupSetValueRaw(path, str);
 }
 
 
 static int
 virCgroupV2GetBlkioDeviceWeight(virCgroupPtr group,
-                                const char *path,
+                                const char *devPath,
                                 unsigned int *weight)
 {
+    VIR_AUTOFREE(char *) path = NULL;
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "io.weight",
-                                   path,
-                                   &str) < 0) {
+    if (virCgroupV2PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                    "io.weight", &path) < 0) {
         return -1;
     }
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("blkio device weight is valid only for cfq scheduler"));
+        return -1;
+    }
+
+    if (virCgroupGetValueRaw(path, &value) < 0)
+        return -1;
+
+    if (virCgroupGetValueForBlkDev(value, devPath, &str) < 0)
+        return -1;
 
     if (!str) {
         *weight = 0;
@@ -804,16 +912,19 @@ virCgroupV2GetBlkioDeviceReadIops(virCgroupPtr group,
                                   unsigned int *riops)
 {
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
     const char *name = "riops=";
     char *tmp;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "io.max",
-                                   path,
-                                   &str) < 0) {
+    if (virCgroupGetValueStr(group,
+                             VIR_CGROUP_CONTROLLER_BLKIO,
+                             "io.max",
+                             &value) < 0) {
         return -1;
     }
+
+    if (virCgroupGetValueForBlkDev(value, path, &str) < 0)
+        return -1;
 
     if (!str) {
         *riops = 0;
@@ -872,16 +983,19 @@ virCgroupV2GetBlkioDeviceWriteIops(virCgroupPtr group,
                                    unsigned int *wiops)
 {
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
     const char *name = "wiops=";
     char *tmp;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "io.max",
-                                   path,
-                                   &str) < 0) {
+    if (virCgroupGetValueStr(group,
+                             VIR_CGROUP_CONTROLLER_BLKIO,
+                             "io.max",
+                             &value) < 0) {
         return -1;
     }
+
+    if (virCgroupGetValueForBlkDev(value, path, &str) < 0)
+        return -1;
 
     if (!str) {
         *wiops = 0;
@@ -940,16 +1054,19 @@ virCgroupV2GetBlkioDeviceReadBps(virCgroupPtr group,
                                  unsigned long long *rbps)
 {
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
     const char *name = "rbps=";
     char *tmp;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "io.max",
-                                   path,
-                                   &str) < 0) {
+    if (virCgroupGetValueStr(group,
+                             VIR_CGROUP_CONTROLLER_BLKIO,
+                             "io.max",
+                             &value) < 0) {
         return -1;
     }
+
+    if (virCgroupGetValueForBlkDev(value, path, &str) < 0)
+        return -1;
 
     if (!str) {
         *rbps = 0;
@@ -1008,16 +1125,19 @@ virCgroupV2GetBlkioDeviceWriteBps(virCgroupPtr group,
                                   unsigned long long *wbps)
 {
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
     const char *name = "wbps=";
     char *tmp;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "io.max",
-                                   path,
-                                   &str) < 0) {
+    if (virCgroupGetValueStr(group,
+                             VIR_CGROUP_CONTROLLER_BLKIO,
+                             "io.max",
+                             &value) < 0) {
         return -1;
     }
+
+    if (virCgroupGetValueForBlkDev(value, path, &str) < 0)
+        return -1;
 
     if (!str) {
         *wbps = 0;

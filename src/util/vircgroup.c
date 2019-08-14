@@ -381,22 +381,6 @@ virCgroupDetect(virCgroupPtr group,
             return -1;
     }
 
-    for (i = 0; i < VIR_CGROUP_BACKEND_TYPE_LAST; i++) {
-        if (group->backends[i]) {
-            int rc = group->backends[i]->detectControllers(group, controllers);
-            if (rc < 0)
-                return -1;
-            controllersAvailable |= rc;
-        }
-    }
-
-    /* Check that at least 1 controller is available */
-    if (controllersAvailable == 0) {
-        virReportSystemError(ENXIO, "%s",
-                             _("At least one cgroup controller is required"));
-        return -1;
-    }
-
     /* In some cases we can copy part of the placement info
      * based on the parent cgroup...
      */
@@ -419,6 +403,22 @@ virCgroupDetect(virCgroupPtr group,
             group->backends[i]->validatePlacement(group, pid) < 0) {
             return -1;
         }
+    }
+
+    for (i = 0; i < VIR_CGROUP_BACKEND_TYPE_LAST; i++) {
+        if (group->backends[i]) {
+            int rc = group->backends[i]->detectControllers(group, controllers, parent);
+            if (rc < 0)
+                return -1;
+            controllersAvailable |= rc;
+        }
+    }
+
+    /* Check that at least 1 controller is available */
+    if (controllersAvailable == 0) {
+        virReportSystemError(ENXIO, "%s",
+                             _("At least one cgroup controller is required"));
+        return -1;
     }
 
     return 0;
@@ -455,28 +455,22 @@ virCgroupGetBlockDevString(const char *path)
 
 
 int
-virCgroupSetValueStr(virCgroupPtr group,
-                     int controller,
-                     const char *key,
+virCgroupSetValueRaw(const char *path,
                      const char *value)
 {
-    VIR_AUTOFREE(char *) keypath = NULL;
-    char *tmp = NULL;
+    char *tmp;
 
-    if (virCgroupPathOfController(group, controller, key, &keypath) < 0)
-        return -1;
-
-    VIR_DEBUG("Set value '%s' to '%s'", keypath, value);
-    if (virFileWriteStr(keypath, value, 0) < 0) {
+    VIR_DEBUG("Set value '%s' to '%s'", path, value);
+    if (virFileWriteStr(path, value, 0) < 0) {
         if (errno == EINVAL &&
-            (tmp = strrchr(keypath, '/'))) {
+            (tmp = strrchr(path, '/'))) {
             virReportSystemError(errno,
                                  _("Invalid value '%s' for '%s'"),
                                  value, tmp + 1);
             return -1;
         }
         virReportSystemError(errno,
-                             _("Unable to write to '%s'"), keypath);
+                             _("Unable to write to '%s'"), path);
         return -1;
     }
 
@@ -485,24 +479,18 @@ virCgroupSetValueStr(virCgroupPtr group,
 
 
 int
-virCgroupGetValueStr(virCgroupPtr group,
-                     int controller,
-                     const char *key,
+virCgroupGetValueRaw(const char *path,
                      char **value)
 {
-    VIR_AUTOFREE(char *) keypath = NULL;
     int rc;
 
     *value = NULL;
 
-    if (virCgroupPathOfController(group, controller, key, &keypath) < 0)
-        return -1;
+    VIR_DEBUG("Get value %s", path);
 
-    VIR_DEBUG("Get value %s", keypath);
-
-    if ((rc = virFileReadAll(keypath, 1024*1024, value)) < 0) {
+    if ((rc = virFileReadAll(path, 1024*1024, value)) < 0) {
         virReportSystemError(errno,
-                             _("Unable to read from '%s'"), keypath);
+                             _("Unable to read from '%s'"), path);
         return -1;
     }
 
@@ -515,19 +503,43 @@ virCgroupGetValueStr(virCgroupPtr group,
 
 
 int
-virCgroupGetValueForBlkDev(virCgroupPtr group,
-                           int controller,
-                           const char *key,
+virCgroupSetValueStr(virCgroupPtr group,
+                     int controller,
+                     const char *key,
+                     const char *value)
+{
+    VIR_AUTOFREE(char *) keypath = NULL;
+
+    if (virCgroupPathOfController(group, controller, key, &keypath) < 0)
+        return -1;
+
+    return virCgroupSetValueRaw(keypath, value);
+}
+
+
+int
+virCgroupGetValueStr(virCgroupPtr group,
+                     int controller,
+                     const char *key,
+                     char **value)
+{
+    VIR_AUTOFREE(char *) keypath = NULL;
+
+    if (virCgroupPathOfController(group, controller, key, &keypath) < 0)
+        return -1;
+
+    return virCgroupGetValueRaw(keypath, value);
+}
+
+
+int
+virCgroupGetValueForBlkDev(const char *str,
                            const char *path,
                            char **value)
 {
     VIR_AUTOFREE(char *) prefix = NULL;
-    VIR_AUTOFREE(char *) str = NULL;
     char **lines = NULL;
     int ret = -1;
-
-    if (virCgroupGetValueStr(group, controller, key, &str) < 0)
-        goto error;
 
     if (!(prefix = virCgroupGetBlockDevString(path)))
         goto error;
@@ -1070,7 +1082,7 @@ virCgroupEnableMissingControllers(char *path,
                          &tmp) < 0)
             goto cleanup;
 
-        if (virCgroupMakeGroup(parent, tmp, true, VIR_CGROUP_NONE) < 0) {
+        if (virCgroupMakeGroup(parent, tmp, true, VIR_CGROUP_SYSTEMD) < 0) {
             virCgroupFree(&tmp);
             goto cleanup;
         }
@@ -1106,6 +1118,7 @@ virCgroupNewMachineSystemd(const char *name,
                            int *nicindexes,
                            const char *partition,
                            int controllers,
+                           unsigned int maxthreads,
                            virCgroupPtr *group)
 {
     int rv;
@@ -1122,7 +1135,8 @@ virCgroupNewMachineSystemd(const char *name,
                                       isContainer,
                                       nnicindexes,
                                       nicindexes,
-                                      partition)) < 0)
+                                      partition,
+                                      maxthreads)) < 0)
         return rv;
 
     if (controllers != -1)
@@ -1234,6 +1248,7 @@ virCgroupNewMachine(const char *name,
                     int *nicindexes,
                     const char *partition,
                     int controllers,
+                    unsigned int maxthreads,
                     virCgroupPtr *group)
 {
     int rv;
@@ -1250,6 +1265,7 @@ virCgroupNewMachine(const char *name,
                                          nicindexes,
                                          partition,
                                          controllers,
+                                         maxthreads,
                                          group)) == 0)
         return 0;
 
@@ -2389,9 +2405,10 @@ virCgroupRemove(virCgroupPtr group)
     size_t i;
 
     for (i = 0; i < VIR_CGROUP_BACKEND_TYPE_LAST; i++) {
-        if (group->backends[i] &&
-            group->backends[i]->remove(group) < 0) {
-            return -1;
+        if (group->backends[i]) {
+            int rc = group->backends[i]->remove(group);
+            if (rc < 0)
+                return rc;
         }
     }
 
@@ -2874,6 +2891,7 @@ virCgroupNewMachine(const char *name ATTRIBUTE_UNUSED,
                     int *nicindexes ATTRIBUTE_UNUSED,
                     const char *partition ATTRIBUTE_UNUSED,
                     int controllers ATTRIBUTE_UNUSED,
+                    unsigned int maxthreads ATTRIBUTE_UNUSED,
                     virCgroupPtr *group ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENXIO, "%s",

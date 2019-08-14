@@ -376,6 +376,10 @@ cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
             vshPrint(ctl, "last_update %llu\n", stats[i].val);
         if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_DISK_CACHES)
             vshPrint(ctl, "disk_caches %llu\n", stats[i].val);
+        if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGALLOC)
+            vshPrint(ctl, "hugetlb_pgalloc %llu\n", stats[i].val);
+        if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_HUGETLB_PGFAIL)
+            vshPrint(ctl, "hugetlb_pgfail %llu\n", stats[i].val);
     }
 
     ret = true;
@@ -1229,6 +1233,8 @@ cmdDomBlkError(vshControl *ctl, const vshCmd *cmd)
     ret = true;
 
  cleanup:
+    for (i = 0; i < count; i++)
+        VIR_FREE(disks[i].disk);
     VIR_FREE(disks);
     virshDomainFree(dom);
     return ret;
@@ -1615,6 +1621,7 @@ virshDomainListCollect(vshControl *ctl, unsigned int flags)
     int autostart;
     int state;
     int nsnap;
+    int nchk;
     int mansave;
     virshControlPtr priv = ctl->privData;
 
@@ -1782,6 +1789,17 @@ virshDomainListCollect(vshControl *ctl, unsigned int flags)
                 goto remove_entry;
         }
 
+        /* checkpoint filter */
+        if (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_CHECKPOINT)) {
+            if ((nchk = virDomainListAllCheckpoints(dom, NULL, 0)) < 0) {
+                vshError(ctl, "%s", _("Failed to get checkpoint count"));
+                goto cleanup;
+            }
+            if (!((VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_HAS_CHECKPOINT) && nchk > 0) ||
+                  (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_NO_CHECKPOINT) && nchk == 0)))
+                goto remove_entry;
+        }
+
         /* the domain matched all filters, it may stay */
         continue;
 
@@ -1842,6 +1860,14 @@ static const vshCmdOptDef opts_list[] = {
     {.name = "without-snapshot",
      .type = VSH_OT_BOOL,
      .help = N_("list domains without a snapshot")
+    },
+    {.name = "with-checkpoint",
+     .type = VSH_OT_BOOL,
+     .help = N_("list domains with existing checkpoint")
+    },
+    {.name = "without-checkpoint",
+     .type = VSH_OT_BOOL,
+     .help = N_("list domains without a checkpoint")
     },
     {.name = "state-running",
      .type = VSH_OT_BOOL,
@@ -1941,6 +1967,9 @@ cmdList(vshControl *ctl, const vshCmd *cmd)
 
     FILTER("with-snapshot",    VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT);
     FILTER("without-snapshot", VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT);
+
+    FILTER("with-checkpoint",    VIR_CONNECT_LIST_DOMAINS_HAS_CHECKPOINT);
+    FILTER("without-checkpoint", VIR_CONNECT_LIST_DOMAINS_NO_CHECKPOINT);
 
     FILTER("state-running", VIR_CONNECT_LIST_DOMAINS_RUNNING);
     FILTER("state-paused",  VIR_CONNECT_LIST_DOMAINS_PAUSED);

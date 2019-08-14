@@ -18,72 +18,128 @@
 
 FILTERS = $(wildcard $(srcdir)/xml/nwfilter/*.xml)
 
-EXTRA_DIST = \
-	lxcconvert/virt-lxc-convert \
-	polkit/libvirt-acl.rules \
-	$(wildcard $(srcdir)/systemtap/*.stp) \
-	$(FILTERS) \
-	$(wildcard $(srcdir)/xml/storage/*.xml) \
-	$(wildcard $(srcdir)/xml/test/*.xml)
+ADMIN_EXAMPLES = \
+	$(wildcard $(srcdir)/c/admin/*.c) \
+	$(NULL)
 
+DOMAIN_EXAMPLES = \
+	$(wildcard $(srcdir)/c/domain/*.c) \
+	$(NULL)
+
+MISC_EXAMPLES = \
+	$(wildcard $(srcdir)/c/misc/*.c) \
+	$(NULL)
+
+POLKIT_EXAMPLES = \
+	$(wildcard $(srcdir)/polkit/*.rules) \
+	$(NULL)
+
+SH_EXAMPLES = \
+	$(wildcard $(srcdir)/sh/*) \
+	$(NULL)
+
+STORAGE_XML_EXAMPLES = \
+	$(wildcard $(srcdir)/xml/storage/*.xml) \
+	$(NULL)
+
+SYSTEMTAP_EXAMPLES = \
+	$(wildcard $(srcdir)/systemtap/*.stp) \
+	$(NULL)
+
+TEST_XML_EXAMPLES = \
+	$(wildcard $(srcdir)/xml/test/*.xml) \
+	$(NULL)
+
+EXTRA_DIST = \
+	$(POLKIT_EXAMPLES) \
+	$(SH_EXAMPLES) \
+	$(STORAGE_XML_EXAMPLES) \
+	$(SYSTEMTAP_EXAMPLES) \
+	$(TEST_XML_EXAMPLES) \
+	$(FILTERS) \
+	$(NULL)
 
 AM_CPPFLAGS = \
-	-I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir) \
-	$(WARN_CFLAGS)
-LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) \
+	-I$(top_builddir)/include \
+	-I$(top_srcdir)/include \
+	$(NULL)
+
+AM_CFLAGS = \
+	$(WARN_CFLAGS) \
+	$(NULL)
+
+AM_LDFLAGS = \
+	$(STATIC_BINARIES) \
+	$(NULL)
+
+LDADD = \
 	$(top_builddir)/src/libvirt.la \
-	$(top_builddir)/src/libvirt-admin.la
+	$(top_builddir)/src/libvirt-admin.la \
+	$(NULL)
 
-noinst_PROGRAMS=dominfo/info1 dommigrate/dommigrate domsuspend/suspend \
-	domtop/domtop hellolibvirt/hellolibvirt object-events/event-test \
-	openauth/openauth rename/rename admin/list_servers admin/list_clients \
-	admin/threadpool_params admin/client_limits admin/client_info \
-	admin/client_close admin/logging
+noinst_PROGRAMS = \
+	c/admin/client_close \
+	c/admin/client_info \
+	c/admin/client_limits \
+	c/admin/list_clients \
+	c/admin/list_servers \
+	c/admin/logging \
+	c/admin/threadpool_params \
+	c/domain/dommigrate \
+	c/domain/domtop \
+	c/domain/info1 \
+	c/domain/rename \
+	c/domain/suspend \
+	c/misc/event-test \
+	c/misc/hellolibvirt \
+	c/misc/openauth \
+	$(NULL)
 
-dominfo_info1_SOURCES = dominfo/info1.c
-dommigrate_dommigrate_SOURCES = dommigrate/dommigrate.c
-domsuspend_suspend_SOURCES = domsuspend/suspend.c
-domtop_domtop_SOURCES = domtop/domtop.c
-hellolibvirt_hellolibvirt_SOURCES = hellolibvirt/hellolibvirt.c
-
-object_events_event_test_CFLAGS = \
-		$(WARN_CFLAGS) \
-		$(NULL)
-object_events_event_test_SOURCES = object-events/event-test.c
-
-openauth_openauth_SOURCES = openauth/openauth.c
-rename_rename_SOURCES = rename/rename.c
-
-admin_list_servers_SOURCES = admin/list_servers.c
-admin_list_clients_SOURCES = admin/list_clients.c
-admin_threadpool_params_SOURCES = admin/threadpool_params.c
-admin_client_limits_SOURCES = admin/client_limits.c
-admin_client_info_SOURCES = admin/client_info.c
-admin_client_close_SOURCES = admin/client_close.c
-admin_logging_SOURCES = admin/logging.c
-
-INSTALL_DATA_LOCAL =
-UNINSTALL_LOCAL =
+c_admin_client_close_SOURCES = c/admin/client_close.c
+c_admin_client_info_SOURCES = c/admin/client_info.c
+c_admin_client_limits_SOURCES = c/admin/client_limits.c
+c_admin_list_clients_SOURCES = c/admin/list_clients.c
+c_admin_list_servers_SOURCES = c/admin/list_servers.c
+c_admin_logging_SOURCES = c/admin/logging.c
+c_admin_threadpool_params_SOURCES = c/admin/threadpool_params.c
+c_domain_dommigrate_SOURCES = c/domain/dommigrate.c
+c_domain_domtop_SOURCES = c/domain/domtop.c
+c_domain_info1_SOURCES = c/domain/info1.c
+c_domain_rename_SOURCES = c/domain/rename.c
+c_domain_suspend_SOURCES = c/domain/suspend.c
+c_misc_event_test_SOURCES = c/misc/event-test.c
+c_misc_hellolibvirt_SOURCES = c/misc/hellolibvirt.c
+c_misc_openauth_SOURCES = c/misc/openauth.c
 
 if WITH_NWFILTER
-NWFILTER_DIR = "$(DESTDIR)$(sysconfdir)/libvirt/nwfilter"
 
-install-nwfilter-local:
-	$(MKDIR_P) "$(NWFILTER_DIR)"
-	for f in $(FILTERS); do \
-		$(INSTALL_DATA) $$f "$(NWFILTER_DIR)"; \
-	done
+nwfilterdir = $(sysconfdir)/libvirt/nwfilter
+nwfilter_DATA = $(FILTERS)
 
-uninstall-nwfilter-local::
-	for f in $(FILTERS); do \
-		rm -f "$(NWFILTER_DIR)/`basename $$f`"; \
-	done
-	-test -z "$(shell ls $(NWFILTER_DIR))" || rmdir $(NWFILTER_DIR)
-
-INSTALL_DATA_LOCAL += install-nwfilter-local
-UNINSTALL_LOCAL += uninstall-nwfilter-local
 endif WITH_NWFILTER
 
-install-data-local: $(INSTALL_DATA_LOCAL)
+examplesdir = $(docdir)/examples
 
-uninstall-local: $(UNINSTALL_LOCAL)
+adminexamplesdir = $(examplesdir)/c/admin
+adminexamples_DATA = $(ADMIN_EXAMPLES)
+
+domainexamplesdir = $(examplesdir)/c/domain
+domainexamples_DATA = $(DOMAIN_EXAMPLES)
+
+miscexamplesdir = $(examplesdir)/c/misc
+miscexamples_DATA = $(MISC_EXAMPLES)
+
+polkitexamplesdir = $(examplesdir)/polkit
+polkitexamples_DATA = $(POLKIT_EXAMPLES)
+
+shexamplesdir = $(examplesdir)/sh
+shexamples_DATA = $(SH_EXAMPLES)
+
+storagexmlexamplesdir = $(examplesdir)/xml/storage
+storagexmlexamples_DATA = $(STORAGE_XML_EXAMPLES)
+
+systemtapexamplesdir = $(examplesdir)/systemtap
+systemtapexamples_DATA = $(SYSTEMTAP_EXAMPLES)
+
+testxmlexamplesdir = $(examplesdir)/xml/test
+testxmlexamples_DATA = $(TEST_XML_EXAMPLES)

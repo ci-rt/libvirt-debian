@@ -38,9 +38,12 @@
 #include "virbuffer.h"
 #include "virfile.h"
 #include "virpci.h"
+#include "virpidfile.h"
 #include "virstring.h"
 #include "virnetdev.h"
 #include "virmdev.h"
+
+#include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -316,43 +319,6 @@ udevGenerateDeviceName(struct udev_device *device,
 
     return 0;
 }
-
-
-#if HAVE_UDEV_LOGGING
-typedef void
-(*udevLogFunctionPtr)(struct udev *udev,
-                      int priority,
-                      const char *file,
-                      int line,
-                      const char *fn,
-                      const char *format,
-                      va_list args);
-
-static void
-ATTRIBUTE_FMT_PRINTF(6, 0)
-udevLogFunction(struct udev *udev ATTRIBUTE_UNUSED,
-                int priority,
-                const char *file,
-                int line,
-                const char *fn,
-                const char *fmt,
-                va_list args)
-{
-    virBuffer buf = VIR_BUFFER_INITIALIZER;
-    char *format = NULL;
-
-    virBufferAdd(&buf, fmt, -1);
-    virBufferTrim(&buf, "\n", -1);
-
-    format = virBufferContentAndReset(&buf);
-
-    virLogVMessage(&virLogSelf,
-                   virLogPriorityFromSyslog(priority),
-                   file, line, fn, NULL, format ? format : fmt, args);
-
-    VIR_FREE(format);
-}
-#endif
 
 
 static int
@@ -1531,6 +1497,11 @@ nodeStateCleanup(void)
     virObjectUnref(driver->nodeDeviceEventState);
 
     virNodeDeviceObjListFree(driver->devs);
+
+    if (driver->lockFD != -1)
+        virPidFileRelease(driver->stateDir, "driver", driver->lockFD);
+
+    VIR_FREE(driver->stateDir);
     virMutexDestroy(&driver->lock);
     VIR_FREE(driver);
 
@@ -1847,6 +1818,7 @@ nodeStateInitialize(bool privileged,
     if (VIR_ALLOC(driver) < 0)
         return -1;
 
+    driver->lockFD = -1;
     if (virMutexInit(&driver->lock) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Unable to initialize mutex"));
@@ -1855,6 +1827,29 @@ nodeStateInitialize(bool privileged,
     }
 
     driver->privileged = privileged;
+
+    if (privileged) {
+        if (virAsprintf(&driver->stateDir,
+                        "%s/run/libvirt/nodedev", LOCALSTATEDIR) < 0)
+            goto cleanup;
+    } else {
+        VIR_AUTOFREE(char *) rundir = NULL;
+
+        if (!(rundir = virGetUserRuntimeDirectory()))
+            goto cleanup;
+        if (virAsprintf(&driver->stateDir, "%s/nodedev/run", rundir) < 0)
+            goto cleanup;
+    }
+
+    if (virFileMakePathWithMode(driver->stateDir, S_IRWXU) < 0) {
+        virReportSystemError(errno, _("cannot create state directory '%s'"),
+                             driver->stateDir);
+        goto cleanup;
+    }
+
+    if ((driver->lockFD =
+         virPidFileAcquire(driver->stateDir, "driver", false, getpid())) < 0)
+        goto cleanup;
 
     if (!(driver->devs = virNodeDeviceObjListNew()) ||
         !(priv = udevEventDataNew()))
@@ -1872,10 +1867,6 @@ nodeStateInitialize(bool privileged,
                        _("failed to create udev context"));
         goto cleanup;
     }
-#if HAVE_UDEV_LOGGING
-    /* cast to get rid of missing-format-attribute warning */
-    udev_set_log_fn(udev, (udevLogFunctionPtr) udevLogFunction);
-#endif
 
     virObjectLock(priv);
 
@@ -1888,14 +1879,12 @@ nodeStateInitialize(bool privileged,
 
     udev_monitor_enable_receiving(priv->udev_monitor);
 
-#if HAVE_UDEV_MONITOR_SET_RECEIVE_BUFFER_SIZE
     /* mimic udevd's behaviour and override the systems rmem_max limit in case
      * there's a significant number of device 'add' events
      */
     if (geteuid() == 0)
         udev_monitor_set_receive_buffer_size(priv->udev_monitor,
                                              128 * 1024 * 1024);
-#endif
 
     if (virThreadCreate(&priv->th, true, udevEventHandleThread, NULL) < 0) {
         virReportSystemError(errno, "%s",

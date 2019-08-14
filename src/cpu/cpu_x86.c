@@ -73,75 +73,49 @@ struct _virCPUx86Feature {
         } \
     }
 
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_CLOCKSOURCE,
-                0x40000001, 0x00000001);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_NOP_IO_DELAY,
-                0x40000001, 0x00000002);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_MMU_OP,
-                0x40000001, 0x00000004);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_CLOCKSOURCE2,
-                0x40000001, 0x00000008);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_ASYNC_PF,
-                0x40000001, 0x00000010);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_STEAL_TIME,
-                0x40000001, 0x00000020);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_PV_EOI,
-                0x40000001, 0x00000040);
 KVM_FEATURE_DEF(VIR_CPU_x86_KVM_PV_UNHALT,
                 0x40000001, 0x00000080);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_CLOCKSOURCE_STABLE_BIT,
-                0x40000001, 0x01000000);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_RUNTIME,
+
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_RUNTIME,
                 0x40000003, 0x00000001);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_SYNIC,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_SYNIC,
                 0x40000003, 0x00000004);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_STIMER,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_STIMER,
                 0x40000003, 0x00000008);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_RELAXED,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_RELAXED,
                 0x40000003, 0x00000020);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_SPINLOCKS,
-                0x40000003, 0x00000022);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_VAPIC,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_VAPIC,
                 0x40000003, 0x00000030);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_VPINDEX,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_VPINDEX,
                 0x40000003, 0x00000040);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_RESET,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_RESET,
                 0x40000003, 0x00000080);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_FREQUENCIES,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_FREQUENCIES,
                 0x40000003, 0x00000800);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_REENLIGHTENMENT,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_REENLIGHTENMENT,
                 0x40000003, 0x00002000);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_TLBFLUSH,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_TLBFLUSH,
                 0x40000004, 0x00000004);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_IPI,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_IPI,
                 0x40000004, 0x00000400);
-KVM_FEATURE_DEF(VIR_CPU_x86_KVM_HV_EVMCS,
+KVM_FEATURE_DEF(VIR_CPU_x86_HV_EVMCS,
                 0x40000004, 0x00004000);
 
 static virCPUx86Feature x86_kvm_features[] =
 {
-    KVM_FEATURE(VIR_CPU_x86_KVM_CLOCKSOURCE),
-    KVM_FEATURE(VIR_CPU_x86_KVM_NOP_IO_DELAY),
-    KVM_FEATURE(VIR_CPU_x86_KVM_MMU_OP),
-    KVM_FEATURE(VIR_CPU_x86_KVM_CLOCKSOURCE2),
-    KVM_FEATURE(VIR_CPU_x86_KVM_ASYNC_PF),
-    KVM_FEATURE(VIR_CPU_x86_KVM_STEAL_TIME),
-    KVM_FEATURE(VIR_CPU_x86_KVM_PV_EOI),
     KVM_FEATURE(VIR_CPU_x86_KVM_PV_UNHALT),
-    KVM_FEATURE(VIR_CPU_x86_KVM_CLOCKSOURCE_STABLE_BIT),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_RUNTIME),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_SYNIC),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_STIMER),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_RELAXED),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_SPINLOCKS),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_VAPIC),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_VPINDEX),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_RESET),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_FREQUENCIES),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_REENLIGHTENMENT),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_TLBFLUSH),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_IPI),
-    KVM_FEATURE(VIR_CPU_x86_KVM_HV_EVMCS),
+    KVM_FEATURE(VIR_CPU_x86_HV_RUNTIME),
+    KVM_FEATURE(VIR_CPU_x86_HV_SYNIC),
+    KVM_FEATURE(VIR_CPU_x86_HV_STIMER),
+    KVM_FEATURE(VIR_CPU_x86_HV_RELAXED),
+    KVM_FEATURE(VIR_CPU_x86_HV_VAPIC),
+    KVM_FEATURE(VIR_CPU_x86_HV_VPINDEX),
+    KVM_FEATURE(VIR_CPU_x86_HV_RESET),
+    KVM_FEATURE(VIR_CPU_x86_HV_FREQUENCIES),
+    KVM_FEATURE(VIR_CPU_x86_HV_REENLIGHTENMENT),
+    KVM_FEATURE(VIR_CPU_x86_HV_TLBFLUSH),
+    KVM_FEATURE(VIR_CPU_x86_HV_IPI),
+    KVM_FEATURE(VIR_CPU_x86_HV_EVMCS),
 };
 
 typedef struct _virCPUx86Model virCPUx86Model;
@@ -189,8 +163,13 @@ struct _virCPUx86DataIterator {
 };
 
 
-#define virCPUx86DataIteratorInit(data) \
-    { data, -1 }
+static void
+virCPUx86DataIteratorInit(virCPUx86DataIteratorPtr iterator,
+                          const virCPUx86Data *data)
+{
+    virCPUx86DataIterator iter = { data, -1 };
+    *iterator = iter;
+}
 
 
 static bool
@@ -540,9 +519,10 @@ static int
 x86DataAdd(virCPUx86Data *data1,
            const virCPUx86Data *data2)
 {
-    virCPUx86DataIterator iter = virCPUx86DataIteratorInit(data2);
+    virCPUx86DataIterator iter;
     virCPUx86DataItemPtr item;
 
+    virCPUx86DataIteratorInit(&iter, data2);
     while ((item = virCPUx86DataNext(&iter))) {
         if (virCPUx86DataAddItem(data1, item) < 0)
             return -1;
@@ -556,10 +536,11 @@ static void
 x86DataSubtract(virCPUx86Data *data1,
                 const virCPUx86Data *data2)
 {
-    virCPUx86DataIterator iter = virCPUx86DataIteratorInit(data1);
+    virCPUx86DataIterator iter;
     virCPUx86DataItemPtr item1;
     virCPUx86DataItemPtr item2;
 
+    virCPUx86DataIteratorInit(&iter, data1);
     while ((item1 = virCPUx86DataNext(&iter))) {
         item2 = virCPUx86DataGet(data2, item1);
         virCPUx86DataItemClearBits(item1, item2);
@@ -571,10 +552,11 @@ static void
 x86DataIntersect(virCPUx86Data *data1,
                  const virCPUx86Data *data2)
 {
-    virCPUx86DataIterator iter = virCPUx86DataIteratorInit(data1);
+    virCPUx86DataIterator iter;
     virCPUx86DataItemPtr item1;
     virCPUx86DataItemPtr item2;
 
+    virCPUx86DataIteratorInit(&iter, data1);
     while ((item1 = virCPUx86DataNext(&iter))) {
         item2 = virCPUx86DataGet(data2, item1);
         if (item2)
@@ -588,8 +570,9 @@ x86DataIntersect(virCPUx86Data *data1,
 static bool
 x86DataIsEmpty(virCPUx86Data *data)
 {
-    virCPUx86DataIterator iter = virCPUx86DataIteratorInit(data);
+    virCPUx86DataIterator iter;
 
+    virCPUx86DataIteratorInit(&iter, data);
     return !virCPUx86DataNext(&iter);
 }
 
@@ -598,10 +581,11 @@ static bool
 x86DataIsSubset(const virCPUx86Data *data,
                 const virCPUx86Data *subset)
 {
-    virCPUx86DataIterator iter = virCPUx86DataIteratorInit((virCPUx86Data *)subset);
+    virCPUx86DataIterator iter;
     const virCPUx86DataItem *item;
     const virCPUx86DataItem *itemSubset;
 
+    virCPUx86DataIteratorInit(&iter, subset);
     while ((itemSubset = virCPUx86DataNext(&iter))) {
         if (!(item = virCPUx86DataGet(data, itemSubset)) ||
             !virCPUx86DataItemMatchMasked(item, itemSubset))
@@ -812,7 +796,8 @@ x86DataToCPU(const virCPUx86Data *data,
         for (blocker = hvModel->blockers; *blocker; blocker++) {
             if ((feature = x86FeatureFind(map, *blocker)) &&
                 !x86DataIsSubset(&copy, &feature->data))
-                x86DataAdd(&modelData, &feature->data);
+                if (x86DataAdd(&modelData, &feature->data) < 0)
+                    goto error;
         }
     }
 
@@ -1314,11 +1299,13 @@ x86ModelCompare(virCPUx86ModelPtr model1,
                 virCPUx86ModelPtr model2)
 {
     virCPUx86CompareResult result = EQUAL;
-    virCPUx86DataIterator iter1 = virCPUx86DataIteratorInit(&model1->data);
-    virCPUx86DataIterator iter2 = virCPUx86DataIteratorInit(&model2->data);
+    virCPUx86DataIterator iter1;
+    virCPUx86DataIterator iter2;
     virCPUx86DataItemPtr item1;
     virCPUx86DataItemPtr item2;
 
+    virCPUx86DataIteratorInit(&iter1, &model1->data);
+    virCPUx86DataIteratorInit(&iter2, &model2->data);
     while ((item1 = virCPUx86DataNext(&iter1))) {
         virCPUx86CompareResult match = SUPERSET;
 
@@ -1624,9 +1611,11 @@ virCPUx86GetMap(void)
 static char *
 virCPUx86DataFormat(const virCPUData *data)
 {
-    virCPUx86DataIterator iter = virCPUx86DataIteratorInit(&data->data.x86);
+    virCPUx86DataIterator iter;
     virCPUx86DataItemPtr item;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    virCPUx86DataIteratorInit(&iter, &data->data.x86);
 
     virBufferAddLit(&buf, "<cpudata arch='x86'>\n");
     while ((item = virCPUx86DataNext(&iter))) {
@@ -2378,6 +2367,41 @@ x86Encode(virArch arch,
 }
 
 
+static int
+virCPUx86CheckFeature(const virCPUDef *cpu,
+                      const char *name)
+{
+    int ret = -1;
+    virCPUx86MapPtr map;
+    virCPUx86ModelPtr model = NULL;
+
+    if (!(map = virCPUx86GetMap()))
+        return -1;
+
+    if (!(model = x86ModelFromCPU(cpu, map, -1)))
+        goto cleanup;
+
+    ret = x86FeatureInData(name, &model->data, map);
+
+ cleanup:
+    x86ModelFree(model);
+    return ret;
+}
+
+
+static int
+virCPUx86DataCheckFeature(const virCPUData *data,
+                          const char *name)
+{
+    virCPUx86MapPtr map;
+
+    if (!(map = virCPUx86GetMap()))
+        return -1;
+
+    return x86FeatureInData(name, &data->data.x86, map);
+}
+
+
 #if defined(__i386__) || defined(__x86_64__)
 static inline void
 cpuidCall(virCPUx86CPUID *cpuid)
@@ -2707,8 +2731,6 @@ cpuidSet(uint32_t base, virCPUDataPtr data)
 }
 
 
-
-
 static int
 virCPUx86GetHost(virCPUDefPtr cpu,
                  virDomainCapsCPUModelsPtr models)
@@ -2726,49 +2748,45 @@ virCPUx86GetHost(virCPUDefPtr cpu,
         cpuidSet(CPUX86_EXTENDED, cpuData) < 0)
         goto cleanup;
 
+    /* Read the IA32_ARCH_CAPABILITIES MSR (0x10a) if supported.
+     * This is best effort since there might be no way to read the MSR
+     * when we are not running as root. */
+    if (virCPUx86DataCheckFeature(cpuData, "arch-capabilities") == 1) {
+        uint64_t msr;
+        unsigned long index = 0x10a;
+
+        if (virHostCPUGetMSR(index, &msr) == 0) {
+            virCPUx86DataItem item = {
+                .type = VIR_CPU_X86_DATA_MSR,
+                .data.msr = {
+                    .index = index,
+                    .eax = msr & 0xffffffff,
+                    .edx = msr >> 32,
+                },
+            };
+
+            if (virCPUx86DataAdd(cpuData, &item) < 0)
+                goto cleanup;
+        }
+    }
+
     ret = x86DecodeCPUData(cpu, cpuData, models);
     cpu->microcodeVersion = virHostCPUGetMicrocodeVersion();
+
+    /* Probing for TSC frequency makes sense only if the CPU supports
+     * invariant TSC (Linux calls this constant_tsc in /proc/cpuinfo). */
+    if (virCPUx86DataCheckFeature(cpuData, "invtsc") == 1) {
+        VIR_DEBUG("Checking invariant TSC frequency");
+        cpu->tsc = virHostCPUGetTscInfo();
+    } else {
+        VIR_DEBUG("Host CPU does not support invariant TSC");
+    }
 
  cleanup:
     virCPUx86DataFree(cpuData);
     return ret;
 }
 #endif
-
-
-static int
-virCPUx86CheckFeature(const virCPUDef *cpu,
-                      const char *name)
-{
-    int ret = -1;
-    virCPUx86MapPtr map;
-    virCPUx86ModelPtr model = NULL;
-
-    if (!(map = virCPUx86GetMap()))
-        return -1;
-
-    if (!(model = x86ModelFromCPU(cpu, map, -1)))
-        goto cleanup;
-
-    ret = x86FeatureInData(name, &model->data, map);
-
- cleanup:
-    x86ModelFree(model);
-    return ret;
-}
-
-
-static int
-virCPUx86DataCheckFeature(const virCPUData *data,
-                          const char *name)
-{
-    virCPUx86MapPtr map;
-
-    if (!(map = virCPUx86GetMap()))
-        return -1;
-
-    return x86FeatureInData(name, &data->data.x86, map);
-}
 
 
 static virCPUDefPtr
@@ -3319,7 +3337,7 @@ virCPUx86DataSetVendor(virCPUDataPtr cpuData,
 }
 
 
-int
+static int
 virCPUx86DataAddFeature(virCPUDataPtr cpuData,
                         const char *name)
 {
@@ -3338,6 +3356,63 @@ virCPUx86DataAddFeature(virCPUDataPtr cpuData,
         return -1;
 
     return 0;
+}
+
+
+static bool
+virCPUx86FeatureIsMSR(const char *name)
+{
+    virCPUx86FeaturePtr feature;
+    virCPUx86DataIterator iter;
+    virCPUx86DataItemPtr item;
+    virCPUx86MapPtr map;
+
+    if (!(map = virCPUx86GetMap()))
+        return false;
+
+    if (!(feature = x86FeatureFind(map, name)) &&
+        !(feature = x86FeatureFindInternal(name)))
+        return false;
+
+    virCPUx86DataIteratorInit(&iter, &feature->data);
+    while ((item = virCPUx86DataNext(&iter))) {
+        if (item->type == VIR_CPU_X86_DATA_MSR)
+            return true;
+    }
+
+    return false;
+}
+
+
+/**
+ * virCPUx86FeatureFilterSelectMSR:
+ *
+ * This is a callback for functions filtering features in virCPUDef. The result
+ * will contain only MSR features.
+ *
+ * Returns true if @name is an MSR feature, false otherwise.
+ */
+bool
+virCPUx86FeatureFilterSelectMSR(const char *name,
+                                void *opaque ATTRIBUTE_UNUSED)
+{
+    return virCPUx86FeatureIsMSR(name);
+}
+
+
+/**
+ * virCPUx86FeatureFilterDropMSR:
+ *
+ * This is a callback for functions filtering features in virCPUDef. The result
+ * will not contain any MSR feature.
+ *
+ * Returns true if @name is not an MSR feature, false otherwise.
+ */
+bool
+virCPUx86FeatureFilterDropMSR(const char *name,
+                              void *opaque ATTRIBUTE_UNUSED)
+{
+    return !virCPUx86FeatureIsMSR(name);
 }
 
 
@@ -3364,4 +3439,5 @@ struct cpuArchDriver cpuDriverX86 = {
     .expandFeatures = virCPUx86ExpandFeatures,
     .copyMigratable = virCPUx86CopyMigratable,
     .validateFeatures = virCPUx86ValidateFeatures,
+    .dataAddFeature = virCPUx86DataAddFeature,
 };

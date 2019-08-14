@@ -420,7 +420,8 @@ virCgroupV1StealPlacement(virCgroupPtr group)
 
 static int
 virCgroupV1DetectControllers(virCgroupPtr group,
-                             int controllers)
+                             int controllers,
+                             virCgroupPtr parent ATTRIBUTE_UNUSED)
 {
     size_t i;
     size_t j;
@@ -463,6 +464,7 @@ virCgroupV1DetectControllers(virCgroupPtr group,
                     }
                 }
                 VIR_FREE(group->legacy[i].mountPoint);
+                VIR_FREE(group->legacy[i].placement);
             }
         }
     } else {
@@ -949,10 +951,33 @@ static int
 virCgroupV1SetBlkioWeight(virCgroupPtr group,
                           unsigned int weight)
 {
-    return virCgroupSetValueU64(group,
-                                VIR_CGROUP_CONTROLLER_BLKIO,
-                                "blkio.weight",
-                                weight);
+    VIR_AUTOFREE(char *) path = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
+
+    if (virCgroupV1PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                    "blkio.bfq.weight", &path) < 0) {
+        return -1;
+    }
+
+    if (!virFileExists(path)) {
+        VIR_FREE(path);
+
+        if (virCgroupV1PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                        "blkio.weight", &path) < 0) {
+            return -1;
+        }
+    }
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("blkio device weight is valid only for bfq or cfq scheduler"));
+        return -1;
+    }
+
+    if (virAsprintf(&value, "%u", weight) < 0)
+        return -1;
+
+    return virCgroupSetValueRaw(path, value);
 }
 
 
@@ -960,14 +985,40 @@ static int
 virCgroupV1GetBlkioWeight(virCgroupPtr group,
                           unsigned int *weight)
 {
-    unsigned long long tmp;
-    int ret;
-    ret = virCgroupGetValueU64(group,
-                               VIR_CGROUP_CONTROLLER_BLKIO,
-                               "blkio.weight", &tmp);
-    if (ret == 0)
-        *weight = tmp;
-    return ret;
+    VIR_AUTOFREE(char *) path = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
+
+    if (virCgroupV1PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                    "blkio.bfq.weight", &path) < 0) {
+        return -1;
+    }
+
+    if (!virFileExists(path)) {
+        VIR_FREE(path);
+
+        if (virCgroupV1PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                        "blkio.weight", &path) < 0) {
+            return -1;
+        }
+    }
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("blkio device weight is valid only for bfq or cfq scheduler"));
+        return -1;
+    }
+
+    if (virCgroupGetValueRaw(path, &value) < 0)
+        return -1;
+
+    if (virStrToLong_ui(value, NULL, 10, weight) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to parse '%s' as an integer"),
+                       value);
+        return -1;
+    }
+
+    return 0;
 }
 
 
@@ -1156,37 +1207,58 @@ virCgroupV1GetBlkioIoDeviceServiced(virCgroupPtr group,
 
 static int
 virCgroupV1SetBlkioDeviceWeight(virCgroupPtr group,
-                                const char *path,
+                                const char *devPath,
                                 unsigned int weight)
 {
     VIR_AUTOFREE(char *) str = NULL;
     VIR_AUTOFREE(char *) blkstr = NULL;
+    VIR_AUTOFREE(char *) path = NULL;
 
-    if (!(blkstr = virCgroupGetBlockDevString(path)))
+    if (!(blkstr = virCgroupGetBlockDevString(devPath)))
         return -1;
 
     if (virAsprintf(&str, "%s%d", blkstr, weight) < 0)
         return -1;
 
-    return virCgroupSetValueStr(group,
-                                VIR_CGROUP_CONTROLLER_BLKIO,
-                                "blkio.weight_device",
-                                str);
+    if (virCgroupV1PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                    "blkio.weight_device", &path) < 0) {
+        return -1;
+    }
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("blkio device weight is valid only for cfq scheduler"));
+        return -1;
+    }
+
+    return virCgroupSetValueRaw(path, str);
 }
 
 
 static int
 virCgroupV1GetBlkioDeviceWeight(virCgroupPtr group,
-                                const char *path,
+                                const char *devPath,
                                 unsigned int *weight)
 {
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
+    VIR_AUTOFREE(char *) path = NULL;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "blkio.weight_device",
-                                   path,
-                                   &str) < 0)
+    if (virCgroupV1PathOfController(group, VIR_CGROUP_CONTROLLER_BLKIO,
+                                    "blkio.weight_device", &path) < 0) {
+        return -1;
+    }
+
+    if (!virFileExists(path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("blkio device weight is valid only for cfq scheduler"));
+        return -1;
+    }
+
+    if (virCgroupGetValueRaw(path, &value) < 0)
+        return -1;
+
+    if (virCgroupGetValueForBlkDev(value, devPath, &str) < 0)
         return -1;
 
     if (!str) {
@@ -1229,12 +1301,16 @@ virCgroupV1GetBlkioDeviceReadIops(virCgroupPtr group,
                                   unsigned int *riops)
 {
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "blkio.throttle.read_iops_device",
-                                   path,
-                                   &str) < 0)
+    if (virCgroupGetValueStr(group,
+                             VIR_CGROUP_CONTROLLER_BLKIO,
+                             "blkio.throttle.read_iops_device",
+                             &value) < 0) {
+        return -1;
+    }
+
+    if (virCgroupGetValueForBlkDev(value, path, &str) < 0)
         return -1;
 
     if (!str) {
@@ -1277,12 +1353,16 @@ virCgroupV1GetBlkioDeviceWriteIops(virCgroupPtr group,
                                    unsigned int *wiops)
 {
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "blkio.throttle.write_iops_device",
-                                   path,
-                                   &str) < 0)
+    if (virCgroupGetValueStr(group,
+                             VIR_CGROUP_CONTROLLER_BLKIO,
+                             "blkio.throttle.write_iops_device",
+                             &value) < 0) {
+        return -1;
+    }
+
+    if (virCgroupGetValueForBlkDev(value, path, &str) < 0)
         return -1;
 
     if (!str) {
@@ -1325,12 +1405,16 @@ virCgroupV1GetBlkioDeviceReadBps(virCgroupPtr group,
                                  unsigned long long *rbps)
 {
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "blkio.throttle.read_bps_device",
-                                   path,
-                                   &str) < 0)
+    if (virCgroupGetValueStr(group,
+                             VIR_CGROUP_CONTROLLER_BLKIO,
+                             "blkio.throttle.read_bps_device",
+                             &value) < 0) {
+        return -1;
+    }
+
+    if (virCgroupGetValueForBlkDev(value, path, &str) < 0)
         return -1;
 
     if (!str) {
@@ -1373,12 +1457,16 @@ virCgroupV1GetBlkioDeviceWriteBps(virCgroupPtr group,
                                   unsigned long long *wbps)
 {
     VIR_AUTOFREE(char *) str = NULL;
+    VIR_AUTOFREE(char *) value = NULL;
 
-    if (virCgroupGetValueForBlkDev(group,
-                                   VIR_CGROUP_CONTROLLER_BLKIO,
-                                   "blkio.throttle.write_bps_device",
-                                   path,
-                                   &str) < 0)
+    if (virCgroupGetValueStr(group,
+                             VIR_CGROUP_CONTROLLER_BLKIO,
+                             "blkio.throttle.write_bps_device",
+                             &value) < 0) {
+        return -1;
+    }
+
+    if (virCgroupGetValueForBlkDev(value, path, &str) < 0)
         return -1;
 
     if (!str) {

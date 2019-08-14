@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>libvirt-domain-checkpoint: APIs for management of domain checkpoints</title>
+    <meta name="generator" content="Libvirt devhelp stylesheet"/>
+    <link rel="start" href="index.html" title="libvirt Reference Manual"/>
+    <link rel="up" href="general.html" title="API"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="chapter" href="general.html" title="API"/>
+  </head>
+  <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+    <table class="navigation" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+      <tr valign="middle">
+        <td>
+          <a accesskey="p" href="libvirt-libvirt-common.html">
+            <img src="left.png" width="24" height="24" border="0" alt="Prev"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="u" href="general.html">
+            <img src="up.png" width="24" height="24" border="0" alt="Up"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="h" href="index.html">
+            <img src="home.png" width="24" height="24" border="0" alt="Home"/>
+          </a>
+        </td>
+        <td>
+          <a accesskey="n" href="libvirt-libvirt-domain-snapshot.html">
+            <img src="right.png" width="24" height="24" border="0" alt="Next"/>
+          </a>
+        </td>
+        <th width="100%" align="center">libvirt Reference Manual</th>
+      </tr>
+    </table>
+    <h2>
+      <span class="refentrytitle">libvirt-domain-checkpoint</span>
+    </h2>
+    <p>libvirt-domain-checkpoint - APIs for management of domain checkpoints</p>
+    <p>Provides APIs for the management of domain checkpoints  Copyright (C) 2006-2019 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see &lt;http://www.gnu.org/licenses/&gt;. </p>
+    <div class="refsynopsisdiv">
+      <h2>Synopsis</h2>
+      <pre class="synopsis">typedef struct _virDomainCheckpoint <a href="#virDomainCheckpoint">virDomainCheckpoint</a>;
+typedef enum <a href="#virDomainCheckpointCreateFlags">virDomainCheckpointCreateFlags</a>;
+typedef enum <a href="#virDomainCheckpointDeleteFlags">virDomainCheckpointDeleteFlags</a>;
+typedef enum <a href="#virDomainCheckpointListFlags">virDomainCheckpointListFlags</a>;
+typedef <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpoint">virDomainCheckpoint</a> * <a href="#virDomainCheckpointPtr">virDomainCheckpointPtr</a>;
+typedef enum <a href="#virDomainCheckpointXMLFlags">virDomainCheckpointXMLFlags</a>;
+<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a>	<a href="#virDomainCheckpointCreateXML">virDomainCheckpointCreateXML</a>	(<a href="libvirt-libvirt-domain.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * xmlDesc, <br/>							 unsigned int flags);
+int	<a href="#virDomainCheckpointDelete">virDomainCheckpointDelete</a>	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint, <br/>					 unsigned int flags);
+int	<a href="#virDomainCheckpointFree">virDomainCheckpointFree</a>		(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint);
+<a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	<a href="#virDomainCheckpointGetConnect">virDomainCheckpointGetConnect</a>	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint);
+<a href="libvirt-libvirt-domain.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainCheckpointGetDomain">virDomainCheckpointGetDomain</a>	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint);
+const char *	<a href="#virDomainCheckpointGetName">virDomainCheckpointGetName</a>	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint);
+<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a>	<a href="#virDomainCheckpointGetParent">virDomainCheckpointGetParent</a>	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint, <br/>							 unsigned int flags);
+char *	<a href="#virDomainCheckpointGetXMLDesc">virDomainCheckpointGetXMLDesc</a>	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint, <br/>					 unsigned int flags);
+int	<a href="#virDomainCheckpointListAllChildren">virDomainCheckpointListAllChildren</a>	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint, <br/>						 <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> ** children, <br/>						 unsigned int flags);
+<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a>	<a href="#virDomainCheckpointLookupByName">virDomainCheckpointLookupByName</a>	(<a href="libvirt-libvirt-domain.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * name, <br/>							 unsigned int flags);
+int	<a href="#virDomainCheckpointRef">virDomainCheckpointRef</a>		(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint);
+int	<a href="#virDomainListAllCheckpoints">virDomainListAllCheckpoints</a>	(<a href="libvirt-libvirt-domain.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> ** checkpoints, <br/>					 unsigned int flags);
+</pre>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Description</h2>
+    </div>
+    <div class="refsect1" lang="en">
+      <h2>Details</h2>
+      <div class="refsect2" lang="en">
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpoint">Structure </a>virDomainCheckpoint</h3><pre class="programlisting">struct _virDomainCheckpoint {
+The content of this structure is not made public by the API.
+} virDomainCheckpoint;
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointCreateFlags">Enum </a>virDomainCheckpointCreateFlags</h3><pre class="programlisting">enum <a href="#virDomainCheckpointCreateFlags">virDomainCheckpointCreateFlags</a> {
+    <a name="VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE">VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE</a> = 1 /* Restore or alter metadata */
+    <a name="VIR_DOMAIN_CHECKPOINT_CREATE_QUIESCE">VIR_DOMAIN_CHECKPOINT_CREATE_QUIESCE</a> = 2 /* use guest agent to quiesce all mounted file systems within the domain */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointDeleteFlags">Enum </a>virDomainCheckpointDeleteFlags</h3><pre class="programlisting">enum <a href="#virDomainCheckpointDeleteFlags">virDomainCheckpointDeleteFlags</a> {
+    <a name="VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN">VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN</a> = 1 /* Also delete children */
+    <a name="VIR_DOMAIN_CHECKPOINT_DELETE_METADATA_ONLY">VIR_DOMAIN_CHECKPOINT_DELETE_METADATA_ONLY</a> = 2 /* Delete just metadata */
+    <a name="VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN_ONLY">VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN_ONLY</a> = 4 /* Delete just children */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointListFlags">Enum </a>virDomainCheckpointListFlags</h3><pre class="programlisting">enum <a href="#virDomainCheckpointListFlags">virDomainCheckpointListFlags</a> {
+    <a name="VIR_DOMAIN_CHECKPOINT_LIST_DESCENDANTS">VIR_DOMAIN_CHECKPOINT_LIST_DESCENDANTS</a> = 1 /* List all descendants, not just children, when listing a checkpoint */
+    <a name="VIR_DOMAIN_CHECKPOINT_LIST_ROOTS">VIR_DOMAIN_CHECKPOINT_LIST_ROOTS</a> = 1 /* Filter by checkpoints with no parents, when listing a domain */
+    <a name="VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL">VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL</a> = 2 /* Ensure parents occur before children in the resulting list */
+    <a name="VIR_DOMAIN_CHECKPOINT_LIST_LEAVES">VIR_DOMAIN_CHECKPOINT_LIST_LEAVES</a> = 4 /* Filter by checkpoints with no children */
+    <a name="VIR_DOMAIN_CHECKPOINT_LIST_NO_LEAVES">VIR_DOMAIN_CHECKPOINT_LIST_NO_LEAVES</a> = 8 /* Filter by checkpoints that have children */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointPtr">Typedef </a>virDomainCheckpointPtr</h3><pre class="programlisting"><a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpoint">virDomainCheckpoint</a> * virDomainCheckpointPtr;
+</pre><p>A <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> is pointer to a <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpoint">virDomainCheckpoint</a> private structure, and is the type used to reference a domain checkpoint in the API.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointXMLFlags">Enum </a>virDomainCheckpointXMLFlags</h3><pre class="programlisting">enum <a href="#virDomainCheckpointXMLFlags">virDomainCheckpointXMLFlags</a> {
+    <a name="VIR_DOMAIN_CHECKPOINT_XML_SECURE">VIR_DOMAIN_CHECKPOINT_XML_SECURE</a> = 1 /* Include sensitive data */
+    <a name="VIR_DOMAIN_CHECKPOINT_XML_NO_DOMAIN">VIR_DOMAIN_CHECKPOINT_XML_NO_DOMAIN</a> = 2 /* Suppress &lt;domain&gt; subelement */
+    <a name="VIR_DOMAIN_CHECKPOINT_XML_SIZE">VIR_DOMAIN_CHECKPOINT_XML_SIZE</a> = 4 /* Include dynamic per-&lt;disk&gt; size */
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointCreateXML"/>virDomainCheckpointCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a>	virDomainCheckpointCreateXML	(<a href="libvirt-libvirt-domain.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * xmlDesc, <br/>							 unsigned int flags)<br/>
+</pre><p>Create a new checkpoint using @xmlDesc, with a top-level
+&lt;domaincheckpoint&gt; element, on a running @domain. Note that @xmlDesc
+must validate against the &lt;domaincheckpoint&gt; XML schema.
+
+See &lt;a href="formatcheckpoint.html#CheckpointAttributes"&gt;Checkpoint XML&lt;/a&gt;
+for more details on @xmlDesc. In particular, some hypervisors may require
+particular disk formats, such as qcow2, in order to support this
+command; where @xmlDesc can be used to limit the checkpoint to a working
+subset of the domain's disks.
+
+If @flags includes VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE, then this
+is a request to reinstate checkpoint metadata that was previously
+captured from virDomainCheckpointGetXMLDesc() before removing that
+metadata, rather than creating a new checkpoint. Note that while
+original creation can omit a number of elements from @xmlDesc (and
+libvirt will supply sane defaults based on the domain state at that
+point in time), a redefinition must supply more elements (as the
+domain may have changed in the meantime, so that libvirt no longer
+has a way to resupply correct defaults). Not all hypervisors support
+this flag.
+
+If @flags includes VIR_DOMAIN_CHECKPOINT_CREATE_QUIESCE, then the
+libvirt will attempt to use guest agent to freeze and thaw all file
+systems in use within domain OS. However, if the guest agent is not
+present, an error is thrown. This flag is incompatible with
+VIR_DOMAIN_CHECKPOINT_CREATE_REDEFINE.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>description of the checkpoint to create</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointCreateFlags">virDomainCheckpointCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>an (opaque) new <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> on success or NULL on failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointDelete"/>virDomainCheckpointDelete ()</h3><pre class="programlisting">int	virDomainCheckpointDelete	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint, <br/>					 unsigned int flags)<br/>
+</pre><p>Removes a checkpoint from the domain.
+
+When removing a checkpoint, the record of which portions of the
+disk were dirtied after the checkpoint will be merged into the
+record tracked by the parent checkpoint, if any.
+
+If @flags includes VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN, then any
+descendant checkpoints are also deleted. If @flags includes
+VIR_DOMAIN_CHECKPOINT_DELETE_CHILDREN_ONLY, then any descendant
+checkepoints are deleted, but this checkpoint remains. These two
+flags are mutually exclusive.
+
+If @flags includes VIR_DOMAIN_CHECKPOINT_DELETE_METADATA_ONLY, then
+any checkpoint metadata tracked by libvirt is removed while keeping
+the checkpoint contents intact; if a hypervisor does not require
+any libvirt metadata to track checkpoints, then this flag is
+silently ignored.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>checkpoint</tt></i>:</span></td><td>the checkpoint to remove</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointDeleteFlags">virDomainCheckpointDeleteFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointFree"/>virDomainCheckpointFree ()</h3><pre class="programlisting">int	virDomainCheckpointFree		(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint)<br/>
+</pre><p>Free the domain checkpoint object. The checkpoint itself is not modified.
+The data structure is freed and should not be used thereafter.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>checkpoint</tt></i>:</span></td><td>a domain checkpoint object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointGetConnect"/>virDomainCheckpointGetConnect ()</h3><pre class="programlisting"><a href="libvirt-libvirt-host.html#virConnectPtr">virConnectPtr</a>	virDomainCheckpointGetConnect	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint)<br/>
+</pre><p>Provides the connection pointer associated with a checkpoint. The
+reference counter on the connection is not increased by this
+call.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>checkpoint</tt></i>:</span></td><td>a checkpoint object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the connection or NULL.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointGetDomain"/>virDomainCheckpointGetDomain ()</h3><pre class="programlisting"><a href="libvirt-libvirt-domain.html#virDomainPtr">virDomainPtr</a>	virDomainCheckpointGetDomain	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint)<br/>
+</pre><p>Provides the domain pointer associated with a checkpoint. The
+reference counter on the domain is not increased by this
+call.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>checkpoint</tt></i>:</span></td><td>a checkpoint object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the domain or NULL.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointGetName"/>virDomainCheckpointGetName ()</h3><pre class="programlisting">const char *	virDomainCheckpointGetName	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint)<br/>
+</pre><p>Get the public name for that checkpoint</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>checkpoint</tt></i>:</span></td><td>a checkpoint object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the name or NULL, the string need not be deallocated as its lifetime will be the same as the checkpoint object.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointGetParent"/>virDomainCheckpointGetParent ()</h3><pre class="programlisting"><a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a>	virDomainCheckpointGetParent	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint, <br/>							 unsigned int flags)<br/>
+</pre><p>Get the parent checkpoint for @checkpoint, if any.
+
+virDomainCheckpointFree should be used to free the resources after the
+checkpoint object is no longer needed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>checkpoint</tt></i>:</span></td><td>a checkpoint object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a domain checkpoint object or NULL in case of failure. If the given checkpoint is a root (no parent), then the <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_CHECKPOINT">VIR_ERR_NO_DOMAIN_CHECKPOINT</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointGetXMLDesc"/>virDomainCheckpointGetXMLDesc ()</h3><pre class="programlisting">char *	virDomainCheckpointGetXMLDesc	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint, <br/>					 unsigned int flags)<br/>
+</pre><p>Provide an XML description of the domain checkpoint.
+
+No security-sensitive data will be included unless @flags contains
+VIR_DOMAIN_CHECKPOINT_XML_SECURE; this flag is rejected on read-only
+connections.
+
+Normally, the XML description includes an element giving a full
+description of the domain at the time the checkpoint was created; to
+reduce parsing time, it will be suppressed when @flags contains
+VIR_DOMAIN_CHECKPOINT_XML_NO_DOMAIN.
+
+By default, the XML description contains only static information that
+does not change over time. However, when @flags contains
+VIR_DOMAIN_CHECKPOINT_XML_SIZE, each &lt;disk&gt; listing adds an additional
+attribute that shows an estimate of the current size in bytes that
+have been dirtied between the time the checkpoint was created and the
+current point in time.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>checkpoint</tt></i>:</span></td><td>a domain checkpoint object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointXMLFlags">virDomainCheckpointXMLFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance or NULL in case of error. The caller must free() the returned value.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointListAllChildren"/>virDomainCheckpointListAllChildren ()</h3><pre class="programlisting">int	virDomainCheckpointListAllChildren	(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint, <br/>						 <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> ** children, <br/>						 unsigned int flags)<br/>
+</pre><p>Collect the list of domain checkpoints that are children of the given
+checkpoint, and allocate an array to store those objects.
+
+If @flags contains VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL,
+@checkpoints is non-NULL, and no other connection is modifying
+checkpoints, then it is guaranteed that for any checkpoint in the
+resulting list, no checkpoints later in the list can be reached by
+a sequence of virDomainCheckpointGetParent() starting from that
+earlier checkpoint; otherwise, the order of checkpoints in the
+resulting list is unspecified.
+
+By default, this command covers only direct children. It is also
+possible to expand things to cover all descendants, when @flags
+includes VIR_DOMAIN_CHECKPOINT_LIST_DESCENDANTS. Additional
+are provided via the remaining @flags values as documented in
+virDomainListAllCheckpoints(), with the exception that
+VIR_DOMAIN_CHECKPOINT_LIST_ROOTS is not supported (in fact,
+VIR_DOMAIN_CHECKPOINT_LIST_DESCENDANTS has the same bit value but
+opposite semantics of widening rather than narrowing the listing).</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>checkpoint</tt></i>:</span></td><td>a domain checkpoint object</td></tr><tr><td><span class="term"><i><tt>children</tt></i>:</span></td><td>pointer to variable to store the array containing checkpoint objects or NULL if the list is not required (just returns number of checkpoints)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointListFlags">virDomainCheckpointListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain checkpoints found or -1 and sets @children to NULL in case of error. On success, the array stored into @children is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainCheckpointFree() on each array element, then calling free() on @children.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointLookupByName"/>virDomainCheckpointLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a>	virDomainCheckpointLookupByName	(<a href="libvirt-libvirt-domain.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * name, <br/>							 unsigned int flags)<br/>
+</pre><p>Try to lookup a domain checkpoint based on its name.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>name</tt></i>:</span></td><td>name for the domain checkpoint</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a domain checkpoint object or NULL in case of failure. If the domain checkpoint cannot be found, then the <a href="libvirt-virterror.html#VIR_ERR_NO_DOMAIN_CHECKPOINT">VIR_ERR_NO_DOMAIN_CHECKPOINT</a> error is raised.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainCheckpointRef"/>virDomainCheckpointRef ()</h3><pre class="programlisting">int	virDomainCheckpointRef		(<a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> checkpoint)<br/>
+</pre><p>Increment the reference count on the checkpoint. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointFree">virDomainCheckpointFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection and domain remain open until all threads have finished
+using the checkpoint. ie, each new thread using a checkpoint would
+increment the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>checkpoint</tt></i>:</span></td><td>the checkpoint to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainListAllCheckpoints"/>virDomainListAllCheckpoints ()</h3><pre class="programlisting">int	virDomainListAllCheckpoints	(<a href="libvirt-libvirt-domain.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt-domain-checkpoint.html#virDomainCheckpointPtr">virDomainCheckpointPtr</a> ** checkpoints, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect the list of domain checkpoints for the given domain and allocate
+an array to store those objects.
+
+If @flags contains VIR_DOMAIN_CHECKPOINT_LIST_TOPOLOGICAL,
+@checkpoints is non-NULL, and no other connection is modifying
+checkpoints, then it is guaranteed that for any checkpoint in the
+resulting list, no checkpoints later in the list can be reached by
+a sequence of virDomainCheckpointGetParent() starting from that
+earlier checkpoint; otherwise, the order of checkpoints in the
+resulting list is unspecified.
+
+By default, this command covers all checkpoints. It is also
+possible to limit things to just checkpoints with no parents, when
+@flags includes VIR_DOMAIN_CHECKPOINT_LIST_ROOTS. Additional
+filters are provided in groups listed below. Within a group, bits
+are mutually exclusive, where all possible checkpoints are
+described by exactly one bit from the group. Some hypervisors might
+reject particular flags where it cannot make a distinction for
+filtering. If the set of filter flags selected forms an impossible
+combination, the hypervisor may return either 0 or an error.
+
+The first group of @flags is <a href="libvirt-libvirt-domain-checkpoint.html#VIR_DOMAIN_CHECKPOINT_LIST_LEAVES">VIR_DOMAIN_CHECKPOINT_LIST_LEAVES</a> and
+VIR_DOMAIN_CHECKPOINT_LIST_NO_LEAVES, to filter based on checkpoints that
+have no further children (a leaf checkpoint).</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>checkpoints</tt></i>:</span></td><td>pointer to variable to store the array containing checkpoint object, or NULL if the list is not required (just returns number of checkpoints)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported virDomainCheckpoinListFlags</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain checkpoints found or -1 and sets @checkpoints to NULL in case of error. On success, the array stored into @checkpoints is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainCheckpointFree() on each array element, then calling free() on @checkpoints.</td></tr></tbody></table></div></div>
+        <hr/>
+      </div>
+    </div>
+  </body>
+</html>

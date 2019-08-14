@@ -20,8 +20,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_VIRCONFTYPES_H
-# define LIBVIRT_VIRCONFTYPES_H
+#pragma once
 
 /* forward declarations of various types required in src/conf */
 
@@ -102,6 +101,15 @@ typedef virDomainBlkiotune *virDomainBlkiotunePtr;
 
 typedef struct _virDomainBlockIoTuneInfo virDomainBlockIoTuneInfo;
 typedef virDomainBlockIoTuneInfo *virDomainBlockIoTuneInfoPtr;
+
+typedef struct _virDomainCheckpointDef virDomainCheckpointDef;
+typedef virDomainCheckpointDef *virDomainCheckpointDefPtr;
+
+typedef struct _virDomainCheckpointObj virDomainCheckpointObj;
+typedef virDomainCheckpointObj *virDomainCheckpointObjPtr;
+
+typedef struct _virDomainCheckpointObjList virDomainCheckpointObjList;
+typedef virDomainCheckpointObjList *virDomainCheckpointObjListPtr;
 
 typedef struct _virDomainChrDef virDomainChrDef;
 typedef virDomainChrDef *virDomainChrDefPtr;
@@ -345,5 +353,3 @@ typedef virDomainXMLPrivateDataCallbacks *virDomainXMLPrivateDataCallbacksPtr;
 
 typedef struct _virDomainXenbusControllerOpts virDomainXenbusControllerOpts;
 typedef virDomainXenbusControllerOpts *virDomainXenbusControllerOptsPtr;
-
-#endif /* LIBVIRT_VIRCONFTYPES_H */

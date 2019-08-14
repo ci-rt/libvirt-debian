@@ -19,14 +19,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBVIRT_QEMU_MONITOR_TEXT_H
-# define LIBVIRT_QEMU_MONITOR_TEXT_H
+#pragma once
 
-# include "internal.h"
+#include "internal.h"
 
-# include "qemu_monitor.h"
-
-int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, bool online);
+#include "qemu_monitor.h"
 
 int qemuMonitorTextAddDrive(qemuMonitorPtr mon,
                              const char *drivestr);
@@ -37,5 +34,3 @@ int qemuMonitorTextDriveDel(qemuMonitorPtr mon,
 int qemuMonitorTextCreateSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorTextLoadSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorTextDeleteSnapshot(qemuMonitorPtr mon, const char *name);
-
-#endif /* LIBVIRT_QEMU_MONITOR_TEXT_H */

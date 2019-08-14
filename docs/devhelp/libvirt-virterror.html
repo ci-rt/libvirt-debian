@@ -154,7 +154,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_RESCTRL">VIR_FROM_RESCTRL</a> = 67 /* Error from resource control */
     <a name="VIR_FROM_FIREWALLD">VIR_FROM_FIREWALLD</a> = 68 /* Error from firewalld */
     <a name="VIR_FROM_DOMAIN_CHECKPOINT">VIR_FROM_DOMAIN_CHECKPOINT</a> = 69 /* Error from domain checkpoint */
-    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 70
+    <a name="VIR_FROM_TPM">VIR_FROM_TPM</a> = 70 /* Error from TPM */
+    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 71
 };
 </pre><p/>
 </div>
@@ -273,7 +274,10 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_INVALID_DOMAIN_CHECKPOINT">VIR_ERR_INVALID_DOMAIN_CHECKPOINT</a> = 102 /* invalid domain checkpoint */
     <a name="VIR_ERR_NO_DOMAIN_CHECKPOINT">VIR_ERR_NO_DOMAIN_CHECKPOINT</a> = 103 /* domain checkpoint not found */
     <a name="VIR_ERR_NO_DOMAIN_BACKUP">VIR_ERR_NO_DOMAIN_BACKUP</a> = 104 /* domain backup job id not found */
-    <a name="VIR_ERR_NUMBER_LAST">VIR_ERR_NUMBER_LAST</a> = 105
+    <a name="VIR_ERR_INVALID_NETWORK_PORT">VIR_ERR_INVALID_NETWORK_PORT</a> = 105 /* invalid network port object */
+    <a name="VIR_ERR_NETWORK_PORT_EXIST">VIR_ERR_NETWORK_PORT_EXIST</a> = 106 /* the network port already exist */
+    <a name="VIR_ERR_NO_NETWORK_PORT">VIR_ERR_NO_NETWORK_PORT</a> = 107 /* network port not found */
+    <a name="VIR_ERR_NUMBER_LAST">VIR_ERR_NUMBER_LAST</a> = 108
 };
 </pre><p/>
 </div>

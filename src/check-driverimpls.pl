@@ -37,10 +37,11 @@ while (<>) {
 
             next if $api eq "no";
             next if $api eq "name";
+            next if $impl eq "NULL";
 
             my $suffix = $impl;
             my $prefix = $impl;
-            $prefix =~ s/^([a-z]+(?:Unified)?)(.*?)$/$1/;
+            $prefix =~ s/^([a-z]+)(.*?)$/$1/;
 
             if (defined $mainprefix) {
                 if ($mainprefix ne $prefix) {
@@ -52,7 +53,7 @@ while (<>) {
             }
 
             if ($api !~ /^$mainprefix/) {
-                $suffix =~ s/^[a-z]+(?:Unified)?//;
+                $suffix =~ s/^[a-z]+//;
                 $suffix =~ s/^([A-Z]+)/lc $1/e;
             }
 

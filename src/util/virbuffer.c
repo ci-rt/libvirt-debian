@@ -197,7 +197,7 @@ virBufferAddBuffer(virBufferPtr buf, virBufferPtr toadd)
 
     if (buf->error || toadd->error) {
         if (!buf->error)
-            buf->error = toadd->error;
+            virBufferSetError(buf, toadd->error);
         goto done;
     }
 
@@ -281,9 +281,8 @@ virBufferContentAndReset(virBufferPtr buf)
  */
 void virBufferFreeAndReset(virBufferPtr buf)
 {
-    char *str = virBufferContentAndReset(buf);
-
-    VIR_FREE(str);
+    if (buf)
+        virBufferSetError(buf, 0);
 }
 
 /**
