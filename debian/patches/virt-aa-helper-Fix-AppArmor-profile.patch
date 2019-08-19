@@ -1,0 +1,65 @@
+From: Andrea Bolognani <abologna@redhat.com>
+Date: Mon, 19 Aug 2019 10:23:42 +0200
+Subject: virt-aa-helper: Fix AppArmor profile
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Since
+
+  commit 432faf259b696043ee5d7e8f657d855419a9a3fa
+  Author: Michal Privoznik <mprivozn@redhat.com>
+  Date:   Tue Jul 2 19:49:51 2019 +0200
+
+    virCommand: use procfs to learn opened FDs
+
+    When spawning a child process, between fork() and exec() we close
+    all file descriptors and keep only those the caller wants us to
+    pass onto the child. The problem is how we do that. Currently, we
+    get the limit of opened files and then iterate through each one
+    of them and either close() it or make it survive exec(). This
+    approach is suboptimal (although, not that much in default
+    configurations where the limit is pretty low - 1024). We have
+    /proc where we can learn what FDs we hold open and thus we can
+    selectively close only those.
+
+    Signed-off-by: Michal Privoznik <mprivozn@redhat.com>
+    Reviewed-by: Ján Tomko <jtomko@redhat.com>
+
+  v5.5.0-173-g432faf259b
+
+programs using the virCommand APIs on Linux need read access to
+/proc/self/fd, or they will fail like
+
+  error : virCommandWait:2796 : internal error: Child process
+  (LIBVIRT_LOG_OUTPUTS=3:stderr /usr/lib/libvirt/virt-aa-helper -c
+   -u libvirt-b20e9a8e-091a-45e0-8823-537119e98bc6) unexpected exit
+  status 1: libvirt:  error : cannot open directory '/proc/self/fd':
+  Permission denied
+  virt-aa-helper: error: apparmor_parser exited with error
+
+Update the AppArmor profile for virt-aa-helper so that read access
+to the relevant path is granted.
+
+Signed-off-by: Andrea Bolognani <abologna@redhat.com>
+Reviewed-by: Ján Tomko <jtomko@redhat.com>
+(cherry picked from commit b1eb8b3e8fd1d4cb1da8e5e2b16f2c10837fd823)
+---
+ src/security/apparmor/usr.lib.libvirt.virt-aa-helper | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
+index ee02744..8a9a1f3 100644
+--- a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
+@@ -18,6 +18,10 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+   owner @{PROC}/[0-9]*/status r,
+   @{PROC}/filesystems r,
+ 
++  # Used when internally running another command (namely apparmor_parser)
++  @{PROC}/self/fd r,
++  @{PROC}/@{pid}/fd r,
++
+   /etc/libnl-3/classid r,
+ 
+   # for gl enabled graphics

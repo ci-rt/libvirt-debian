@@ -15,3 +15,5 @@ Pass-GPG_TTY-env-var-to-the-ssh-binary.patch
 apparmor-Allow-virt-aa-helper-to-access-the-name-service-.patch
 debian/Prefer-sbin-over-usr-sbin.patch
 Include-etc-pki-qemu-in-apparmor.patch
+virt-aa-helper-Fix-AppArmor-profile.patch
+virt-aa-helper-Actually-fix-AppArmor-profile.patch

@@ -1,0 +1,41 @@
+From: Andrea Bolognani <abologna@redhat.com>
+Date: Tue, 20 Aug 2019 09:54:12 +0200
+Subject: virt-aa-helper: Actually fix AppArmor profile
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Tried previously in
+
+  commit b1eb8b3e8fd1d4cb1da8e5e2b16f2c10837fd823
+  Author: Andrea Bolognani <abologna@redhat.com>
+  Date:   Mon Aug 19 10:23:42 2019 +0200
+
+    virt-aa-helper: Fix AppArmor profile
+
+  v5.6.0-243-gb1eb8b3e8f
+
+with somewhat disappointing results.
+
+Signed-off-by: Andrea Bolognani <abologna@redhat.com>
+Reviewed-by: Ján Tomko <jtomko@redhat.com>
+(cherry picked from commit 9c2446ed4a81450f6482f259f9a0cf720cb0e423)
+---
+ src/security/apparmor/usr.lib.libvirt.virt-aa-helper | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
+index 8a9a1f3..85ed370 100644
+--- a/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
++++ b/src/security/apparmor/usr.lib.libvirt.virt-aa-helper
+@@ -19,8 +19,8 @@ profile virt-aa-helper /usr/{lib,lib64}/libvirt/virt-aa-helper {
+   @{PROC}/filesystems r,
+ 
+   # Used when internally running another command (namely apparmor_parser)
+-  @{PROC}/self/fd r,
+-  @{PROC}/@{pid}/fd r,
++  @{PROC}/self/fd/ r,
++  @{PROC}/@{pid}/fd/ r,
+ 
+   /etc/libnl-3/classid r,
+ 
