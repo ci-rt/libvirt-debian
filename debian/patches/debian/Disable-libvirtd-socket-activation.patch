@@ -1,0 +1,29 @@
+From: Andrea Bolognani <eof@kiyuko.org>
+Date: Sat, 24 Aug 2019 18:00:00 +0200
+Subject: debian: Disable libvirtd socket activation
+
+It's currently broken upstream.
+---
+ src/remote/libvirtd.service.in | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/src/remote/libvirtd.service.in b/src/remote/libvirtd.service.in
+index 143dd7f..0fc50dc 100644
+--- a/src/remote/libvirtd.service.in
++++ b/src/remote/libvirtd.service.in
+@@ -2,9 +2,6 @@
+ Description=Virtualization daemon
+ Requires=virtlogd.socket
+ Requires=virtlockd.socket
+-Requires=libvirtd.socket
+-Requires=libvirtd-ro.socket
+-Requires=libvirtd-admin.socket
+ Wants=systemd-machined.service
+ Before=libvirt-guests.service
+ After=network.target
+@@ -44,5 +41,3 @@ TasksMax=32768
+ WantedBy=multi-user.target
+ Also=virtlockd.socket
+ Also=virtlogd.socket
+-Also=libvirtd.socket
+-Also=libvirtd-ro.socket
