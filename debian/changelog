@@ -1,11 +1,10 @@
-libvirt (5.3.0-1~2.gbp6ef599) UNRELEASED; urgency=medium
+libvirt (5.6.0-1) unstable; urgency=medium
 
-  ** SNAPSHOT build @6ef59955262b2219b9ab4e5ce1d1cb89248c316f **
+  * Team upload.
 
   [ Guido Günther ]
   * [fb43676] d/control: Drop dh-autoreconf build-dep
   * [81d21d5] d/not-installed: Use multi-arch dirs
-  * [641e532] New upstream version 5.3.0
   * [07d5669] New upstream version 5.6.0
 
   [ Christian Ehrhardt ]
@@ -26,11 +25,16 @@ libvirt (5.3.0-1~2.gbp6ef599) UNRELEASED; urgency=medium
 
   [ Andrea Bolognani ]
   * [6a2eae3] Simplify and improve watch file
-  * [baef715] Rediff patches
   * [82a1edc] Bump symbol versions
   * [73fccd9] Specify --doc-main-package for dh_installdocs
+  * [d48fdf6] Rediff patches
+  * [3b16c86] Bump symbol versions
+  * [48c9b75] Drop Avahi support
+  * [a49de91] Fix AppArmor profile for virt-aa-helper
+  * [b8e92da] Disable libvirtd socket activation
+  * [73d1e8c] Install kbase articles
 
- -- Guido Günther <agx@sigxcpu.org>  Wed, 14 Aug 2019 08:30:07 +0200
+ -- Andrea Bolognani <eof@kiyuko.org>  Sun, 25 Aug 2019 16:32:31 +0200
 
 libvirt (5.2.0-2) experimental; urgency=medium
 
