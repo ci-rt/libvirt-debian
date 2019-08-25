@@ -7,5 +7,6 @@ docs/*.css
 docs/html/
 docs/devhelp/
 docs/internals/
+docs/kbase/
 docs/logos/
 examples/
