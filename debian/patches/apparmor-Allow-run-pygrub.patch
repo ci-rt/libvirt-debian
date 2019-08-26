@@ -1,0 +1,20 @@
+From: Tobias Wolter <towo@b1-systems.de>
+Date: Wed, 21 Aug 2019 10:27:05 +0200
+Subject: apparmor: Allow run pygrub
+
+---
+ src/security/apparmor/usr.sbin.libvirtd | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/security/apparmor/usr.sbin.libvirtd b/src/security/apparmor/usr.sbin.libvirtd
+index a66452b..67d5d3c 100644
+--- a/src/security/apparmor/usr.sbin.libvirtd
++++ b/src/security/apparmor/usr.sbin.libvirtd
+@@ -87,6 +87,7 @@ profile libvirtd /usr/sbin/libvirtd flags=(attach_disconnected) {
+   /usr/{lib,lib64}/xen-common/bin/xen-toolstack PUx,
+   /usr/{lib,lib64}/xen/bin/* Ux,
+   /usr/lib/xen-*/bin/libxl-save-helper PUx,
++  /usr/lib/xen-*/bin/pygrub PUx,
+ 
+   # Required by nwfilter_ebiptables_driver.c:ebiptablesWriteToTempFile() to
+   # read and run an ebtables script.

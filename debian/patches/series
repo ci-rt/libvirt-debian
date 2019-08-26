@@ -18,3 +18,4 @@ Include-etc-pki-qemu-in-apparmor.patch
 virt-aa-helper-Fix-AppArmor-profile.patch
 virt-aa-helper-Actually-fix-AppArmor-profile.patch
 debian/Disable-libvirtd-socket-activation.patch
+apparmor-Allow-run-pygrub.patch
