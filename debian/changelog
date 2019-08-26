@@ -6,6 +6,12 @@ libvirt (5.6.0-1) unstable; urgency=medium
   * [fb43676] d/control: Drop dh-autoreconf build-dep
   * [81d21d5] d/not-installed: Use multi-arch dirs
   * [07d5669] New upstream version 5.6.0
+    Fixes CVE-2018-12126, CVE-2018-12127, CVE-2018-12130, CVE-2019-11091,
+    CVE-2019-10132
+    (Closes: #915107, #931243, #929334)
+  * [9f38a9e] apparmor: Allow run pygrub
+    (Closes: #931768)
+  * Acknowledge NMU. Thanks Jonathan Wiltshire
 
   [ Christian Ehrhardt ]
   * [c28c3b3] d/libvirt0.install: install translations
@@ -20,8 +26,10 @@ libvirt (5.6.0-1) unstable; urgency=medium
   * [eda89b2] d/no-installed, d/libvirt-doc.docs: do not install fonts
   * [ab67a28] d/copyright: add license for docs/fonts/
   * [2e222a2] d/rules: strip symbolic-functions linker option
-  * [39b658c] Revert "d/libvirt-daemon-system.install: ship libxl-sanlock.conf"
-  * [ce46360] d/rules: install libxl-sanlock.conf dependent on xen being enabled
+  * [39b658c] Revert "d/libvirt-daemon-system.install: ship
+    libxl-sanlock.conf"
+  * [ce46360] d/rules: install libxl-sanlock.conf dependent on xen being
+    enabled
 
   [ Andrea Bolognani ]
   * [6a2eae3] Simplify and improve watch file
