@@ -1,3 +1,12 @@
+libvirt (5.6.0-2) unstable; urgency=medium
+
+  * Team upload.
+
+  * [4dcbe93] Revert "Disable libvirtd socket activation" (Closes: #935883)
+  * [b464de1] Add libvirtd sockets handling
+
+ -- Andrea Bolognani <eof@kiyuko.org>  Wed, 28 Aug 2019 19:39:00 +0200
+
 libvirt (5.6.0-1) unstable; urgency=medium
 
   * Team upload.
