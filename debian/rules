@@ -188,10 +188,6 @@ override_dh_install-arch:
 	cp debian/polkit/60-libvirt.pkla \
 	    debian/libvirt-daemon-system/var/lib/polkit-1/localauthority/10-vendor.d/
 ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
-	# Socket activation for libvirtd is currently broken. Fixes are being
-	# worked on upstream, but until they are in place it's much better for
-	# us to pretend the feature doesn't exist at all
-	rm -f debian/tmp/usr/lib/systemd/system/libvirtd*.socket
 	# Linux supports more nice things:
 	dh_install -p libvirt-daemon-system usr/lib/systemd/system lib/systemd/
 	dh_install -p libvirt-daemon-system usr/lib/libvirt/virt-aa-helper
