@@ -139,6 +139,9 @@ DEB_CONFIGURE_EXTRA_ARGS :=      \
         $(NULL)
 
 LIBVIRT_SYSTEM_SERVICES = \
+	libvirtd.socket \
+	libvirtd-ro.socket \
+	libvirtd-admin.socket \
 	libvirt-guests.service \
 	virtlogd.socket \
 	virtlogd-admin.socket \
