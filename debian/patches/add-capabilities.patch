@@ -1,0 +1,19 @@
+--- a/src/r4d/r4d_driver.c
++++ b/src/r4d/r4d_driver.c
+@@ -186,8 +186,15 @@
+ static char *
+ r4dConnectGetCapabilities(virConnectPtr conn ATTRIBUTE_UNUSED)
+ {
++    virCapsPtr caps;
++    char *xml;
++
+     logger (__func__);
+-    return NULL;
++    caps = virCapabilitiesNew(VIR_ARCH_NONE, false, false);
++    xml = virCapabilitiesFormatXML(caps);
++    virObjectUnref(caps);
++
++    return xml;
+ }
+ 
+ /* connectListDomains */
