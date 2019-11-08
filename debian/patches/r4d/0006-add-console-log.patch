@@ -1,26 +1,42 @@
-From b7b68d433372cb8626053e038388e0064cde7e46 Mon Sep 17 00:00:00 2001
+From 7806cd6ca338ec7ede41d8faedd296444766ebc5 Mon Sep 17 00:00:00 2001
 From: Benedikt Spranger <b.spranger@linutronix.de>
 Date: Fri, 13 Jan 2017 13:17:51 +0100
-Subject: [PATCH 06/10] add console log
+Subject: [PATCH 6/9] add console log
 
-The console cmd needs a TTY for proper functionality. To be able to log
+The console cmd need a TTY for proper functionality. To be able to log
 console output into a file without interaction add a consolelog cmd.
 The consolelog cmd needs exclusive access to the console and is locked
 against other console and consolelog cmds.
 
-
 Signed-off-by: Benedikt Spranger <b.spranger@linutronix.de>
 ---
- tools/virsh-console.c |  66 ++++++++++++++++++++++++++++
- tools/virsh-console.h |   4 ++
+ tools/virsh-console.c |  82 +++++++++++++++++++++++++++++++++-
+ tools/virsh-console.h |   5 +++
  tools/virsh-domain.c  | 100 ++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 170 insertions(+)
+ 3 files changed, 185 insertions(+), 2 deletions(-)
 
 diff --git a/tools/virsh-console.c b/tools/virsh-console.c
-index 045a636867..f7aa42ff9f 100644
+index e16f841e57..3a5fa0081d 100644
 --- a/tools/virsh-console.c
 +++ b/tools/virsh-console.c
-@@ -398,3 +398,69 @@ virshRunConsole(vshControl *ctl,
+@@ -20,8 +20,6 @@
+ 
+ #include <config.h>
+ 
+-#ifndef WIN32
+-
+ # include <sys/types.h>
+ # include <sys/stat.h>
+ # include <fcntl.h>
+@@ -398,6 +396,7 @@ virshGetEscapeChar(const char *s)
+ }
+ 
+ 
++#ifndef WIN32
+ int
+ virshRunConsole(vshControl *ctl,
+                 virDomainPtr dom,
+@@ -516,3 +515,82 @@ virshRunConsole(vshControl *ctl,
  }
  
  #endif /* !WIN32 */
@@ -45,8 +61,10 @@ index 045a636867..f7aa42ff9f 100644
 +    } else
 +        fd = STDOUT_FILENO;
 +
-+    if (VIR_ALLOC(con) < 0)
++    if (!(con = virConsoleNew()))
 +        goto cleanup;
++
++    virObjectLock(con);
 +
 +    con->st = virStreamNew(virDomainGetConnect(dom),
 +                           VIR_STREAM_NONBLOCK);
@@ -56,58 +74,69 @@ index 045a636867..f7aa42ff9f 100644
 +    if (virDomainOpenConsole(dom, dev_name, con->st, flags) < 0)
 +        goto cleanup;
 +
-+    if (virCondInit(&con->cond) < 0 || virMutexInit(&con->lock) < 0)
++    virObjectRef(con);
++    if ((con->stdoutWatch = virEventAddHandle(STDOUT_FILENO,
++                                              0,
++                                              virConsoleEventOnStdout,
++                                              con,
++                                              virObjectFreeCallback)) < 0) {
++        virObjectUnref(con);
 +        goto cleanup;
++    }
 +
-+    virMutexLock(&con->lock);
-+
-+    con->stdoutWatch = virEventAddHandle(fd,
-+                                         0,
-+                                         virConsoleEventOnStdout,
-+                                         con,
-+                                         NULL);
-+
-+    virStreamEventAddCallback(con->st,
-+                              VIR_STREAM_EVENT_READABLE,
-+                              virConsoleEventOnStream,
-+                              con,
-+                              NULL);
++    virObjectRef(con);
++    if (virStreamEventAddCallback(con->st,
++                                  VIR_STREAM_EVENT_READABLE,
++                                  virConsoleEventOnStream,
++                                  con,
++                                  virObjectFreeCallback) < 0) {
++        virObjectUnref(con);
++        goto cleanup;
++    }
 +
 +    while (!con->quit) {
-+        if (virCondWait(&con->cond, &con->lock) < 0) {
-+            virMutexUnlock(&con->lock);
-+            VIR_ERROR(_("unable to wait on console condition"));
++        if (virCondWait(&con->cond, &con->parent.lock) < 0) {
++            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
++                           _("unable to wait on console condition"));
 +            goto cleanup;
 +        }
 +    }
 +
-+    virMutexUnlock(&con->lock);
-+
-+    ret = 0;
++    if (con->error.code == VIR_ERR_OK)
++        ret = 0;
 +
 + cleanup:
-+    virConsoleFree(con);
++    virConsoleShutdown(con);
++
++    if (ret < 0) {
++        vshResetLibvirtError();
++        virSetError(&con->error);
++        vshSaveLibvirtHelperError();
++    }
++
++    virObjectUnlock(con);
++    virObjectUnref(con);
 +
 +    return ret;
 +}
 diff --git a/tools/virsh-console.h b/tools/virsh-console.h
-index bc1a70b518..c0a08ed4cd 100644
+index e89484d24b..f8000d331c 100644
 --- a/tools/virsh-console.h
 +++ b/tools/virsh-console.h
-@@ -32,4 +32,8 @@ int virshRunConsole(vshControl *ctl,
+@@ -30,3 +30,8 @@ int virshRunConsole(vshControl *ctl,
+                     unsigned int flags);
  
- # endif /* !WIN32 */
- 
+ #endif /* !WIN32 */
++
 +int virshRunConsoleLog(virDomainPtr dom,
 +                       const char *log_name,
 +                       const char *dev_name,
 +                       unsigned int flags);
- #endif /* LIBVIRT_VIRSH_CONSOLE_H */
 diff --git a/tools/virsh-domain.c b/tools/virsh-domain.c
-index e63fc028b9..615aca6205 100644
+index ccda71d7e0..79d3198e28 100644
 --- a/tools/virsh-domain.c
 +++ b/tools/virsh-domain.c
-@@ -3052,6 +3052,100 @@ cmdConsole(vshControl *ctl, const vshCmd *cmd)
+@@ -3053,6 +3053,100 @@ cmdConsole(vshControl *ctl, const vshCmd *cmd)
  }
  #endif /* WIN32 */
  
@@ -208,7 +237,7 @@ index e63fc028b9..615aca6205 100644
  /* "domif-setlink" command
   */
  static const vshCmdInfo info_domif_setlink[] = {
-@@ -14047,6 +14141,12 @@ const vshCmdDef domManagementCmds[] = {
+@@ -14119,6 +14213,12 @@ const vshCmdDef domManagementCmds[] = {
       .flags = 0
      },
  #endif
@@ -222,5 +251,5 @@ index e63fc028b9..615aca6205 100644
       .handler = cmdCPUStats,
       .opts = opts_cpu_stats,
 -- 
-2.19.0
+2.23.0
 

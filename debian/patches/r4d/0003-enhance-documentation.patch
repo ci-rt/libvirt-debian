@@ -1,14 +1,14 @@
-From 41c927f537d9ee4aee9b10e12d651a0ac901cfd7 Mon Sep 17 00:00:00 2001
+From 5cde218875c35463efc6c4eb61603dcde450edef Mon Sep 17 00:00:00 2001
 From: Benedikt Spranger <b.spranger@linutronix.de>
-Date: Wed, 22 May 2019 22:17:48 +0200
-Subject: [PATCH 03/10] enhance-documentation
+Date: Thu, 23 Aug 2018 15:56:49 +0200
+Subject: [PATCH 3/9] enhance-documentation
 
 ---
  README.md | 48 ++++++++++++++++++++++++++++++++++++++++++++++--
  1 file changed, 46 insertions(+), 2 deletions(-)
 
 diff --git a/README.md b/README.md
-index 1271843cb1..aac6860dee 100644
+index 4d1e86259d..d088e97f4c 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,8 +1,8 @@
@@ -36,7 +36,7 @@ index 1271843cb1..aac6860dee 100644
  License
  -------
  
-@@ -34,6 +41,26 @@ Public License, version 2.1 (or later). See the files `COPYING.LESSER`
+@@ -34,6 +41,26 @@ Public License, version 2.0 (or later). See the files `COPYING.LESSER`
  and `COPYING` for full license terms & conditions.
  
  
@@ -63,7 +63,7 @@ index 1271843cb1..aac6860dee 100644
  Installation
  ------------
  
-@@ -60,6 +87,19 @@
+@@ -60,6 +87,23 @@ be detected during execution of the `configure` script and a summary printed
  which lists any missing (optional) dependencies.
  
  
@@ -76,6 +76,10 @@ index 1271843cb1..aac6860dee 100644
 +$ dpkg-buildpackage -b
 +----
 +
++If you like to install libvirt-daemon and libvirt-daemon-system
++packages, you need to install the systemd-sysv package from the
++jessie-backports section of Debian.
++
 +To install the built Debian packages use
 +'sudo dpkg -i PATH_TO_PACKAGE'
 +
@@ -84,5 +88,5 @@ index 1271843cb1..aac6860dee 100644
  ------------
  
 -- 
-2.19.0
+2.23.0
 

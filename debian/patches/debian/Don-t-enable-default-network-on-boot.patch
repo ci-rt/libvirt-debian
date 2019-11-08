@@ -26,7 +26,7 @@ diff --git a/src/network/Makefile.inc.am b/src/network/Makefile.inc.am
 index 23cf39b..ca516c3 100644
 --- a/src/network/Makefile.inc.am
 +++ b/src/network/Makefile.inc.am
-@@ -87,8 +87,7 @@ install-data-network:
+@@ -87,8 +87,7 @@
  	      $(DESTDIR)$(confdir)/qemu/networks/default.xml && \
  	    rm $(DESTDIR)$(confdir)/qemu/networks/default.xml.t; }
  	( cd $(DESTDIR)$(confdir)/qemu/networks/autostart && \

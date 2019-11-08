@@ -1,7 +1,7 @@
-From 6dea3659a5f0677701ec3e771d243a35e5d12db6 Mon Sep 17 00:00:00 2001
+From effaa19a0c4dd039978299d88a0ca02044b2d7fe Mon Sep 17 00:00:00 2001
 From: Anna-Maria Gleixner <anna-maria@linutronix.de>
 Date: Mon, 2 Jan 2017 12:03:14 +0100
-Subject: [PATCH 04/10] Add r4d support
+Subject: [PATCH 4/9] Add r4d support
 
 r4d is a hypervisor controling various DUTs in racks. Each rack has a
 power control unit and a device serial server and eight slots. Through
@@ -21,11 +21,11 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
  src/Makefile.am             |   1 +
  src/libvirt.c               |   7 +
  src/libvirt_r4d.syms        |   8 +
- src/r4d/Makefile.inc.am     |  21 ++
+ src/r4d/Makefile.inc.am     |  22 ++
  src/r4d/r4d_driver.c        | 642 ++++++++++++++++++++++++++++++++++++
  src/r4d/r4d_driver.h        |  37 +++
  src/util/virerror.c         |   1 +
- 10 files changed, 769 insertions(+)
+ 10 files changed, 770 insertions(+)
  create mode 100644 m4/virt-driver-r4d.m4
  create mode 100644 src/libvirt_r4d.syms
  create mode 100644 src/r4d/Makefile.inc.am
@@ -33,10 +33,10 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
  create mode 100644 src/r4d/r4d_driver.h
 
 diff --git a/configure.ac b/configure.ac
-index ac52189dff..b7cb162ce5 100644
+index f41c6d5d86..0290351c67 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -451,6 +451,7 @@ LIBVIRT_DRIVER_ARG_REMOTE
+@@ -444,6 +444,7 @@ LIBVIRT_DRIVER_ARG_REMOTE
  LIBVIRT_DRIVER_ARG_LIBVIRTD
  LIBVIRT_DRIVER_ARG_NETWORK
  LIBVIRT_DRIVER_ARG_INTERFACE
@@ -44,7 +44,7 @@ index ac52189dff..b7cb162ce5 100644
  
  LIBVIRT_DRIVER_CHECK_QEMU
  LIBVIRT_DRIVER_CHECK_OPENVZ
-@@ -469,6 +470,7 @@ LIBVIRT_DRIVER_CHECK_REMOTE
+@@ -462,6 +463,7 @@ LIBVIRT_DRIVER_CHECK_REMOTE
  LIBVIRT_DRIVER_CHECK_LIBVIRTD
  LIBVIRT_DRIVER_CHECK_NETWORK
  LIBVIRT_DRIVER_CHECK_INTERFACE
@@ -52,7 +52,7 @@ index ac52189dff..b7cb162ce5 100644
  
  AM_CONDITIONAL([WITH_XENCONFIG], [test "$with_libxl" = "yes"])
  
-@@ -960,6 +962,7 @@ LIBVIRT_DRIVER_RESULT_REMOTE
+@@ -936,6 +938,7 @@ LIBVIRT_DRIVER_RESULT_REMOTE
  LIBVIRT_DRIVER_RESULT_NETWORK
  LIBVIRT_DRIVER_RESULT_LIBVIRTD
  LIBVIRT_DRIVER_RESULT_INTERFACE
@@ -61,14 +61,14 @@ index ac52189dff..b7cb162ce5 100644
  AC_MSG_NOTICE([Storage Drivers])
  AC_MSG_NOTICE([])
 diff --git a/include/libvirt/virterror.h b/include/libvirt/virterror.h
-index fbbe2d5624..e31270ad16 100644
+index 6f4110185a..31758b6b97 100644
 --- a/include/libvirt/virterror.h
 +++ b/include/libvirt/virterror.h
-@@ -131,6 +131,7 @@ typedef enum {
-     VIR_FROM_PERF = 65,         /* Error from perf */
-     VIR_FROM_LIBSSH = 66,       /* Error from libssh connection transport */
-     VIR_FROM_RESCTRL = 67,      /* Error from resource control */
-+    VIR_FROM_R4D = 68,		/* Error from R4D */
+@@ -135,6 +135,7 @@ typedef enum {
+     VIR_FROM_DOMAIN_CHECKPOINT = 69, /* Error from domain checkpoint */
+ 
+     VIR_FROM_TPM = 70,          /* Error from TPM */
++    VIR_FROM_R4D = 71,          /* Error from R4D */
  
  # ifdef VIR_ENUM_SENTINELS
      VIR_ERR_DOMAIN_LAST
@@ -127,10 +127,10 @@ index 0000000000..0e6b90bf8d
 +    LIBVIRT_RESULT([R4D], [$with_r4d])
 +])
 diff --git a/src/Makefile.am b/src/Makefile.am
-index cd386297ed..b368dc1451 100644
+index 3ae4b87abb..b820834b7e 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -131,6 +131,7 @@ include node_device/Makefile.inc.am
+@@ -122,6 +122,7 @@ include node_device/Makefile.inc.am
  include secret/Makefile.inc.am
  include storage/Makefile.inc.am
  include remote/Makefile.inc.am
@@ -139,7 +139,7 @@ index cd386297ed..b368dc1451 100644
  
  THREAD_LIBS = $(LIB_PTHREAD) $(LTLIBMULTITHREAD)
 diff --git a/src/libvirt.c b/src/libvirt.c
-index cc1c3c6ea1..81ea1bfb1b 100644
+index 956ccdea30..cdfa021d54 100644
 --- a/src/libvirt.c
 +++ b/src/libvirt.c
 @@ -87,6 +87,9 @@
@@ -156,10 +156,10 @@ index cc1c3c6ea1..81ea1bfb1b 100644
      if (hypervRegister() == -1)
          goto error;
  # endif
-+# ifdef WITH_R4D
++#ifdef WITH_R4D
 +    if (r4dRegister() == -1)
 +        goto error;
-+# endif
++#endif
  # ifdef WITH_XENAPI
      if (xenapiRegister() == -1)
          goto error;
@@ -179,7 +179,7 @@ index 0000000000..9716f9f9bf
 +# End:
 diff --git a/src/r4d/Makefile.inc.am b/src/r4d/Makefile.inc.am
 new file mode 100644
-index 0000000000..87afea927d
+index 0000000000..4e20a14bad
 --- /dev/null
 +++ b/src/r4d/Makefile.inc.am
 @@ -0,0 +1,21 @@
@@ -197,7 +197,7 @@ index 0000000000..87afea927d
 +noinst_LTLIBRARIES += libvirt_driver_r4d.la
 +libvirt_la_BUILT_LIBADD += libvirt_driver_r4d.la
 +
-+libvirt_driver_r4d_la_CFLAGS = $(LIBR4D_CFLAGS) -I$(srcdir)/access \
++libvirt_driver_r4d_la_CFLAGS = $(LIBR4D_CFLAGS)\
 +               -I$(srcdir)/conf -I$(srcdir)/r4d $(AM_CFLAGS)
 +libvirt_driver_r4d_la_SOURCES = $(R4D_DRIVER_SOURCES)
 +libvirt_driver_r4d_la_LIBADD = $(LIBR4D_LIBS)
@@ -896,17 +896,17 @@ index 0000000000..064947a492
 +
 +#endif /* R4D_DRIVER_H */
 diff --git a/src/util/virerror.c b/src/util/virerror.c
-index 61b47d2be0..23654cba8b 100644
+index 77f76a9abf..2d7d2d5f4e 100644
 --- a/src/util/virerror.c
 +++ b/src/util/virerror.c
-@@ -138,6 +138,7 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
-               "Perf", /* 65 */
-               "Libssh transport layer",
-               "Resource control",
+@@ -144,6 +144,7 @@ VIR_ENUM_IMPL(virErrorDomain,
+               "Domain Checkpoint",
+ 
+               "TPM", /* 70 */
 +              "Remote 4 devices under test",
-               )
+ );
  
  
 -- 
-2.19.0
+2.23.0
 

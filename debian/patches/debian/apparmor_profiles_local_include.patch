@@ -19,11 +19,9 @@ index bf6bd29..577fc77 100644
 +  # Site-specific additions and overrides. See local/README for details.
    #include <local/usr.lib.libvirt.virt-aa-helper>
  }
-diff --git a/src/security/apparmor/usr.sbin.libvirtd b/src/security/apparmor/usr.sbin.libvirtd
-index 29f9936..a66452b 100644
 --- a/src/security/apparmor/usr.sbin.libvirtd
 +++ b/src/security/apparmor/usr.sbin.libvirtd
-@@ -131,4 +131,7 @@ profile libvirtd /usr/sbin/libvirtd flags=(attach_disconnected) {
+@@ -131,4 +131,7 @@
  
     /usr/{lib,lib64,lib/qemu,libexec}/qemu-bridge-helper rmix,
    }

@@ -1,7 +1,7 @@
-From d06814a36b34c3e1a02768f6fe6db89b9954c423 Mon Sep 17 00:00:00 2001
+From 89bc376242111d3e215a8134e7de14a273219096 Mon Sep 17 00:00:00 2001
 From: Benedikt Spranger <b.spranger@linutronix.de>
-Date: Wed, 22 May 2019 22:17:48 +0200
-Subject: [PATCH 07/10] r4d_gracefull_shutdown
+Date: Thu, 23 Aug 2018 15:56:50 +0200
+Subject: [PATCH 7/9] r4d_gracefull_shutdown
 
 ---
  src/r4d/r4d_driver.c | 59 +++++++++++++++++++++++++++++++++++++++++++-
@@ -17,7 +17,7 @@ index 291c0ef8a4..d705637804 100644
  
 +/* domainShutdownFlags */
 +static int r4dDomainShutdownFlags(virDomainPtr dom,
-+                                  unsigned int flags ATTRIBUTE_UNUSED)
++				  unsigned int flags ATTRIBUTE_UNUSED)
 +{
 +    struct r4d_driver *driver = dom->conn->privateData;
 +    int ret = -1, status;
@@ -28,7 +28,7 @@ index 291c0ef8a4..d705637804 100644
 +    status = r4d_power_status (driver->endpoint, dom->name);
 +    if (!status) {
 +        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-+                       _("domain is not in powered"));
++                       _("domain is not in powerup state"));
 +        goto cleanup;
 +    }
 +
@@ -44,7 +44,7 @@ index 291c0ef8a4..d705637804 100644
 +/* domainShutdown */
 +static int r4dDomainShutdown(virDomainPtr dom)
 +{
-+    return r4dDomainShutdownFlags(dom, 0);
++	return r4dDomainShutdownFlags(dom, 0);
 +}
 +
  /* domainReboot */
@@ -62,7 +62,7 @@ index 291c0ef8a4..d705637804 100644
 +    status = r4d_power_status (driver->endpoint, dom->name);
 +    if (!status) {
 +        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-+                       _("domain is not powered"));
++                       _("domain is not in powerup state"));
 +        goto cleanup;
 +    }
 +
@@ -74,7 +74,7 @@ index 291c0ef8a4..d705637804 100644
 +    ret = r4d_power_change (driver->endpoint, dom->name, 1);
 +    if (ret)
 +        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-+                       _("fail to power up domain"));
++                       _("fail to powerup domain"));
 +
 +cleanup:
 +    return ret;
@@ -91,5 +91,5 @@ index 291c0ef8a4..d705637804 100644
      .domainReset =  r4dDomainReset, /* 1.3.1 */
  
 -- 
-2.19.0
+2.23.0
 

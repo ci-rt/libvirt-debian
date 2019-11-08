@@ -1,7 +1,7 @@
-From f7c92fdf74a6470daf35e7610084189780a04a49 Mon Sep 17 00:00:00 2001
+From cfe032f2096c2ea5190884e72b0879490ea59333 Mon Sep 17 00:00:00 2001
 From: Anna-Maria Gleixner <anna-maria@linutronix.de>
 Date: Mon, 2 Jan 2017 12:03:14 +0100
-Subject: [PATCH 05/10] Add debug logging mechanism
+Subject: [PATCH 5/9] Add debug logging mechanism
 
 The logging mechanism is enabled by defining DEBUG_R4D . This logging
 mechanism should only be enabled, during development, because a file
@@ -319,5 +319,5 @@ index d96fee9f7d..291c0ef8a4 100644
  }
  
 -- 
-2.19.0
+2.23.0
 

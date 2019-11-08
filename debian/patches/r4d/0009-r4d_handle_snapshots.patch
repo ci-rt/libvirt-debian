@@ -1,18 +1,21 @@
-From 3ea0f753a967246c276a6d174786fd69123f5e7b Mon Sep 17 00:00:00 2001
+From a7805d0a846c7abe1d8dbd9d82ef0977125bcef8 Mon Sep 17 00:00:00 2001
 From: Benedikt Spranger <b.spranger@linutronix.de>
-Date: Wed, 22 May 2019 22:17:48 +0200
-Subject: [PATCH 10/10] r4d_handle_snapshots
+Date: Thu, 23 Aug 2018 15:56:50 +0200
+Subject: [PATCH 9/9] r4d_handle_snapshots
 
 ---
  src/r4d/r4d_driver.c | 23 +++++++++++++++++++++++
  1 file changed, 23 insertions(+)
 
+diff --git a/src/r4d/r4d_driver.c b/src/r4d/r4d_driver.c
+index bbbe711c40..e4721ca48e 100644
 --- a/src/r4d/r4d_driver.c
 +++ b/src/r4d/r4d_driver.c
-@@ -647,6 +647,26 @@
+@@ -683,6 +683,26 @@ r4dConnectIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
+     return 0;
  }
  
- static int
++static int
 +r4dDomainSnapshotNum(virDomainPtr domain ATTRIBUTE_UNUSED,
 +                     unsigned int flags ATTRIBUTE_UNUSED)
 +{
@@ -32,11 +35,10 @@ Subject: [PATCH 10/10] r4d_handle_snapshots
 +    return 0;
 +}
 +
-+static int
+ static int
  r4dDomainOpenConsole(virDomainPtr dom,
                       const char * dev_name ATTRIBUTE_UNUSED,
-                      virStreamPtr st,
-@@ -771,6 +791,9 @@
+@@ -808,6 +828,9 @@ static virHypervisorDriver r4dHypervisorDriver = {
  
      .domainIsActive =  r4dDomainIsActive, /* 1.3.1 */
  
@@ -46,3 +48,6 @@ Subject: [PATCH 10/10] r4d_handle_snapshots
      .domainOpenConsole =  r4dDomainOpenConsole, /* 1.3.1 */
  
      .domainCoreDump =  r4dDomainCoreDump, /* 1.3.1 */
+-- 
+2.23.0
+
