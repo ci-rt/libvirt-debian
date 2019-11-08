@@ -41,6 +41,7 @@ Build-Depends:
  libselinux1-dev (>= 2.0.82) [linux-any],
  libapparmor-dev [linux-any],
  libdbus-1-dev [linux-any],
+ libr4d-dev [linux-any],
  nfs-common,
  systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
  python,
