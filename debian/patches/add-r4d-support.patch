@@ -880,7 +880,3 @@ Signed-off-by: Anna-Maria Gleixner <anna-maria@linutronix.de>Index: libvirt-debi
 +AC_DEFUN([LIBVIRT_DRIVER_RESULT_R4D],[
 +    LIBVIRT_RESULT([R4D], [$with_r4d])
 +])
---- /dev/null
-+++ b/README
-@@ -0,0 +1 @@
-+please look at README.adoc

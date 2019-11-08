@@ -1,0 +1,74 @@
+--- a/README.md
++++ b/README.md
+@@ -1,8 +1,8 @@
+ [![Build Status](https://travis-ci.org/libvirt/libvirt.svg)](https://travis-ci.org/libvirt/libvirt)
+  [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/355/badge)](https://bestpractices.coreinfrastructure.org/projects/355)
+ 
+-Libvirt API for virtualization
+-==============================
++Libvirt API for virtualization - with r4d support
++=================================================
+ 
+ Libvirt provides a portable, long term stable C API for managing the
+ virtualization technologies provided by many operating systems. It
+@@ -24,6 +24,13 @@
+ [https://libvirt.org](https://libvirt.org)
+ 
+ 
++R4D support
++-----------
++
++This is a customized version of libvirt. It supports the communication
++with r4d ('Remote For Device-under-test') via libvirt.
++
++
+ License
+ -------
+ 
+@@ -34,6 +41,26 @@
+ and `COPYING` for full license terms & conditions.
+ 
+ 
++Prerequisite
++------------
++
++This is a description for a Debian based system.
++
++First you need to build https://github.com/ci-rt/libr4d[libr4d] and
++install the development package.
++
++Cloning the git repository:
++----
++$ git clone https://github.com/ci-rt/libvirt-debian.git
++----
++
++Checking for unmet build dependencies (and install them):
++----
++$ cd libvirt-debian
++$ dpkg-checkbuilddeps
++----
++
++
+ Installation
+ ------------
+ 
+@@ -60,6 +87,19 @@
+ which lists any missing (optional) dependencies.
+ 
+ 
++Build and install as Debian Packages
++------------------------------------
++
++Build binary packages only:
++----
++$ cd libvirt-debian
++$ dpkg-buildpackage -b
++----
++
++To install the built Debian packages use
++'sudo dpkg -i PATH_TO_PACKAGE'
++
++
+ Contributing
+ ------------
+ 
