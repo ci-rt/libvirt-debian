@@ -1,6 +1,17 @@
+From 30ba81eee0404040e4c67d37183947622dc124b8 Mon Sep 17 00:00:00 2001
+From: Benedikt Spranger <b.spranger@linutronix.de>
+Date: Wed, 22 May 2019 22:17:48 +0200
+Subject: [PATCH 08/10] add-capabilities
+
+---
+ src/r4d/r4d_driver.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/src/r4d/r4d_driver.c b/src/r4d/r4d_driver.c
+index d705637804..35cc6d40c6 100644
 --- a/src/r4d/r4d_driver.c
 +++ b/src/r4d/r4d_driver.c
-@@ -186,8 +186,15 @@
+@@ -186,8 +186,15 @@ r4dNodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED,
  static char *
  r4dConnectGetCapabilities(virConnectPtr conn ATTRIBUTE_UNUSED)
  {
@@ -17,3 +28,6 @@
  }
  
  /* connectListDomains */
+-- 
+2.19.0
+

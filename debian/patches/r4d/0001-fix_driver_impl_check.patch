@@ -1,6 +1,17 @@
+From 58cd2086416453f98991c2d7346b40a70f9e295a Mon Sep 17 00:00:00 2001
+From: Benedikt Spranger <b.spranger@linutronix.de>
+Date: Wed, 22 May 2019 22:17:48 +0200
+Subject: [PATCH 01/10] fix_driver_impl_check
+
+---
+ src/check-driverimpls.pl | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/check-driverimpls.pl b/src/check-driverimpls.pl
+index 832a3900f4..87887ba3f8 100755
 --- a/src/check-driverimpls.pl
 +++ b/src/check-driverimpls.pl
-@@ -40,7 +40,7 @@
+@@ -40,7 +40,7 @@ while (<>) {
  
              my $suffix = $impl;
              my $prefix = $impl;
@@ -9,7 +20,7 @@
  
              if (defined $mainprefix) {
                  if ($mainprefix ne $prefix) {
-@@ -52,7 +52,7 @@
+@@ -52,7 +52,7 @@ while (<>) {
              }
  
              if ($api !~ /^$mainprefix/) {
@@ -18,3 +29,6 @@
                  $suffix =~ s/^([A-Z]+)/lc $1/e;
              }
  
+-- 
+2.19.0
+
