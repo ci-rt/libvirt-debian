@@ -75,7 +75,7 @@ index e16f841e57..3a5fa0081d 100644
 +        goto cleanup;
 +
 +    virObjectRef(con);
-+    if ((con->stdoutWatch = virEventAddHandle(STDOUT_FILENO,
++    if ((con->stdoutWatch = virEventAddHandle(fd,
 +                                              0,
 +                                              virConsoleEventOnStdout,
 +                                              con,
