@@ -488,10 +488,10 @@ index 0000000000..d96fee9f7d
 +            goto cleanup;
 +    }
 +
-+    ret = 0;
++    ret = i;
 +
 +cleanup:
-+    if (ret) {
++    if (ret < 0) {
 +        for (i = 0; i < nnames; i++)
 +            VIR_FREE(names[i]);
 +    }
