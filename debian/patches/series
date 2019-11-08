@@ -25,5 +25,5 @@ r4d/0004-Add-r4d-support.patch
 r4d/0005-Add-debug-logging-mechanism.patch
 r4d/0006-add-console-log.patch
 r4d/0007-r4d_gracefull_shutdown.patch
-r4d/0008-add-capabilities.patch
-r4d/0009-r4d_handle_snapshots.patch
+r4d/0008-r4d_handle_snapshots.patch
+#r4d/0009-add-capabilities.patch

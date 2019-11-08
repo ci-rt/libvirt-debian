@@ -8,26 +8,6 @@ Subject: [PATCH 8/9] add-capabilities
  src/r4d/r4d_driver.c    | 84 ++++++++++++++++++++++++++++++++++++-----
  2 files changed, 79 insertions(+), 12 deletions(-)
 
-diff --git a/src/r4d/Makefile.inc.am b/src/r4d/Makefile.inc.am
-index 4e20a14bad..74619b4e95 100644
---- a/src/r4d/Makefile.inc.am
-+++ b/src/r4d/Makefile.inc.am
-@@ -13,8 +13,11 @@ USED_SYM_FILES += $(srcdir)/libvirt_r4d.syms
- noinst_LTLIBRARIES += libvirt_driver_r4d.la
- libvirt_la_BUILT_LIBADD += libvirt_driver_r4d.la
- 
--libvirt_driver_r4d_la_CFLAGS = $(LIBR4D_CFLAGS)\
--               -I$(srcdir)/conf -I$(srcdir)/r4d $(AM_CFLAGS)
-+libvirt_driver_r4d_la_CFLAGS = $(LIBR4D_CFLAGS) \
-+		-I$(top_srcdir)/src/access \
-+		-I$(srcdir)/conf \
-+		-I$(srcdir)/r4d \
-+		$(AM_CFLAGS)
- libvirt_driver_r4d_la_SOURCES = $(R4D_DRIVER_SOURCES)
- libvirt_driver_r4d_la_LIBADD = $(LIBR4D_LIBS)
- else ! WITH_R4D
-diff --git a/src/r4d/r4d_driver.c b/src/r4d/r4d_driver.c
-index d705637804..bbbe711c40 100644
 --- a/src/r4d/r4d_driver.c
 +++ b/src/r4d/r4d_driver.c
 @@ -29,6 +29,7 @@
@@ -229,7 +209,7 @@ index d705637804..bbbe711c40 100644
  {
      struct r4d_driver *driver = dom->conn->privateData;
      int ret = -1, status;
-@@ -475,7 +539,7 @@ cleanup:
+@@ -475,8 +539,7 @@ cleanup:
  /* domainShutdown */
  static int r4dDomainShutdown(virDomainPtr dom)
  {
@@ -238,6 +218,16 @@ index d705637804..bbbe711c40 100644
  }
  
  /* domainReboot */
--- 
+--
 2.23.0
 
+--- a/src/r4d/Makefile.inc.am
++++ b/src/r4d/Makefile.inc.am
+@@ -4,6 +4,7 @@
+ 	$(NULL)
+ 
+ DRIVER_SOURCE_FILES += $(R4D_DRIVER_SOURCES)
++STATEFUL_DRIVER_SOURCE_FILES += $(R4D_DRIVER_SOURCES)
+ EXTRA_DIST += $(R4D_DRIVER_SOURCES)
+ 
+ if WITH_R4D

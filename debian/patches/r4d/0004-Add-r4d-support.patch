@@ -182,7 +182,7 @@ new file mode 100644
 index 0000000000..4e20a14bad
 --- /dev/null
 +++ b/src/r4d/Makefile.inc.am
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,23 @@
 +R4D_DRIVER_SOURCES = \
 +	r4d/r4d_driver.c \
 +	r4d/r4d_driver.h \
@@ -192,15 +192,17 @@ index 0000000000..4e20a14bad
 +EXTRA_DIST += $(R4D_DRIVER_SOURCES)
 +
 +if WITH_R4D
-+USED_SYM_FILES += $(srcdir)/libvirt_r4d.syms
-+
 +noinst_LTLIBRARIES += libvirt_driver_r4d.la
 +libvirt_la_BUILT_LIBADD += libvirt_driver_r4d.la
 +
-+libvirt_driver_r4d_la_CFLAGS = $(LIBR4D_CFLAGS)\
-+               -I$(srcdir)/conf -I$(srcdir)/r4d $(AM_CFLAGS)
++libvirt_driver_r4d_la_CFLAGS = $(LIBR4D_CFLAGS) \
++		-I$(srcdir)/conf \
++		-I$(srcdir)/r4d \
++		$(AM_CFLAGS)
 +libvirt_driver_r4d_la_SOURCES = $(R4D_DRIVER_SOURCES)
 +libvirt_driver_r4d_la_LIBADD = $(LIBR4D_LIBS)
++
++USED_SYM_FILES += $(srcdir)/libvirt_r4d.syms
 +else ! WITH_R4D
 +SYM_FILES += $(srcdir)/libvirt_r4d.syms
 +endif ! WITH_R4D
