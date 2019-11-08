@@ -18,3 +18,4 @@ Include-etc-pki-qemu-in-apparmor.patch
 virt-aa-helper-Fix-AppArmor-profile.patch
 virt-aa-helper-Actually-fix-AppArmor-profile.patch
 apparmor-Allow-run-pygrub.patch
+fix_driver_impl_check.patch
